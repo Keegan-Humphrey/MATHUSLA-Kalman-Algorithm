@@ -39,9 +39,8 @@ int RunManager::StartTracking()
 			if ((events_handled - 1) % 100 == 0)
 				std::cout << "Event is " << events_handled - 1 << std::endl;
 
-			file.close();
-
 			TotalEventsProcessed++;
+			
 			_digitizer->clear();
 			_tracker->clear();
 			_vertexer->clear();
