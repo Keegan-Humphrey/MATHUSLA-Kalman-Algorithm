@@ -75,14 +75,15 @@ public:
 
       // find speed of filtered position
       double v = 0;
-      for (int i=3; i < x_temp.size(); i++) v += std::pow(x_temp[i], 2);
+      for (int i = 3; i < x_temp.size(); i++)
+        v += std::pow(x_temp[i], 2);
       v = std::sqrt(v);
 
       if (del_chi < min_val && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best
 
-	// keep track of second lowest for king moves
-        second_min_index = min_index; 
+        // keep track of second lowest for king moves
+        second_min_index = min_index;
         min_index = j;
 
         min_val = del_chi;
@@ -92,8 +93,6 @@ public:
 
     return {min_index, second_min_index};
   }
-
-
 
   int find_nearest_vertex(std::vector<physics::track *> tracks)
   { // find index of nearest track to current vertex best estimate
@@ -118,11 +117,11 @@ public:
 
       Eigen::MatrixXd B(6, 3);
       B << dt, 0, 0,
-           0, dt / track->vy, 0,
-           0, 0, dt,
-           1, 0, 0,
-           0, 1, 0,
-           0, 0, 1;
+          0, dt / track->vy, 0,
+          0, 0, dt,
+          1, 0, 0,
+          0, 1, 0,
+          0, 0, 1;
 
       Eigen::MatrixXd G = R.inverse(); // R is V in Fruhwirth
       Eigen::MatrixXd W = (B.transpose() * G * B).inverse();
@@ -149,24 +148,22 @@ public:
       del_chi = del_chi + res_v.transpose() * P.inverse() * res_v;
 
       double sigma_v = (q.transpose() * D * q)(0) / q.squaredNorm(); // error in v
-      pulls_v_f.push_back((q.norm() - constants::c) / sigma_v); // pull of v from speed of light
+      pulls_v_f.push_back((q.norm() - constants::c) / sigma_v);      // pull of v from speed of light
 
-//      if (del_chi < min_val && std::abs(pulls_v_f.back()) < kalman::pull_cut_add)
-      if (del_chi < min_val
-          && kalman::v_cut_add[0] < q.norm() / constants::c && q.norm() / constants::c < kalman::v_cut_add[1])
+      //      if (del_chi < min_val && std::abs(pulls_v_f.back()) < kalman::pull_cut_add)
+      if (del_chi < min_val && kalman::v_cut_add[0] < q.norm() / constants::c && q.norm() / constants::c < kalman::v_cut_add[1])
       {
         min_index = j;
         min_val = del_chi;
       }
       j++;
     }
-
     return min_index;
   }
 
   double update_gain(const std::vector<physics::digi_hit *> y);
   double update_gain(const std::vector<physics::digi_hit *> y, double dy);
-  double update_means(const std::vector<physics::track*> tracks);
+  double update_means(const std::vector<physics::track *> tracks);
 
   void king_moves_algorithm(const std::vector<physics::digi_hit *> y_list, std::vector<int> hit_inds);
 
@@ -252,8 +249,8 @@ private:
   std::vector<double> chi_2_s; // smoothed chi^2
 
   void update_matrices(physics::digi_hit *a_hit);
-  void update_matrices_means(const physics::track* new_track);
+  void update_matrices_means(const physics::track *new_track);
 
   void Q_update(double dy, double a, double b, double c);
-  void Q_propagate(const physics::track* track);
+  void Q_propagate(const physics::track *track);
 };

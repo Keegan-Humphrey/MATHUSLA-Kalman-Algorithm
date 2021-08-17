@@ -27,8 +27,8 @@ int RunManager::StartTracking()
 	int verts_k = 0;
 	int verts_k_m = 0;
 
-        std::vector<int> zeros(9, 0);
-        std::vector<int> failures_k = zeros;
+	std::vector<int> zeros(9, 0);
+	std::vector<int> failures_k = zeros;
 
 	while (TH->Next() >= 0)
 	{
@@ -43,7 +43,6 @@ int RunManager::StartTracking()
 				std::cout << "Event is " << events_handled - 1 << std::endl;
 
 			TotalEventsProcessed++;
-
 			_digitizer->clear();
 			_tracker->clear();
 			_vertexer->clear();
@@ -66,7 +65,7 @@ int RunManager::StartTracking()
 			// now, we begin the seeding algorithm
 
 			// remove this carefully in TrackFinder.cc
-                        _tracker->failure_reason = zeros;
+			_tracker->failure_reason = zeros;
 
 			_tracker->hits = digi_list;
 			_tracker->hits_k = digi_list;
@@ -139,7 +138,6 @@ int RunManager::StartTracking()
 		}
 
 		events_handled++;
-
 	}
 
 	std::cout << verts << " Old vertices made it" << std::endl;
