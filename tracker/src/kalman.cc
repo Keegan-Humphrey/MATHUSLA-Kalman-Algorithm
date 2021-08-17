@@ -1,10 +1,10 @@
 /**
-* Implementation of KalmanFilter. Based on code by 
-* 
+* Implementation of KalmanFilter. Based on code by
+*
 * Hayk Martirosyan (2014.11.15)
-* 
+*
 * and the following paper
-* 
+*
 * Frühwirth, R. (1987). Application of Kalman filtering to track and vertex fitting.
 * Nuclear Instruments and Methods in Physics Research Section A:
 * Accelerators, Spectrometers, Detectors and Associated Equipment,
@@ -107,43 +107,11 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
   // indices of lowest two chis in the layer
   std::vector<int> hit_inds = find_nearest(y_list, x_hat_new);
 
+  // hit_inds[0] is index of hit w lowest chi that meets beta cut
   physics::digi_hit *y;
-  for (int i = 0; i < y_list.size(); i++)
-  { // remove hits that have a small residual from the chosen hit
-    // this helps avoid making duplicate tracks
+  y = y_list[hit_inds[0]];
 
-    // index of hit with min chi (chosen hit)
-    if (i == hit_inds[0])
-      y = y_list[i];
-
-    else if (i == hit_inds[1])
-    {
-      // residue for the hit
-      Eigen::VectorXd res(3);
-      res << y_list[i]->x, y_list[i]->t, y_list[i]->z;
-      res = res - C * x_hat_new;
-
-      std::vector<double> scale = {1, 2.5, 1};
-
-      if (std::abs(res[0]) < std::sqrt(12) * y_list[i]->ex * scale[0])
-      {
-        if (std::abs(res[1]) < y_list[i]->et * scale[1])
-        {
-          if (std::abs(res[2]) < std::sqrt(12) * y_list[i]->ez * scale[2])
-          {
-            king_move_inds.push_back(y_list[i]->index);
-
-            // within king moves of the chosen hit, remove from hit pool
-            continue;
-          }
-        }
-      }
-      else
-        unadded_hits.push_back(y_list[i]);
-    }
-    else
-      unadded_hits.push_back(y_list[i]);
-  }
+  king_moves_algorithm(y_list, hit_inds);
 
   // no good hit was found
   if (hit_inds[0] == -1)
@@ -179,6 +147,48 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
   chi += chi_plus;
 
   return chi_plus;
+}
+
+void KalmanFilter::king_moves_algorithm(const std::vector<physics::digi_hit *> y_list, std::vector<int> hit_inds)
+{
+  for (int i = 0; i < y_list.size(); i++)
+  { // remove hits that have a small residual from the chosen hit
+    // this helps avoid making duplicate tracks
+
+    // index of hit with min chi (chosen hit)
+    if (i == hit_inds[0])
+      continue;
+
+    else if (i == hit_inds[1])
+//    if (i == hit_inds[1])
+    {
+      // residue for the hit
+      Eigen::VectorXd res(3);
+      res << y_list[i]->x, y_list[i]->t, y_list[i]->z;
+      res = res - C * x_hat_new;
+
+      std::vector<double> scale = {1, 2.5, 1};
+
+      if (std::abs(res[0]) < std::sqrt(12) * y_list[i]->ex * scale[0])
+      {
+        if (std::abs(res[1]) < y_list[i]->et * scale[1])
+        {
+          if (std::abs(res[2]) < std::sqrt(12) * y_list[i]->ez * scale[2])
+          {
+            king_move_inds.push_back(y_list[i]->index);
+
+            // within king moves of the chosen hit, remove from hit pool
+            continue;
+          }
+        }
+      }
+      else
+        unadded_hits.push_back(y_list[i]);
+    }
+    else
+      unadded_hits.push_back(y_list[i]);
+  }
+
 }
 
 void KalmanFilter::init_smooth_gain()
@@ -223,7 +233,9 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
   v << x_n[3], x_n[4], x_n[5];
 
   //
-  if (dropping && (chi_plus_s > cuts::kalman_chi_s || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1])))
+  if (dropping
+     && (chi_plus_s > cuts::kalman_chi_s
+     || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1])))
   {
     Eigen::MatrixXd K_n = P_n * C.transpose() * (-R + C * P_n * C.transpose()).inverse();
 
