@@ -107,11 +107,11 @@ namespace cuts{
         const double kalman_chi_s = 150.0;
         const double kalman_chi_add = 200.0;
         const double kalman_track_chi = 15.0;
-        const std::vector<double> kalman_v_add = {0.900000,1.100000};
-        const std::vector<double> kalman_v_drop = {0.900000,1.100000};
+        const std::vector<double> kalman_v_add = {0.8,1.2};
+        const std::vector<double> kalman_v_drop = {0.9,1.1};
 
 	//merging
-        const double merge_cos_theta = 0.999;
+        const double merge_cos_theta = 0.998;
         const double merge_distance = 25.0*units::cm;
 
 	//cleaning step

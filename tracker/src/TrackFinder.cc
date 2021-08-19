@@ -960,17 +960,13 @@ void TrackFinder::FindTracks_kalman()
 		undropped_hits = kf_find.found_hits;
 		unused_hits = kf_find.unadded_hits;
 
-		int drops = -1;
+//		int drops = -1;
 		int i = 0;
 
 		bool failed = false;
 
-		//std::vector<kalman_track *> kfts;
-//		kalman_track kft_;
-
-//		for (int i=0; i < 3; i++)
-		while (drops != 0)
-		{
+//		while (drops != 0)
+//		{
 			file << "Drop Iteration " << i << std::endl;
 
 			kalman_track kft_;
@@ -998,8 +994,8 @@ void TrackFinder::FindTracks_kalman()
                 	        failure_reason[5] += 1;
 				file.close();
 				failed = true;
-				break;
-	                        //continue;
+//				break;
+	                        continue;
         	        }
 
 			good_hits = kft_.added_hits;
@@ -1011,8 +1007,8 @@ void TrackFinder::FindTracks_kalman()
 				failure_reason[6] += 1;
 				file.close();
 				failed = true;
-				break;
-//				continue;
+//				break;
+				continue;
 			}
 
 			if (good_hits.size() < cuts::track_nlayers)
@@ -1028,7 +1024,7 @@ void TrackFinder::FindTracks_kalman()
 
 	//		file << "hits size 3: " << hits_k.size() << std::endl;
 
-			drops = 0;
+//			drops = 0;
 
 			//dropping hits
 			for (int n = 0; n < good_hits.size(); n++)
@@ -1044,7 +1040,7 @@ void TrackFinder::FindTracks_kalman()
 				{
 					file << "dropped with chi: " << kft_.chi_s[n] << '\n';
 					unused_hits.push_back(good_hits[n]);
-					drops++;
+//					drops++;
 				}
 				else
 				{
@@ -1053,7 +1049,7 @@ void TrackFinder::FindTracks_kalman()
 				}
 			}
 
-			file << "number of hits dropped " << drops << std::endl;
+//			file << "number of hits dropped " << drops << std::endl;
 //			std::cout << "number of hits dropped " << drops << std::endl;
 
 			if (undropped_hits.size() < cuts::track_nlayers)
@@ -1062,8 +1058,8 @@ void TrackFinder::FindTracks_kalman()
 				failure_reason[0] += 1;
 				file.close();
 				failed = true;
-				break;
-//				continue;
+//				break;
+				continue;
 			}
 			file.close();
 
@@ -1072,19 +1068,19 @@ void TrackFinder::FindTracks_kalman()
 
 			//// end where kft used to be
 
-			if (i == 15) {std::cout << "track i break " << std::endl; break;}
+//			if (i == 15) {std::cout << "track i break " << std::endl; break;}
 
 //			std::cout << "Iteration " << i << std::endl;
-			i++;
+//			i++;
 
-			if (drops != 0) continue; // new
+//			if (drops != 0) continue; // new
 //			drops = 0;
 
 		// don't do an extra fit?
-//		kalman_track kft_2;
-//		kft_2.finding = false;
-//		kft_2.dropping = false;
-//		kft_2.kalman_all(undropped_hits, &current_seed);
+		kalman_track kft_2;
+		kft_2.finding = false;
+		kft_2.dropping = false;
+		kft_2.kalman_all(undropped_hits, &current_seed);
 
 //		kft_ = kft_2
 		//kalman_track kft_ = *kfts.back();
@@ -1101,6 +1097,7 @@ void TrackFinder::FindTracks_kalman()
 
 		file << " status is " << kft_.status << std::endl;
 
+/*
 		if (kft_.status == 0)
 		{
 			failure_reason[1] += 1;
@@ -1125,30 +1122,37 @@ void TrackFinder::FindTracks_kalman()
 			failed = true;
 			break;
 		}
+*/
+		if (kft_2.status != 2)
+		{
+			file.close();
+			failed = true;
+			continue;
+		}
 
 //		file << "test 0" << std::endl;
 
-		auto current_track = new physics::track(kft_.x_s, kft_.P_s);
+		auto current_track = new physics::track(kft_2.x_s, kft_2.P_s);
 		current_track->hits = undropped_hits;
 
 //		file << "test 1" << std::endl;
 
-		current_track->x_scats = kft_.x_scat;
-		current_track->z_scats = kft_.z_scat;
+		current_track->x_scats = kft_2.x_scat;
+		current_track->z_scats = kft_2.z_scat;
 
 //		file << "test 2" << std::endl;
 
-		current_track->chi_f = kft_.chi_f;
-		current_track->chi_s = kft_.chi_s;
+		current_track->chi_f = kft_2.chi_f;
+		current_track->chi_s = kft_2.chi_s;
 
 //		file << "test 3" << std::endl;
 
-		current_track->estimate_list = kft_.x_s_list;
-		current_track->P_s = kft_.P_s0;
+		current_track->estimate_list = kft_2.x_s_list;
+		current_track->P_s = kft_2.P_s0;
 
 //		file << "test 4" << std::endl;
 
-		current_track->king_move_inds = kft_.king_move_inds;
+		current_track->king_move_inds = kft_2.king_move_inds;
 
 		//if (king_move_inds.size() != 0) std::cout << "\n trackfinder second";
 		//for (auto ind : king_move_inds) std::cout << ind << ", ";
@@ -1160,7 +1164,7 @@ void TrackFinder::FindTracks_kalman()
 			{
 				if (i == j)
 				{
-					cov_matrix[i][j] = std::pow(kft_.P_s[i],2);
+					cov_matrix[i][j] = std::pow(kft_2.P_s[i],2);
 				}
 				else
 				{
@@ -1171,11 +1175,11 @@ void TrackFinder::FindTracks_kalman()
 
 		current_track->CovMatrix(cov_matrix, 7);
 
-		for (auto chi : kft_.chi_f)
+		for (auto chi : kft_2.chi_f)
 			local_chi_f.push_back(chi);
-		for (auto chi : kft_.chi_s)
+		for (auto chi : kft_2.chi_s)
 			local_chi_s.push_back(chi);
-
+/*
 		file << "chi f is ";
 		for (auto chi : kft_.chi_f)
 			file << chi << " , ";
@@ -1185,11 +1189,11 @@ void TrackFinder::FindTracks_kalman()
 		for (auto chi : kft_.chi_s)
 			file << chi << " , ";
 		file << std::endl;
-
+*/
 		double chi_sum = 0;
-		for (auto chi : kft_.chi_s)
+		for (auto chi : kft_2.chi_s)
 			chi_sum += chi;
-		chi_sum = chi_sum / (4.0 * kft_.chi_s.size() - 6.0);
+		chi_sum = chi_sum / (4.0 * kft_2.chi_s.size() - 6.0);
 
 		file << "chi s sum is " << chi_sum << std::endl;
 
@@ -1214,14 +1218,14 @@ void TrackFinder::FindTracks_kalman()
 			delete current_track;
 			file.close();
 			failed = true;
-			break;
-//			continue;
+//			break;
+			continue;
 		}
 
 
 //		std::cout << "third unused length " << unused_hits.size() << std::endl;
 
-		} // drop for loop
+//		} // drop for loop
 
 		if (failed) continue;
 

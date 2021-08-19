@@ -69,6 +69,7 @@ public:
       // compute the chi increment
       double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
 
+      /*
       // filter the predicted state using the current hit
       Eigen::VectorXd x_temp(6);
       x_temp = position + K * (hit_eig - C * position);
@@ -78,8 +79,9 @@ public:
       for (int i = 3; i < x_temp.size(); i++)
         v += std::pow(x_temp[i], 2);
       v = std::sqrt(v);
+      */
 
-      if (del_chi < min_val && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
+      if (del_chi < min_val) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best
 
         // keep track of second lowest for king moves
