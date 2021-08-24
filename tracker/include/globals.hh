@@ -18,17 +18,19 @@ namespace detector{
 	const double ip_x = 0.0;
 	const double ip_y = 0.0;
 	const double ip_z = 0.0;
+
 	//specifies the bottom and top y position of every layer
-	const std::vector<std::vector<double>> LAYERS_Y={{6000.0*cm, 6005.0*cm},  //layer 0
- 												 	{6104.0*cm, 6107.0*cm}, //layer 1
- 													{8001.0*cm, 8004.0*cm}, //layer 2
- 													{8104.0*cm, 8107.0*cm}, //layer 3
- 													{8501.0*cm, 8504.0*cm}, //layer 4
- 													{8604.0*cm, 8607.0*cm}, //layer 5
- 													{8707.0*cm, 8710.0*cm}, //layer 6
- 													{8810.0*cm, 8813.0*cm}, //layer 7
-													{8913.0*cm, 8916.0*cm} };  //layer 8
-	const int n_layers = 9;
+	const std::vector<std::vector<double>> LAYERS_Y={{6003.0*cm, 6006.0*cm},  //layer 0
+ 												 	{6106.0*cm, 6109.0*cm}, //layer 1
+													{6209.0*cm, 6212.0*cm}, //layer 2
+ 													{8003.0*cm, 8006.0*cm}, //layer 3
+ 													{8106.0*cm, 8109.0*cm}, //layer 4
+ 													{8503.0*cm, 8506.0*cm}, //layer 5
+ 													{8606.0*cm, 8609.0*cm}, //layer 6
+ 													{8709.0*cm, 8712.0*cm}, //layer 7
+ 													{8812.0*cm, 8815.0*cm}, //layer 8
+													{8915.0*cm, 8918.0*cm} };  //layer 9
+	const int n_layers = 10;
 
 	const std::vector<std::vector<double>> MODULE_X = { 	{-4950.0*cm, -4050.0*cm},
 													{-3950.0*cm, -3050.0*cm},
@@ -56,6 +58,7 @@ namespace detector{
 	const double scintillator_length = 450.0*units::cm;
 	const double scintillator_width = 4.50*units::cm;
 	const double scintillator_height = 3.0*units::cm;
+	const double scintillator_thickness = 2.0*units::cm; //Just the sensitive part
 	const double time_resolution = 1.0*units::ns;
 
 	const double x_min = MODULE_X[0][0];
@@ -71,7 +74,19 @@ namespace detector{
 	const double floor_x_width = 50.0*units::cm;
 	const double floor_z_width = 50.0*units::cm;
 
+    //WALL TILE WIDTHS
 
+    const double wall_x_width = 50.0*units::cm;
+    const double wall_y_width = 50.0*units::cm;
+
+    //WALL PARAMETERS
+
+    const double wall_gap = 1.0*units::cm; //gap on each side of wall
+    const double wall_height = 2000.0*units::cm;
+    const double wall_start_y = 6000.0*units::cm; //min y value of wall (casing included)
+
+    //FOR statistics.hh ONLY - NEW MIN Z WITH WALL
+    const double z_min_wall = z_min - wall_gap - scintillator_height;
 
 };
 
@@ -128,7 +143,13 @@ namespace cuts{
 
 	//run options
         const int start_ev = 0;
-        const int end_ev = 5000;
+        const int end_ev = 500;
+
+    //digi hit cuts for floors and wall
+    const std::vector<bool> include_floor = { true, true, true }; //ith index for ith floor from bottom
+
+    const bool include_wall = true;
+    const double wall_y_cut = detector::wall_start_y + detector::wall_height; //all digi hits above this will be thrown out
 };
 
 

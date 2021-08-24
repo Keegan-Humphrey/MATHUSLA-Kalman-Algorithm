@@ -117,8 +117,8 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
     return -1.0;
 
   // take any hit because errors are the same for all layers
-  update_matrices(y_list[0]);
-//  update_matrices(y_list[hit_inds[0]]);
+//  update_matrices(y_list[0]);
+  update_matrices(y_list[hit_inds[0]]);
 
   x_hat_new = A * x_hat;
 

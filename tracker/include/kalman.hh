@@ -84,18 +84,6 @@ public:
 //      double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
       double del_chi = (hit_eig - C * x_hat_new_temp).transpose() * err_metric.inverse() * (hit_eig - C * x_hat_new_temp);
 
-      /*
-      // filter the predicted state using the current hit
-      Eigen::VectorXd x_temp(6);
-      x_temp = position + K * (hit_eig - C * position);
-
-      // find speed of filtered position
-      double v = 0;
-      for (int i = 3; i < x_temp.size(); i++)
-        v += std::pow(x_temp[i], 2);
-      v = std::sqrt(v);
-      */
-
       if (del_chi < min_val) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best
 
