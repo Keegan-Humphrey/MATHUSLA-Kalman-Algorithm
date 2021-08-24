@@ -59,15 +59,30 @@ public:
       min_val = 1e6; // if the filter hasn't been initialised take hit
                      // with lowest chi regardless of the value
 
-    Eigen::MatrixXd err_metric = R + C * P * C.transpose();
+    Eigen::MatrixXd P_temp = P;
+
+//    Eigen::MatrixXd err_metric = R + C * P * C.transpose();
 
     for (auto hit : hits)
     {
       Eigen::VectorXd hit_eig(3);
       hit_eig << hit->x, hit->t, hit->z;
 
+      update_matrices(hit);
+
+//      Eigen::VectorXd x_hat_new_temp = A * x_hat;
+      Eigen::VectorXd x_hat_new_temp = A * position;
+
+      if (initialized) {
+        P_temp = A * P * A.transpose() + Q;
+//        Eigen::MatrixXd K_temp = P_temp * C.transpose() * (C * P_temp * C.transpose() + R).inverse();
+      }
+
+      Eigen::MatrixXd err_metric = R + C * P_temp * C.transpose();
+
       // compute the chi increment
-      double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
+//      double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
+      double del_chi = (hit_eig - C * x_hat_new_temp).transpose() * err_metric.inverse() * (hit_eig - C * x_hat_new_temp);
 
       /*
       // filter the predicted state using the current hit
@@ -203,6 +218,7 @@ public:
 
   // Discrete height step
   double dy;
+  double y_val;
 
   // run options
   bool dropping;

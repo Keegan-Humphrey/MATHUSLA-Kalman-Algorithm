@@ -50,18 +50,41 @@ public:
   //  std::ofstream file;
     //file.open("print.txt", std::ios_base::app);
 
-    std::vector<std::vector<physics::digi_hit *>> layer_list(9);
+//    std::vector<std::vector<physics::digi_hit *>> layer_list(9);
+    std::vector<std::vector<physics::digi_hit *>> layer_list(2 * detector::n_layers);
 
-    std::vector<double> height_list(9);
-    height_list = {6002.5, 6105.5, 8002.5, 8105.5, 8502.5, 8605.5, 8708.5, 8811.5, 8914.5};
+//    std::vector<double> height_list(9);
+//    height_list = {6002.5, 6105.5, 8002.5, 8105.5, 8502.5, 8605.5, 8708.5, 8811.5, 8914.5};
 
+    std::vector<double> height_list(detector::n_layers);
+    for (int i=0; i < detector::n_layers; i++) height_list[i] = (detector::LAYERS_Y[i][0] + detector::LAYERS_Y[i][1]) / 2;
+
+//    std::map<double, int> y_to_inds;
+//    for (int i = 0; i < 9; i++)
+//      y_to_inds[height_list[i]] = i;
+
+    // make a map from y to the index of the layer
     std::map<double, int> y_to_inds;
-    for (int i = 0; i < 9; i++)
-      y_to_inds[height_list[i]] = i;
+    for (int i = 0; i < detector::n_layers; i++)
+      y_to_inds[height_list[i]] = 2 * i; // just did this !!!!
 
+//    for (auto hit : digis)
+//    {
+//      layer_list[y_to_inds[hit->y]].push_back(hit);
+
+    // sort floor AND wall hits by y interval
     for (auto hit : digis)
     {
-      layer_list[y_to_inds[hit->y]].push_back(hit);
+      for (int i = 0; i < detector::n_layers; i++) {
+        if (height_list[i] == hit->y) {
+          layer_list[(int)(2 * i)].push_back(hit);
+          break;
+        }
+	else if (height_list[i] < hit->y && hit->y < height_list[i+1]) {
+          layer_list[(int)(2 * i + 1)].push_back(hit);
+          break;
+        }
+      }
     }
     layer_hits = layer_list;
 
@@ -161,7 +184,8 @@ private:
     first_hit = current_seed->hits.first; // first hit in the seed
     first_hit_list = {first_hit};
 
-    seed_layer = (first_hit->det_id).layerIndex; // layer of first hit
+    // layer of first hit (times two to account for spaces between layers)
+    seed_layer = (first_hit->det_id).layerIndex * 2;
     file << "Seed layer is " << seed_layer << std::endl;
 
     seedguess = current_seed->guess();

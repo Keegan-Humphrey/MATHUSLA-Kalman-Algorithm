@@ -172,9 +172,9 @@ void kalman_track::find_first()
   // find layer index to start filter
   int start_ind;
 
-  // layers index of first_hit_list
+  // layers index of first_hit_list (times two to account for spaces between layers)
   if (seed_was_used)
-    start_ind = det_ind_to_layers[(first_hit_list[0]->det_id).layerIndex];
+    start_ind = det_ind_to_layers[(first_hit_list[0]->det_id).layerIndex * 2];
   else
     start_ind = det_ind_to_layers[seed_layer];
 
@@ -184,6 +184,7 @@ void kalman_track::find_first()
   {
 
     double y_step = layer_hits[layers[i - 1]][0]->y - layer_hits[layers[i]][0]->y;
+//    double y = kf.y_val;
 
     if (skipped)
     { // if no hits are found add previous y_step to current one (skip a layer)
@@ -192,6 +193,7 @@ void kalman_track::find_first()
     }
 
     double chi = kf_find.update_gain(layer_hits[layers[i - 1]], y_step);
+//    double chi = kf_find.update_gain(layer_hits[layers[i - 1]], y);
 
     if (chi == -1.0)
     {
@@ -227,12 +229,13 @@ void kalman_track::filter()
   kf.init_gain(x_filter, lowest_hit_list);
   kf.dropping = dropping;
 
-  skipped = false;
+//  skipped = false;
 
   for (int i = det_ind_to_layers[filter_start_layer]; i < layers.size() - 1; i++)
   {
 
     double y_step = layer_hits[layers[i + 1]][0]->y - layer_hits[layers[i]][0]->y;
+//    double y = kf.y_val;
 
     if (skipped)
     {
@@ -241,6 +244,7 @@ void kalman_track::filter()
     }
 
     double chi = kf.update_gain(layer_hits[layers[i + 1]], y_step);
+//    double chi = kf.update_gain(layer_hits[layers[i + 1]], y);
 
     // no hit was found skip this layer
     if (chi == -1.0)

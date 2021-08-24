@@ -42,6 +42,8 @@ KalmanFilter::KalmanFilter() {}
 void KalmanFilter::init_gain(const Eigen::VectorXd &x0, std::vector<physics::digi_hit *> first_layer)
 { // init function for the filter in the Gain Matrix Formalism
 
+  // no propagation to first hit
+//  dy = 0;
   A = I;
 
   P = P0;
@@ -50,6 +52,9 @@ void KalmanFilter::init_gain(const Eigen::VectorXd &x0, std::vector<physics::dig
 
   chi = 0;
 
+  // y value of hits on first layer
+  y_val = first_layer[0]->y;
+
   // use errors from first hit since they are the same for the entire layer
   R << first_layer[0]->ex, 0, 0,
       0, first_layer[0]->et, 0,
@@ -57,7 +62,7 @@ void KalmanFilter::init_gain(const Eigen::VectorXd &x0, std::vector<physics::dig
   R = R * R;
 
   // pass seed predicted position and first vector
-  // of layer_list (hits in the layer) and then use find_nearest
+  // of layer_hits (hits in the layer) and then use find_nearest
   // to find the index of the best hit to use
   std::vector<int> x_inds = find_nearest(first_layer, x0);
   int x_ind = x_inds[0];
@@ -85,6 +90,7 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y, doubl
 {
 
   this->dy = dy;
+//  this->y_val = y_val + dy;
 
   double chi = update_gain(y);
   return chi;
@@ -96,16 +102,9 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
   if (!initialized)
     throw std::runtime_error("Filter is not initialized!");
 
-  // take any hit because errors are the same for all layers
-  update_matrices(y_list[0]);
-
-  P = A * P * A.transpose() + Q;
-  K = P * C.transpose() * (C * P * C.transpose() + R).inverse();
-
-  x_hat_new = A * x_hat;
-
   // indices of lowest two chis in the layer
-  std::vector<int> hit_inds = find_nearest(y_list, x_hat_new);
+//  std::vector<int> hit_inds = find_nearest(y_list, x_hat_new);
+  std::vector<int> hit_inds = find_nearest(y_list, x_hat);
 
   // hit_inds[0] is index of hit w lowest chi that meets beta cut
   physics::digi_hit *y;
@@ -117,8 +116,22 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
   if (hit_inds[0] == -1)
     return -1.0;
 
+  // take any hit because errors are the same for all layers
+  update_matrices(y_list[0]);
+//  update_matrices(y_list[hit_inds[0]]);
+
+  x_hat_new = A * x_hat;
+
+  P = A * P * A.transpose() + Q;
+  K = P * C.transpose() * (C * P * C.transpose() + R).inverse();
+
+  A_k.push_back(A); // F_k
+
   Eigen::VectorXd Y(m);
   Y << y->x, y->t, y->z;
+
+  // hit is chosen, update y_val to hit->y
+  y_val = y->y;
 
   // calculate the increment in the chi squared
   Eigen::MatrixXd err_metric_p = R + C * P * C.transpose();
@@ -162,6 +175,9 @@ void KalmanFilter::king_moves_algorithm(const std::vector<physics::digi_hit *> y
     else if (i == hit_inds[1])
 //    if (i == hit_inds[1])
     {
+      update_matrices(y_list[i]);
+      x_hat_new = A * x_hat;
+
       // residue for the hit
       Eigen::VectorXd res(3);
       res << y_list[i]->x, y_list[i]->t, y_list[i]->z;
@@ -250,31 +266,34 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
 
 void KalmanFilter::update_matrices(physics::digi_hit *a_hit)
 {
+  R << a_hit->ex, 0, 0,
+      0, a_hit->et, 0,
+      0, 0, a_hit->ez;
+  R = R * R;
 
-  A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
+  if (initialized) {
+
+   // what's the right way to do this?
+//    dy = a_hit->y - y_val;
+
+    A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
       .0, 1.0, .0, .0, dy / (x_hat[4] * x_hat[4]), .0,
       .0, .0, 1.0, .0, .0, dy / x_hat[4],
       .0, .0, .0, 1.0, .0, .0,
       .0, .0, .0, .0, 1.0, .0,
       .0, .0, .0, .0, .0, 1.0;
 
-  A_k.push_back(A); // F_k
+    // direction cosines
+    double a = x_hat[3] / constants::c;
+    double b = x_hat[4] / constants::c;
+    double c = x_hat[5] / constants::c;
 
-  // use errors from first hit since same for entire layer
-  R << a_hit->ex, 0, 0,
-      0, a_hit->et, 0,
-      0, 0, a_hit->ez;
-  R = R * R;
+    Q_update(dy, a, b, c);
 
-  // direction cosines
-  double a = x_hat[3] / constants::c;
-  double b = x_hat[4] / constants::c;
-  double c = x_hat[5] / constants::c;
+    x_scat = std::sqrt(Q(0, 0)) * 100 / dy; // predicted std of scattering in x per y m
+    z_scat = std::sqrt(Q(2, 2)) * 100 / dy; // predicted std of scattering in z per y m
+  }
 
-  Q_update(dy, a, b, c);
-
-  x_scat = std::sqrt(Q(0, 0)) * 100 / dy; // predicted std of scattering in x per y m
-  z_scat = std::sqrt(Q(2, 2)) * 100 / dy; // predicted std of scattering in z per y m
 
 }
 
