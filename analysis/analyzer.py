@@ -42,7 +42,7 @@ class H_mumu_Analyzer:
 				self.passed_events.append(passed_events)
 
 			print(self.events_passing_cuts_byfile)
-		
+
 		print(self.passed_events)
 		print("H_mumu Analyzer Results:")
 		print(self.events_passing_cuts)
@@ -63,7 +63,6 @@ class H_mumu_Analyzer:
 			#currEvent.Print()
 			currEvent.GetRecoInfo()
 			currEvent.DrawReco()
-		
 
 	def InitTree(self, tree):
 		self.Tree = tree

@@ -210,9 +210,16 @@ def Histogram(data, rng=None, Title=None, xaxis=None, log=False):
     if log:
         ax.semilogy()
 
+    mean = np.mean(data)
+    std = np.std(data)
+
+    data = np.array(data)
+    data[data > rng[1]] = 0
+    above = len(data) - np.count_nonzero(data)
+
     ax.set_title(Title)
     ax.set_xlabel(xaxis)
-    ax.text(np.max(data)*0.75,np.shape(data)[0]*5e-2,"Mean: {:.03g} \nSTD: {:0.3g}".format(np.mean(data),np.std(data)))
+    ax.text(rng[1]*0.75,np.shape(data)[0]*5e-2,"Mean: {:.03g} \nSTD: {:0.3g} \nOverflow: {}".format(mean,std,above))
 
     plt.savefig("hist.png")
 #    plt.show()

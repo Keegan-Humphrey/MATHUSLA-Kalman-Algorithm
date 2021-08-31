@@ -5,6 +5,7 @@ from detector import Detector
 import util
 import ROOT as root
 from joblib import dump, load
+import matplotlib.pyplot as plt
 
 #########################################################################################
 ### DEFINITION OF EVENT CLASS ###########################################################
@@ -846,3 +847,50 @@ class Event:
 				print("--(" + str(self.Tree.Digi_x[digi_index]) + ", " + str(self.Tree.Digi_y[digi_index]) + ", " + str(self.Tree.Digi_z[digi_index]) + ")" )
 #			print("Missing Hits in Layers:  " + str(missing_hits[n]))
 #			print("Expected Hits in Layers: " + str(expected_hits[n]))
+
+
+
+	def TrackEfficiency(self):
+		''' plot distribution of reconstructed lowest hit location'''
+
+		self.Tree.SetBranchStatus("Track_k_m_x0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_z0", 1)
+		self.Tree.SetBranchStatus("NumTracks_k_m", 1)
+
+		x0, z0 = [], []
+
+		has_a_track = 0
+
+		for ev in range(self.Tree.GetEntries()): # event
+			self.Tree.GetEntry(ev)
+
+			for tr in range(self.Tree.NumTracks_k_m):
+				x0.append(self.Tree.Track_k_m_x0[tr])
+				z0.append(self.Tree.Track_k_m_z0[tr])
+
+			if self.Tree.NumTracks_k_m > 0:
+				has_a_track += 1
+
+		#plt.hist2d(trackx0, trackz0)
+
+		hist, bin_x, bin_y = np.histogram2d(x0,z0,bins=150)
+
+		fig, ax = plt.subplots(figsize=(8,5))
+		plt.imshow(hist,alpha=0.5)
+		plt.colorbar(orientation='vertical')
+		plt.savefig("Efficiency.png")
+
+		efficiency = has_a_track / self.Tree.GetEntries()
+
+		print("efficiency is ", efficiency)
+
+
+	def TrackResolution(self):
+		''' plot distribution of truth vs reconstructed for angle and lowest hit location '''
+
+		self.Tree.SetBranchStatus("Track_k_m_x0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_z0", 1)
+		self.Tree.SetBranchStatus("NumTracks_k_m", 1)
+
+
+

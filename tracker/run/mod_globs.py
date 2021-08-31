@@ -82,7 +82,7 @@ def main():
 #	edt = Editor("../include/globals.hh",i,j)
 	edt = Editor("par_card.txt",i,j)
 
-	print(edt.pars[i])
+#	print(edt.pars[i])
 
 	edt.alter()
 	edt.write()

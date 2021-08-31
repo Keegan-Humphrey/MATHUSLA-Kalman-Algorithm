@@ -379,11 +379,11 @@ void TrackFinder::MergeTracks_k()
 				mergebool = true;
 			}
 
-			else if ((tr1->_holes.size() >= 3 or tr2->_holes.size() >= 3) and (distance < 150 and cos_theta > 0.95)){
+			if ((tr1->_holes.size() >= 3 or tr2->_holes.size() >= 3) and (distance < 150 and cos_theta > 0.95)){
 				mergebool = true;
 			}
 
-			else if ((tr1->_holes.size() >= 2 or tr2->_holes.size() >= 2) and (distance < 100 and cos_theta > 0.99)){
+			if ((tr1->_holes.size() >= 2 or tr2->_holes.size() >= 2) and (distance < 100 and cos_theta > 0.99)){
 				mergebool = true;
 			}
 			//at this point, we need to check if they have a certain number of missing hits
@@ -806,18 +806,6 @@ void TrackFinder::FindTracks_kalman()
                         failure_reason[6] += 1;
                         continue;
                 }
-/*
-		if (kf_find.status != 2)
-		{
-			continue;
-		}
-/*
-/*
-		if (kf_find.status == -2)
-                {
-                        continue;
-                }
-*/
 
 		undropped_hits = kf_find.found_hits;
 		unused_hits = kf_find.unadded_hits;
@@ -862,7 +850,7 @@ void TrackFinder::FindTracks_kalman()
 			unused_hits = kft_.unadded_hits;
 			unused_hits.insert(unused_hits.end(), kf_find.unadded_hits.begin(), kf_find.unadded_hits.end());
 
-			int drops = 0;
+//			int drops = 0;
 
 			//dropping hits
 			for (int n = 0; n < good_hits.size(); n++)
@@ -963,7 +951,7 @@ void TrackFinder::FindTracks_kalman()
 		}
 
 
-		//if (failed) continue;
+		if (failed) continue;
 
 		hits_k = unused_hits;
 

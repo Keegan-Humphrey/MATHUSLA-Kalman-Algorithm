@@ -22,8 +22,8 @@ class Plot:
         for file in self.filelist:
              infile = root.TFile.Open( file ," READ ")
 
-             self.tree = infile.Get("box_run")
-#             self.tree = infile.Get("integral_tree")
+#             self.tree = infile.Get("box_run")
+             self.tree = infile.Get("integral_tree")
 
              self.canvas = root.TCanvas()
              self.canvas.cd()
@@ -50,7 +50,6 @@ if __name__ == "__main__":
 		"y_estimates_m:z_estimates_m", \
 		"x_estimates_m:y_estimates_m"]
 
-    '''
     branches = ["Hit_x:Hit_z", \
 		"Hit_y:Hit_z", \
 		"Hit_x:Hit_y"]
@@ -58,6 +57,7 @@ if __name__ == "__main__":
     branches = ["Track_k_x0:Track_k_z0", \
 		"Track_k_y0:Track_k_z0", \
 		"Track_k_x0:Track_k_y0"]
+    '''
     '''
     plt = Plot()
 

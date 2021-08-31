@@ -509,5 +509,5 @@ if __name__ == '__main__':
     scissor.cut(2,1,1,1,1,-1,1)
 
     print("flows are ",scissor.flows)
-    print("fiducial vertices ",len(scissor.survivor_inds[2]))
-    print("survivor inds are ",np.array(scissor.survivor_inds[6]))
+    print("events with vertices ",scissor.survivor_inds[1])
+#    print("survivor inds are ",np.array(scissor.survivor_inds[6]))

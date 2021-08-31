@@ -27,6 +27,8 @@ void ParHandler::GetPars() {
 
                 if (!(iss >> par >> value)) { continue; } // error
 
+		std::cout << par << " " << value << std::endl;
+
                 par_map[par] = value;
         }
 
