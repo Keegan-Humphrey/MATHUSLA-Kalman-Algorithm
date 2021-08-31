@@ -1,5 +1,6 @@
 #include "physics.hh"
 #include "LinearAlgebra.hh"
+#include "par_handler.hh"
 
 #ifndef VF_H
 #define VF_H
@@ -8,7 +9,11 @@ class vertex_seed
 {
 public:
 	double score() { return tracks.first->closest_approach(tracks.second); }
+
 	std::pair<physics::track *, physics::track *> tracks;
+
+	ParHandler* par_handler;
+
 	vertex_seed() {}
 	vertex_seed(physics::track *track1, physics::track *track2) : tracks(track1, track2)
 	{
@@ -51,6 +56,7 @@ public:
 	std::vector<vertex_seed> seeds_k;
 	std::vector<vertex_seed> seeds_k_m;
 
+	ParHandler* par_handler;
 
 	int missedChi2 = 0;
 	int noConverge = 0;

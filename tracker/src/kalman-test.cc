@@ -53,6 +53,7 @@ void kalman_track::kalman_all(std::vector<physics::digi_hit *> trackhits, seed *
     // and assign initialised object to class variable
     KalmanFilter kf_init(0, A, C, Q, R, P);
     kf = kf_init;
+    kf.par_handler = par_handler;
 
     filter();
 
@@ -166,6 +167,7 @@ void kalman_track::find_first()
 
   KalmanFilter kf_find_init(0, A, C, Q, R, P);
   kf_find = kf_find_init;
+  kf_find.par_handler = par_handler;
 
   kf_find.init_gain(x0, first_hit_list);
 
@@ -292,6 +294,8 @@ void kalman_vertex::vertexer(std::vector<physics::track *> tracks_list, vertex_s
 
     KalmanFilter kfv_init(0, A, C, Q, R, P);
     kfv = kfv_init;
+    kfv.par_handler = par_handler;
+
     kfv.dropping = dropping;
 
     filter(tracks_list);

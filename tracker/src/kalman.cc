@@ -250,8 +250,10 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
 
   //
   if (dropping
-     && (chi_plus_s > cuts::kalman_chi_s
-     || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1])))
+//     && (chi_plus_s > cuts::kalman_chi_s
+//     || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1])))
+     && (chi_plus_s > par_handler->par_map["kalman_chi_s"]
+     || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"])))
   {
     Eigen::MatrixXd K_n = P_n * C.transpose() * (-R + C * P_n * C.transpose()).inverse();
 
@@ -336,7 +338,8 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
       -std::pow(constants::c, 2) * (b * c),
       std::pow(constants::c, 2) * (1 - c * c);
 
-  double sigma_ms = kalman::sigma_ms_p / kalman::p; // [rad]
+//  double sigma_ms = kalman::sigma_ms_p / kalman::p; // [rad]
+  double sigma_ms = par_handler->par_map["sigma_ms_p"] / par_handler->par_map["p"]; // [rad]
 
   Q = Q * std::pow(sigma_ms, 2);
 }
@@ -542,7 +545,8 @@ double KalmanFilter::smooth_means(int k)
   D_s.insert(D_s.begin(), D_n);
 
   if (dropping &&
-      !(kalman::v_cut_drop[0] < q_n.norm() / constants::c && q_n.norm() / constants::c < kalman::v_cut_drop[1]))
+//      !(kalman::v_cut_drop[0] < q_n.norm() / constants::c && q_n.norm() / constants::c < kalman::v_cut_drop[1]))
+      !(par_handler->par_map["v_cut_drop[0]"] < q_n.norm() / constants::c && q_n.norm() / constants::c < par_handler->par_map["v_cut_drop[1]"]))
   //      !(kalman::v_cut_drop[0] < pull && pull / constants::c < kalman::v_cut_drop[1]))
   {
     Eigen::MatrixXd P_n_new = (P_n.inverse() - C_f[k].transpose() * G_B_f[k] * C_f[k]).inverse();

@@ -6,6 +6,7 @@
 #include "Geometry.hh"
 #include <iostream>
 #include <fstream>
+#include "par_handler.hh"
 
 #ifndef TF_DEFINE
 #define TF_DEFINE
@@ -158,6 +159,7 @@ public:
 
 	seed first_seed;
 	//	kalman_do kft;
+	ParHandler* par_handler;
 
 	int first_n_to_delete = 0;
 	void Seed();

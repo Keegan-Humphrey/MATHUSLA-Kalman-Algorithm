@@ -11,6 +11,7 @@
 #include <iostream>
 #include <fstream>
 #include "kalman.hh"
+#include "par_handler.hh"
 
 class kalman_track
 {
@@ -118,6 +119,7 @@ public:
   KalmanFilter kf; // KalmanFilter object used for fitting
   KalmanFilter kf_find; // KalmanFilter object used for finding
 
+  ParHandler* par_handler;
 
 private:
   std::vector<int> layers;
@@ -138,7 +140,6 @@ private:
   Eigen::MatrixXd P; // Estimate error covariance
 
   Eigen::VectorXd x0;
-
 
   physics::digi_hit *lowest_hit;
   physics::digi_hit *first_hit;
@@ -301,6 +302,8 @@ public:
   //Eigen::VectorXd x_s;              // final vertex estimate
   std::vector<double> x_s;
   std::vector<double> pulls_v;
+
+  ParHandler* par_handler;
 
   double chi_v;
 

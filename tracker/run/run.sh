@@ -68,13 +68,13 @@ do
 
 			#build and run tracker
 			cd build
-			make
+#			make
 			./tracker "$line" ../
 			cd ../
-            
+
             # move and rename output files
 			mv stat0.root "$1/$day/$time/trees/stat_${n}_${c}.root"
-			mv ./build/print.txt "$1/$day/$time/prints/print_${n}_${c}.txt"
+#			mv ./build/print.txt "$1/$day/$time/prints/print_${n}_${c}.txt"
 
             # run cutflow script on output tree
 			python "$script_dir/../../analysis/cutflow.py" "$1/$day/$time/trees/stat_${n}_${c}.root"

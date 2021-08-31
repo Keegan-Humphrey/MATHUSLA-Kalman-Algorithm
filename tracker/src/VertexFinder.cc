@@ -18,7 +18,8 @@ void VertexFinder::Seed()
 			auto tr1 = tracks[n1];
 			auto tr2 = tracks[n2];
 
-			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
+//			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
+			if (tr1->closest_approach(tr2) < par_handler->par_map["seed_closest_approach"])
 				seeds.push_back(vertex_seed(tr1, tr2));
 
 		} //n2
@@ -38,7 +39,8 @@ void VertexFinder::Seed_k()
 			auto tr1 = tracks_k[n1];
 			auto tr2 = tracks_k[n2];
 
-			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
+//			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
+			if (tr1->closest_approach(tr2) < par_handler->par_map["seed_closest_approach"])
 				seeds_k.push_back(vertex_seed(tr1, tr2));
 
 		} //n2
@@ -51,9 +53,6 @@ void VertexFinder::Seed_k()
 
 void VertexFinder::Seed_k_m()
 {
-	std::ofstream file;
-        file.open("print.txt", std::ios_base::app);
-
 	for (int n1 = 0; n1 < tracks_k_m.size(); n1++)
 	{
 		for (int n2 = n1 + 1; n2 < tracks_k_m.size(); n2++)
@@ -62,24 +61,16 @@ void VertexFinder::Seed_k_m()
 			auto tr1 = tracks_k_m[n1];
 			auto tr2 = tracks_k_m[n2];
 
-			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
+//			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
+			if (tr1->closest_approach(tr2) < par_handler->par_map["seed_closest_approach"])
 			{
-//				vertex_seed possible_seed = vertex_seed(tr1, tr2);
-//				double y_seed = possible_seed.guess_k()[1];
-
-//				file << "seed " << y_seed << " tracks: " << tr1->y0 << ", " << tr2->y0 << std::endl;
-
-//				if (tr1->y0 > y_seed && tr2->y0 > y_seed) // check if right topology
-//					seeds_k_m.push_back(possible_seed);
-					seeds_k_m.push_back(vertex_seed(tr1, tr2));
+				seeds_k_m.push_back(vertex_seed(tr1, tr2));
 			}
 		} //n2
 	}	  //n1
 
 	std::sort(seeds_k_m.begin(), seeds_k_m.end(), [](vertex_seed a, vertex_seed b) -> bool
 			  { return a.score() < b.score(); });
-
-	file.close();
 } //VF:Seed
 
 void VertexFinder::FindVertices()
@@ -100,7 +91,8 @@ void VertexFinder::FindVertices()
 
 		for (auto tr : tracks)
 		{
-			if (current_seed.closest_approach(tr) < cuts::closest_approach_add)
+//			if (current_seed.closest_approach(tr) < cuts::closest_approach_add)
+			if (current_seed.closest_approach(tr) < par_handler->par_map["closest_approach_add"])
 			{
 				used_tracks.push_back(tr);
 			}
@@ -116,11 +108,13 @@ void VertexFinder::FindVertices()
 		VertexFitter fitter;
 		auto status = fitter.fit(used_tracks, current_seed.guess().std());
 
-		if (status == false or fitter.merit() > cuts::vertex_chi2)
+//		if (status == false or fitter.merit() > cuts::vertex_chi2)
+		if (status == false or fitter.merit() > par_handler->par_map["vertex_chi2"])
 		{
 			if (status == false)
 				noConverge += 1;
-			if (fitter.merit() > cuts::vertex_chi2)
+//			if (fitter.merit() > cuts::vertex_chi2)
+			if (fitter.merit() > par_handler->par_map["vertex_chi2"])
 				missedChi2 += 1;
 			continue;
 		}
@@ -165,7 +159,8 @@ void VertexFinder::FindVertices_k_hybrid()
 
 		for (auto tr : tracks_k)
 		{
-			if (current_seed.closest_approach(tr) < cuts::closest_approach_add)
+//			if (current_seed.closest_approach(tr) < cuts::closest_approach_add)
+			if (current_seed.closest_approach(tr) < par_handler->par_map["closest_approach_add"])
 			{
 				used_tracks.push_back(tr);
 			}
@@ -181,11 +176,13 @@ void VertexFinder::FindVertices_k_hybrid()
 		VertexFitter fitter;
 		auto status = fitter.fit(used_tracks, current_seed.guess().std());
 
-		if (status == false or fitter.merit() > cuts::vertex_chi2)
+//		if (status == false or fitter.merit() > cuts::vertex_chi2)
+		if (status == false or fitter.merit() > par_handler->par_map["vertex_chi2"])
 		{
 			if (status == false)
 				noConverge += 1;
-			if (fitter.merit() > cuts::vertex_chi2)
+//			if (fitter.merit() > cuts::vertex_chi2)
+			if (fitter.merit() > par_handler->par_map["vertex_chi2"])
 				missedChi2 += 1;
 			continue;
 		}
@@ -215,7 +212,8 @@ void VertexFinder::FindVertices_k_hybrid()
 }
 
 void VertexFinder::FindVertices_k_m_hybrid()
-{	if (seeds_k_m.size() < 1)
+{
+	if (seeds_k_m.size() < 1)
 		return; // no seeds
 
 	while (seeds_k_m.size() > 0 and tracks_k_m.size() > 0)
@@ -230,7 +228,8 @@ void VertexFinder::FindVertices_k_m_hybrid()
 
 		for (auto tr : tracks_k_m)
 		{
-			if (current_seed.closest_approach(tr) < cuts::closest_approach_add)
+//			if (current_seed.closest_approach(tr) < cuts::closest_approach_add)
+			if (current_seed.closest_approach(tr) < par_handler->par_map["closest_approach_add"])
 			{
 				used_tracks.push_back(tr);
 			}
@@ -239,7 +238,6 @@ void VertexFinder::FindVertices_k_m_hybrid()
 				unused_tracks.push_back(tr);
 			}
 		}
-//		std::cout << "test num tracks" << std::endl;
 
 		if (used_tracks.size() < 2)
 			continue;
@@ -247,16 +245,16 @@ void VertexFinder::FindVertices_k_m_hybrid()
 		VertexFitter fitter;
 		auto status = fitter.fit(used_tracks, current_seed.guess().std());
 
-		if (status == false or fitter.merit() > cuts::vertex_chi2)
+//		if (status == false or fitter.merit() > cuts::vertex_chi2)
+		if (status == false or fitter.merit() > par_handler->par_map["vertex_chi2"])
 		{
 			if (status == false)
 				noConverge += 1;
-			if (fitter.merit() > cuts::vertex_chi2)
+//			if (fitter.merit() > cuts::vertex_chi2)
+			if (fitter.merit() > par_handler->par_map["vertex_chi2"])
 				missedChi2 += 1;
 			continue;
 		}
-
-//		std::cout << "test track fit" << std::endl;
 
 		double cos_opening_angle = -1.0;
 		if (used_tracks.size() == 2)
@@ -280,59 +278,23 @@ void VertexFinder::FindVertices_k_m_hybrid()
 		good_vertex->merit(fitter.merit());
 		vertices_k_m.push_back(good_vertex);
 		tracks_k_m = unused_tracks;
-
-//		std::cout << "vertex_made it " << std::endl;
 	}
 }
+
 void VertexFinder::FindVertices_k()
 {
-	std::ofstream file;
-	file.open("print.txt", std::ios_base::app);
-
-	file << "-------------------- Begin Vertexing -------------" << std::endl;
-
-	file.close();
-
-	//std::cout << "seeds left m" << seeds_k_m.size() << std::endl;
-	//std::cout << "tracks left m" << tracks_k_m.size() << std::endl;
-//	std::cout << "seeds left " << seeds_k.size() << std::endl;
-//	std::cout << "tracks left " << tracks_k.size() << std::endl;
-
-//	if (seeds_k.size() < 1)
-//		return; // no seeds_k
 	if (seeds_k_m.size() < 1)
 		return;
 
-	for (auto tr : tracks_k_m) file << "track indices: " << tr->index << std::endl;
-
 	while (seeds_k_m.size() > 0 and tracks_k_m.size() > 0)
-//	while (seeds_k.size() > 0 and tracks_k.size() > 0)
 	{
-		//std::cout << "seeds left " << seeds_k.size() << std::endl;
-		//std::cout << "tracks left " << tracks_k.size() << std::endl;
-//		std::cout << "seeds left " << seeds_k_m.size() << std::endl;
-
-		file.open("print.txt", std::ios_base::app);
-
-		file << "-------------------- New Vertex Seed -------------" << std::endl;
-
-		file.close();
-
 		std::vector<physics::track *> used_tracks = {};
 		std::vector<physics::track *> unused_tracks = {};
 
 		auto current_seed = seeds_k_m[0];
-//		auto current_seed = seeds_k[0];
 
 		seeds_k_m.erase(seeds_k_m.begin());
 
-//		seeds_k.erase(seeds_k.begin());
-
-//		return;
-
-//		std::cout << "Test 1" << std::endl;
-
-//		unused_tracks = tracks_k_m;
 		used_tracks = tracks_k_m;
 
 		double drops = -1;
@@ -341,45 +303,15 @@ void VertexFinder::FindVertices_k()
 
 		while (drops != 0)
 		{
-		file.open("print.txt", std::ios_base::app);
-
-		file << "track indices ";
-		for (auto tr : tracks_k_m) file << tr->index << ", ";
-		file << std::endl;
-
-		if (i > 10) std::cout << i << std::endl;
-		file << "Iteration: " << i << std::endl;
-
-		file << "Number of tracks left " << unused_tracks.size() << std::endl;
-
-		file.close();
 
 		kalman_vertex kfv;
 		kfv.dropping = true;
 		kfv.vertexer(used_tracks, &current_seed);
-//		kfv.vertexer(unused_tracks, &current_seed);
-//		kfv.vertexer(tracks_k_m, &current_seed);
-//		kfv.vertexer(tracks_k, &current_seed);
-
-//		std::cout << "Test 2" << std::endl;
-
-		//return;
-		//std::cout << "done fitter " << std::endl;
-
-		//if (kfv.added_tracks.size() == 0) continue;
-
-		file.open("print.txt", std::ios_base::app);
 
 		if (kfv.status != 2) {
-			file << "Vertex failed during fitting! status " << kfv.status << std::endl;
 			break;
-			//continue;
 		}
 
-//		unused_tracks = kfv.unadded_tracks; // just commented out ~~~~~~~~~~~
-//		unused_tracks.insert(unused_tracks.end(),kfv_2.unadded_tracks.begin(),kfv_2.unadded_tracks.end());
-
-//		used_tracks = kfv.added_tracks; // just commented out~~~~~~~~~~~~
 		used_tracks = {}; // clear used tracks, only push back good ones
 
 		drops = 0;
@@ -394,9 +326,9 @@ void VertexFinder::FindVertices_k()
 
 			double beta = (kfv.added_tracks[k]->q_s).norm() / constants::c;
 
-			if (!(kalman::v_cut_drop[0] < beta && beta < kalman::v_cut_drop[1])) {
+//			if (!(kalman::v_cut_drop[0] < beta && beta < kalman::v_cut_drop[1])) {
+			if (!(par_handler->par_map["v_cut_drop[0]"] < beta && beta < par_handler->par_map["v_cut_drop[1]"])) {
 //			if (!(kalman::v_cut_drop[0] < kfv.pulls_v[k] && kfv.pulls_v[k] < kalman::v_cut_drop[1])) {
-				file << "Track dropped with beta " << beta << std::endl;
 				unused_tracks.push_back(kfv.added_tracks[k]);
 				drops++;
 			}
@@ -404,28 +336,11 @@ void VertexFinder::FindVertices_k()
 				used_tracks.push_back(kfv.added_tracks[k]);
 			}
 		}
-/**/
-
-		file << "drops is " << drops << std::endl;
-
-		file << "unused track indices ";
-		for (auto tr : unused_tracks) file << tr->index << ", ";
-		file << std::endl;
-
-		file << "used track indices ";
-		for (auto tr : used_tracks) file << tr->index << ", ";
-		file << std::endl;
-
-		if (i > 10) std::cout << "tracks " << used_tracks.size() << std::endl;
-		file << "tracks " << used_tracks.size() << std::endl;
 
 		if (used_tracks.size() < 2) {
-			file << "Sorry not enough tracks" << std::endl;
 			break;
 			//continue;
 		}
-
-		file.close();
 
 		//if (failed) break;
 
@@ -438,39 +353,15 @@ void VertexFinder::FindVertices_k()
 		//kfv_2.dropping = false;
 		//kfv_2.vertexer(used_tracks, &current_seed);
 
-		file.open("print.txt", std::ios_base::app);
-
-		/*
-		if (kfv.status != 2) {
-			file << "Vertex failed during fitting!" << std::endl;
-			continue;
-		}
-		*/
-
-//		used_tracks = kfv_2.added_tracks;
-//		unused_tracks.insert(unused_tracks.end(),kfv_2.unadded_tracks.begin(),kfv_2.unadded_tracks.end());
-
-/*		if (used_tracks.size() < 2) {
-			file << "Sorry not enough tracks" << std::endl;
-			break;
-//			continue;
-		}*/
-
-		// start of used to be kfv_2
-
 		int n_track_params = 4;
         	int ndof = ((4.0 + 3.0) * kfv.added_tracks.size() - n_track_params ); // 4 x_k and 3 q_k parameters
 	        if (ndof < 1) ndof = 1;
 
-		if (kfv.chi_v / ndof > cuts::kalman_vertex_chi) {
-			file << "Vertex failed with chi " << kfv.chi_v / ndof << "!" << std::endl;
+//		if (kfv.chi_v / ndof > cuts::kalman_vertex_chi) {
+		if (kfv.chi_v / ndof > par_handler->par_map["kalman_vertex_chi"]) {
 			break;
 //			continue;
 		}
-
-		file << "Vertex made it with chi " << kfv.chi_v / ndof << "!" << std::endl;
-		file.close();
-
 
 		auto good_vertex = new physics::vertex(kfv.x_s, -2.0);
 
@@ -485,21 +376,13 @@ void VertexFinder::FindVertices_k()
 			good_vertex->D_s.push_back(track->D_s);
                 }
 
-                //good_vertex->CovMatrix(fitter.cov_matrix, fitter.npar);
-                //good_vertex->merit(fitter.merit());
-
 		vertices_k_m.push_back(good_vertex);
 
                 tracks_k_m = unused_tracks;
 
 		} // drop while loop
 
-//		std::cout << "Test 3" << std::endl;
-
-		//return;
 	}
-	//std::cout << " done vertexing" << std::endl;
-
 }
 
 std::vector<physics::track *> VertexFitter::track_list = {};
@@ -536,13 +419,12 @@ void VertexFitter::nll(int &npar, double *gin, double &f, double *pars, int ifla
 		if (isnan(error))
 		{
 			bad_fit = true;
-			file << " Bad fit! " << std::endl;
-			file << dist << " " << err << std::endl;
+			std::cout << " Bad Vertex fit! " << std::endl;
+			std::cout << dist << " " << err << std::endl;
 //			track->CovMatrix().Print();
 			return;
 		}
 	}
 
 	f = error;
-	file.close();
 }

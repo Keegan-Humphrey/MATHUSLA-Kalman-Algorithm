@@ -8,6 +8,7 @@
 #include <fstream>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include "par_handler.hh"
 
 int RunManager::StartTracking()
 {
@@ -30,14 +31,22 @@ int RunManager::StartTracking()
 	std::vector<int> zeros(9, 0);
 	std::vector<int> failures_k = zeros;
 
+	ParHandler hndlr;
+	hndlr.Handle();
+
+//	std::cout << hndlr.par_map["p"] << std::endl;
+
+	_tracker->par_handler = &hndlr;
+	_vertexer->par_handler = &hndlr;
+
 	while (TH->Next() >= 0)
 	{
 
-		if (events_handled > cuts::end_ev)
+		if (events_handled > hndlr.par_map["end_ev"]) //cuts::end_ev)
 		{
 			break;
 		}
-		if (events_handled > cuts::start_ev)
+		if (events_handled > hndlr.par_map["start_ev"]) //cuts::start_ev)
 		{
 			if ((events_handled - 1) % 100 == 0)
 				std::cout << "Event is " << events_handled - 1 << std::endl;

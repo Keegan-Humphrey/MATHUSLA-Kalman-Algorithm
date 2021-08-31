@@ -13,6 +13,7 @@
 #include "globals.hh"
 #include <iostream>
 #include <fstream>
+#include "par_handler.hh"
 
 #pragma once
 
@@ -54,7 +55,8 @@ public:
     double min_val;
 
     if (initialized)
-      min_val = cuts::kalman_chi_add;
+//      min_val = cuts::kalman_chi_add;
+      min_val = par_handler->par_map["kalman_chi_add"];
     else
       min_val = 1e6; // if the filter hasn't been initialised take hit
                      // with lowest chi regardless of the value
@@ -109,7 +111,8 @@ public:
     double min_val;
 
     if (initialized)
-      min_val = cuts::kalman_vertex_chi_add;
+//      min_val = cuts::kalman_vertex_chi_add;
+      min_val = par_handler->par_map["kalman_vertex_chi_add"];
     else
       min_val = 1e8; // if the filter hasn't been initialised take hit
                      // with lowest chi regardless of the value
@@ -156,7 +159,9 @@ public:
       pulls_v_f.push_back((q.norm() - constants::c) / sigma_v);      // pull of v from speed of light
 
       //      if (del_chi < min_val && std::abs(pulls_v_f.back()) < kalman::pull_cut_add)
-      if (del_chi < min_val && kalman::v_cut_add[0] < q.norm() / constants::c && q.norm() / constants::c < kalman::v_cut_add[1])
+//      if (del_chi < min_val && kalman::v_cut_add[0] < q.norm() / constants::c && q.norm() / constants::c < kalman::v_cut_add[1])
+      if (del_chi < min_val && par_handler->par_map["v_cut_add[0]"] < q.norm() / constants::c
+	  && q.norm() / constants::c < par_handler->par_map["v_cut_add[1]"])
       {
         min_index = j;
         min_val = del_chi;
@@ -215,6 +220,8 @@ public:
   // scattering per y m
   double x_scat;
   double z_scat;
+
+  ParHandler* par_handler;
 
 private:
   // Matrices for computation

@@ -18,7 +18,7 @@ public:
 	int StartTracking();
 	void SetInputFile(TString name){_InputFile_Name = name; fileNumber++;}
 	void SetOutputFile(TString name){_OutputFile_Name = name;}
-	TString OutFileName(){ 
+	TString OutFileName(){
 		std::ostringstream strs;
 		strs << fileNumber;
 		return _OutputFile_Name + TString("/stat") + TString(strs.str()) + TString(".root"); 
@@ -27,11 +27,10 @@ public:
 	unsigned long long TotalEventsProcessed = 0;
 
 	RunManager(){
-		
 		_digitizer = new Digitizer();
 		_tracker = new TrackFinder();
 		_vertexer = new VertexFinder();
-	} 
+	}
 
 	~RunManager(){
 		delete _digitizer;

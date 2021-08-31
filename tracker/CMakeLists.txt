@@ -28,6 +28,7 @@ add_library(tracker-lib SHARED
 	src/LinearAlgebra.cc
 	src/kalman.cc
 	src/kalman-test.cc
+	src/par_handler.cc
 )
 
 

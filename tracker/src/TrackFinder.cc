@@ -11,15 +11,10 @@
 #include <iostream>
 #include <fstream>
 #include <Eigen/Dense>
+#include "par_handler.hh"
 
 void TrackFinder::Seed()
 {
-//	std::ofstream file;
-//	file.open("print.txt", std::ios_base::app);
-
-	// if (file.fail()) std::cout << "open didn't work 1" << std::endl;
-	if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
-
 	seeds.clear();
 	seeds = {};
 
@@ -42,33 +37,15 @@ void TrackFinder::Seed()
 			seeds.push_back(seed(hits[first], hits[second]));
 			seeds_k.push_back(seed(hits[first], hits[second]));
 
-			file << "seed:" << hits[first]->index << "," << hits[second]->index << '\n';
 		} //"second" loop
 	}	  //"first" loop
 
 	score_seeds();
 
-	//for (auto seed : seeds) file << c_score(seed.hits.first, seed.hits.second) << std::endl;
-
-	file << "Seeding finished!" << '\n';
-
-	file.close();
 } //TF::Seed
 
 void TrackFinder::FindTracks()
 {
-//	std::ofstream file;
-	file.open("print.txt", std::ios_base::app);
-
-	if (file.fail()) std::cout << "open didn't work 2" << std::endl;
-	if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
-
-	file << "----------------------------------------------" << std::endl;
-	file << "--------------Begin old tracking--------------" << '\n';
-	file << "----------------------------------------------" << std::endl;
-
-	file.close();
-
 	if (seeds.size() == 0)
 		return; //no seeds found in initial seeding, will be retried with <c travel
 
@@ -88,19 +65,8 @@ void TrackFinder::FindTracks()
 		if (hits.size() == 0)
 			return;
 
-	        file.open("print.txt", std::ios_base::app);
-
 		int min_index = min_seed();
 		auto current_seed = seeds[min_index];
-
-		//std::ofstream file;
-
-		if (file.fail()) std::cout << "open didn't work 3" << std::endl;
-		if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
-
-		file << "------------------------------" << std::endl;
-		file << "Current_seed:" << current_seed.hits.first->index << "," << current_seed.hits.second->index << '\n';
-		file << "------------------------------" << std::endl;
 
 		seeds.erase(seeds.begin() + min_index); //delete the seed so that it isn't used again
 
@@ -112,17 +78,14 @@ void TrackFinder::FindTracks()
 
 		for (auto hit : hits)
 		{
-			// file << " TR " << current_seed.timeless_residual(hit) << " DH " << current_seed.distance_to_hit(hit) << " TD " << current_seed.time_difference(hit) << std::endl;
 			if ((current_seed.timeless_residual(hit) < cuts::seed_residual or current_seed.distance_to_hit(hit) < cuts::distance_to_hit) and current_seed.time_difference(hit) < cuts::seed_time_difference)
 			{
 				track_pts.push_back(hit);
-				// file << "this hit-> seed:"<< hit->index << '\n';
 			}
 			else
 			{
 
 				unused_hits.push_back(hit);
-				// file << "this hit-> unused_hits:"<< hit->index << '\n';
 			}
 		}
 
@@ -131,12 +94,8 @@ void TrackFinder::FindTracks()
 
 		if (track_pts.size() < cuts::nseed_hits)
 		{
-			file << "seed failed!" << '\n';
-			file.close();
 			continue;
 		}
-
-		// file << "now first fit!"<< '\n';
 
 		//at this point, all we have done is erase the seed, and none of the hits have been modified
 		TrackFitter fitter;
@@ -147,7 +106,6 @@ void TrackFinder::FindTracks()
 			continue; //fit failed
 		}
 
-		file << "Fit parameters are " << fitter.parameters[3] << " , " << fitter.parameters[4] << " , " << fitter.parameters[5] << " , " << std::endl;
 		auto current_track = new physics::track(fitter.parameters, fitter.parameter_errors);
 		for (auto hit : track_pts)
 			current_track->AddHit(hit);
@@ -158,16 +116,13 @@ void TrackFinder::FindTracks()
 
 		for (auto hit : unused_hits)
 		{
-			// file << " TR " << current_track->untimed_residual(hit) << " TD " << current_track->time_difference(hit) << std::endl;
 			if ((current_track->untimed_residual(hit) < cuts::residual_add or current_track->distance_to_hit(hit) < cuts::distance_to_hit) and current_track->time_difference(hit) < cuts::seed_time_difference)
 			{
 				current_track->AddHit(hit);
-				// file << "this hit also -> 1st track " << hit->index << '\n';
 			}
 			else
 			{
 				second_unused_hits.push_back(hit);
-				// file << "this hit -> 2nd_unused " << hit->index << '\n';
 			}
 		}
 
@@ -177,40 +132,22 @@ void TrackFinder::FindTracks()
 		current_track->parameters(fitter.parameters);
 		current_track->par_errors(fitter.parameter_errors);
 
-		//file << " y is " << std::endl;
-		//for (auto hit : current_track->hits) file << hit->y << ", ";
-		//file << std::endl;
-
-		for (int i = 0; i < fitter.parameters.size() - 1; i++)
-			file << "old track parameters:" << fitter.parameters[i] << '\n';
-		for (int i = 0; i < fitter.parameter_errors.size() - 1; i++)
-			file << "old track parameters errors:" << fitter.parameter_errors[i] << '\n';
-
-		// file << "now second fit!"<< '\n';
-
 		std::vector<physics::digi_hit *> good_hits;
 		for (auto hit : current_track->hits)
 		{
 
-			// file << " TR " << current_track->untimed_residual(hit) <<" TD " << current_track->time_difference(hit) << std::endl;
 			if (current_track->untimed_residual(hit) > cuts::residual_drop or current_track->time_difference(hit) > cuts::time_difference_drop)
 			{
 				second_unused_hits.push_back(hit);
-				// file << "this hit -> 2nd_unused " << hit->index << '\n';
 			}
 			else
 			{
 				good_hits.push_back(hit);
-				//file << "this hit -> made the track " << hit->index << '\n';
-				//file << "this hit has residual " << current_track->residual(hit) << std::endl;
 			}
 		}
-		//		file << " chi squared is: " << current_track->chi2_per_dof() << std::endl;
 
 		if (good_hits.size() < cuts::nseed_hits)
 		{
-			file << "track failed!" << good_hits.size() << '\n';
-			file.close();
 			continue;
 		}
 
@@ -221,21 +158,13 @@ void TrackFinder::FindTracks()
 		current_track->par_errors(fitter.parameter_errors);
 		current_track->CovMatrix(fitter.cov_matrix, fitter.npar);
 
-		file << " chi squared is: " << current_track->chi2_per_dof() << std::endl;
-		file << " n layers is: " << current_track->nlayers() << std::endl;
-		file << " n hits is: " << current_track->hits.size() << std::endl;
-
 		if (current_track->nlayers() >= cuts::track_nlayers and current_track->chi2_per_dof() < cuts::track_chi2 and current_track->hits.size() > cuts::ntrack_hits)
 		{
 			tracks.push_back(current_track);
-			file << "track made it!" << '\n';
-
 		}
 		else
 		{
 			delete current_track;
-			file << "track failed" << '\n';
-			file.close();
 			continue;
 		}
 
@@ -246,7 +175,6 @@ void TrackFinder::FindTracks()
 		if (hits.size() < cuts::nseed_hits)
 			iterate = false;
 
-		file.close();
 	} //while iterate
 
 	//MergeTracks();
@@ -259,22 +187,18 @@ void TrackFinder::FindTracks()
 
 	if ((total_hits - hits.size() - total_tracked_points) != 0)
 	{
-		file << "total: " << total_hits << std::endl;
-		file << "used: " << total_tracked_points << std::endl;
-		file << "unused:" << hits.size() << std::endl;
+		std::cout << "total: " << total_hits << std::endl;
+		std::cout << "used: " << total_tracked_points << std::endl;
+		std::cout << "unused:" << hits.size() << std::endl;
 	}
 
 	if (j++ > MAX_ITS)
 		iterate = false;
 
-	file.close();
 }
 
 void TrackFinder::MergeTracks()
 {
-//	std::ofstream file;
-	file.open("print.txt", std::ios_base::app);
-
 	//at this point, all of the points have been fit to tracks. At this point, we will perform the track merging step.
 
 	if (tracks.size() == 0 or tracks.size() == 1)
@@ -302,7 +226,8 @@ void TrackFinder::MergeTracks()
 
 			double distance = tr1->closest_approach(tr2);
 
-			if (distance > cuts::merge_distance or cos_theta < cuts::merge_cos_theta)
+//			if (distance > cuts::merge_distance or cos_theta < cuts::merge_cos_theta)
+			if (distance > par_handler->par_map["merge_distance"] or cos_theta < par_handler->par_map["merge_cos_theta"])
 				continue;
 
 			//at this point, we need to check if they have a certain number of missing hits
@@ -416,17 +341,10 @@ void TrackFinder::MergeTracks()
 	{
 		tr->index = trackn++;
 	}
-	file.close();
 }
 
 void TrackFinder::MergeTracks_k()
 {
-//	std::ofstream file;
-	// file.open("print.txt", std::ios_base::app);
-
-	std::ofstream file;
-	file.open("cout.txt", std::ios_base::app);
-
 	//at this point, all of the points have been fit to tracks. At this point, we will perform the track merging step.
 
 	if (tracks_k_m.size() == 0 or tracks_k_m.size() == 1)
@@ -434,24 +352,15 @@ void TrackFinder::MergeTracks_k()
 
 	std::vector<int> deleted_tracks = {};
 
-	file << "-------------------- Commence Merge Fit -------------" << std::endl;
-
 	for (int first_track = 0; first_track < tracks_k_m.size(); first_track++)
 	{
 
 		for (int second_track = first_track + 1; second_track < tracks_k_m.size(); second_track++)
 		{
-
-			file << "--------------- tracks " << first_track << ", " << second_track << std::endl;
-
 			auto tr1 = tracks_k_m[first_track];
 			auto tr2 = tracks_k_m[second_track];
 
-			// std::cout << "tr1_hole:" << tr1->_holes.size() << '\n';
-			// std::cout << "tr2_hole:" << tr2->_holes.size() << '\n';
-
 			bool mergebool = false;
-
 
 			auto first_layer = tr1->layers()[0] < tr2->layers()[0] ? tr1->layers()[0] : tr2->layers()[0];
 
@@ -465,23 +374,19 @@ void TrackFinder::MergeTracks_k()
 
 			double distance = tr1->closest_approach(tr2);
 
-			file << "opening angle is " << cos_theta << std::endl;
-			file << "closest approach is " << distance << std::endl;
-
-			if (distance < cuts::merge_distance and cos_theta > cuts::merge_cos_theta){
+//			if (distance < cuts::merge_distance and cos_theta > cuts::merge_cos_theta){
+			if (distance < par_handler->par_map["merge_distance"] and cos_theta > par_handler->par_map["merge_cos_theta"]){
 				mergebool = true;
 			}
 
-			if ((tr1->_holes.size() >= 3 or tr2->_holes.size() >= 3) and (distance < 150 and cos_theta > 0.95)){
+			else if ((tr1->_holes.size() >= 3 or tr2->_holes.size() >= 3) and (distance < 150 and cos_theta > 0.95)){
 				mergebool = true;
 			}
 
-			if ((tr1->_holes.size() >= 2 or tr2->_holes.size() >= 2) and (distance < 100 and cos_theta > 0.99)){
+			else if ((tr1->_holes.size() >= 2 or tr2->_holes.size() >= 2) and (distance < 100 and cos_theta > 0.99)){
 				mergebool = true;
 			}
 			//at this point, we need to check if they have a certain number of missing hits
-			file << "tr1->_missing_layers: "<< tr1->_missing_layers.size() << '\n';
-			file << "tr2->_missing_layers: "<< tr2->_missing_layers.size() << '\n';
 
 			//if (tr1->_missing_layers.size() < 3 or tr2->_missing_layers.size() < 3) continue;
 			std::vector<int> joint_missing_hit_layers = {};
@@ -545,9 +450,6 @@ void TrackFinder::MergeTracks_k()
 			}
 
 			bool merge = false;
-			// std::cout << "joint_missing_hit_layers.size()" << joint_missing_hit_layers.size() << '\n';
-			// std::cout << "tr1_missing_hits: "<< tr1_missing_hits  << '\n';
-			// std::cout << "tr2_missing_hits: "<< tr2_missing_hits  << '\n';
 
 			if (joint_missing_hit_layers.size() < 3 and (tr1_missing_hits > 2 or tr2_missing_hits > 2))
 				merge = true;
@@ -558,11 +460,13 @@ void TrackFinder::MergeTracks_k()
 
 			seed artificial_seed = seed(tr1->hits[0], tr1->hits[1]);
 
+			// we've decided that the tracks should be merged
+			// replace the tracks by a track made of a fit of their combined hits
 			for (auto hit : tr2->hits)
 				tr1->AddHit(hit);
 
 			kalman_track kft;
-
+			kft.par_handler = par_handler;
 			kft.finding = false;
 			kft.dropping = false;
 			kft.kalman_all(tr1->hits, &artificial_seed);
@@ -606,11 +510,7 @@ void TrackFinder::MergeTracks_k()
 		}
 	}
 
-	// std::cout << "tracks before merge: " << tracks_k_m.size() << std::endl;
-
 	tracks_k_m = good_tracks;
-
-	// std::cout << "tracks after merge: " << tracks_k_m.size() << std::endl;
 
 	//at this point, the list of tracks is finalized. Now they will be indexed:
 	for (int trackn=0; trackn<tracks_k_m.size(); trackn++)
@@ -622,11 +522,6 @@ void TrackFinder::MergeTracks_k()
 
 void TrackFinder::CleanTracks()
 {
-//	std::ofstream file;
-	file.open("print.txt", std::ios_base::app);
-
-	//we clean the tracks with the following critera:
-	//-
 
 	if (tracks.size() < 2)
 		return;
@@ -641,11 +536,8 @@ void TrackFinder::CleanTracks()
 			if (tr1->hits.size() < cuts::cleaning_nhits or tr2->hits.size() < cuts::cleaning_nhits)
 				continue;
 
-			file << "clean me" << std::endl;
-
 		} //second track
 	}	  //first track
-	file.close();
 }
 
 std::vector<physics::digi_hit *> TrackFitter::digi_list = {};
@@ -684,8 +576,6 @@ void TrackFitter::chi2_error(int &npar, double *gin, double &f, double *pars, in
 void TrackFinder::CalculateHoles(Geometry *geo){
 	for (auto track : tracks_k_m)
 	{
-		// std::cout << "--new track:" << '\n';
-		//file << "new track " << std::endl;
 		std::vector<int> layers = track->layers();
 		std::vector<int> expected_layers;
 
@@ -736,15 +626,10 @@ void TrackFinder::CalculateHoles(Geometry *geo){
 
 				if (!already_counted)
 				{
-					//	file << expected_index << std::endl;
 					missing_layers.push_back(expected_index);
 				}
 			} //if missing
 		}
-		// for (auto missedlayer : missing_layers) {
-		// 	std::cout << "missed:"<< missedlayer << '\n';
-		// }
-		// std::cout << "***missednum: "<< missing_layers.size() << '\n';
 		track->set_holes(missing_layers);
 	}
 }
@@ -754,8 +639,6 @@ void TrackFinder::CalculateMissingHits(Geometry *geo)
 
 	for (auto track : tracks)
 	{
-		// std::cout << "--new track:" << '\n';
-		//file << "new track " << std::endl;
 		std::vector<int> layers = track->layers();
 		std::vector<int> expected_layers;
 
@@ -804,13 +687,9 @@ void TrackFinder::CalculateMissingHits(Geometry *geo)
 
 				if (!already_counted)
 				{
-					//	file << expected_index << std::endl;
 					missing_layers.push_back(expected_index);
 				}
 			} //if missing
-		}
-		for (auto missedlayer : missing_layers) {
-			// std::cout << "missed:"<< missedlayer << '\n';
 		}
 		track->missing_layers(missing_layers);
 	}
@@ -818,7 +697,6 @@ void TrackFinder::CalculateMissingHits(Geometry *geo)
 
 	for (auto track : tracks_k_m)
 	{
-		//file << "new track " << std::endl;
 		std::vector<int> layers = track->layers();
 		std::vector<int> expected_layers;
 
@@ -867,7 +745,6 @@ void TrackFinder::CalculateMissingHits(Geometry *geo)
 
 				if (!already_counted)
 				{
-					//	file << expected_index << std::endl;
 					missing_layers.push_back(expected_index);
 				}
 			} //if missing
@@ -879,17 +756,6 @@ void TrackFinder::CalculateMissingHits(Geometry *geo)
 
 void TrackFinder::FindTracks_kalman()
 {
-//	std::ofstream file;
-	file.open("print.txt", std::ios_base::app);
-
-	if (file.fail()) std::cout << "open didn't work 4" << std::endl;
-	if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
-
-	file << "----------------------------------------------" << std::endl;
-	file << "--------------Begin new tracking--------------" << '\n';
-	file << "----------------------------------------------" << std::endl;
-	file.close();
-
 	if (seeds_k.size() == 0)
 		return; //no seeds found in initial seeding, will be retried with <c travel
 
@@ -902,44 +768,29 @@ void TrackFinder::FindTracks_kalman()
 	while (iterate)
 	{
 		if (seeds_k.size() == 0)
-			//return;
 			break;
 		if (hits_k.size() == 0)
-			//return;
 			break;
 
 		int min_index = min_seed_k();
 		auto current_seed = seeds_k[min_index];
 
-		//std::ofstream file;
-	        file.open("print.txt", std::ios_base::app);
-
-		if (file.fail()) std::cout << "open didn't work 5" << std::endl;
-		if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
-
-		file << "CURRENT SEED SCORE IS: " << current_seed.score << std::endl;
-		file << "------------------------------" << std::endl;
-		file << "Current_seed:" << current_seed.hits.first->index << "," << current_seed.hits.second->index << '\n';
-		file << "------------------------------" << std::endl;
-		file.close();
-
 		seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
 
+		// check if the first seed hit is in the hit pool
 		bool used = !seed_unused(current_seed); // double negative! used = not unused
-
-//		std::cout << "hits size 1: " << hits_k.size() << std::endl;
 
 		clear_vecs();
 
 		std::vector<int> king_move_inds;
 
-//		std::cout << "hits size 2: " << hits_k.size() << std::endl;
-
-		// Construct the first filter (to find good hits for seed)
+		// Construct the first filter (to find good hits from seed)
 		kalman_track kf_find;
+		kf_find.par_handler = par_handler;
 		kf_find.finding = true;
 		kf_find.dropping = true;
 		kf_find.seed_was_used = used;
+
 		kf_find.kalman_all(hits_k, &current_seed);
 
 		king_move_inds = kf_find.king_move_inds;
@@ -955,8 +806,19 @@ void TrackFinder::FindTracks_kalman()
                         failure_reason[6] += 1;
                         continue;
                 }
+/*
+		if (kf_find.status != 2)
+		{
+			continue;
+		}
+/*
+/*
+		if (kf_find.status == -2)
+                {
+                        continue;
+                }
+*/
 
-//		good_hits = kf_find.found_hits;
 		undropped_hits = kf_find.found_hits;
 		unused_hits = kf_find.unadded_hits;
 
@@ -967,47 +829,28 @@ void TrackFinder::FindTracks_kalman()
 
 //		while (drops != 0)
 //		{
-			file << "Drop Iteration " << i << std::endl;
-
 			kalman_track kft_;
+			kft_.par_handler = par_handler;
         	        kft_.finding = false;
                 	kft_.dropping = true;
 	                kft_.seed_was_used = used;
-
-			//kft.unadded_hits = kf_find.unadded_hits;
 			kft_.unadded_hits = unused_hits;
 
-                	//kft.kalman_all(kf_find.found_hits, &current_seed);
-                	//kft.kalman_all(good_hits, &current_seed);
                 	kft_.kalman_all(undropped_hits, &current_seed);
-
-			//kft_ = kft; // new
-			//kfts.push_back(&kft);
-
-			file.open("print.txt", std::ios_base::app);
-
-			if (file.fail()) std::cout << "open didn't work 6" << std::endl;
-			if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
 
 			if (kft_.status == -1)
         	        {
-                	        failure_reason[5] += 1;
-				file.close();
 				failed = true;
-//				break;
 	                        continue;
         	        }
 
 			good_hits = kft_.added_hits;
 
-			undropped_hits.clear(); // new
+			undropped_hits.clear();
 
 			if (kft_.status == -2)
 			{
-				failure_reason[6] += 1;
-				file.close();
 				failed = true;
-//				break;
 				continue;
 			}
 
@@ -1019,143 +862,65 @@ void TrackFinder::FindTracks_kalman()
 			unused_hits = kft_.unadded_hits;
 			unused_hits.insert(unused_hits.end(), kf_find.unadded_hits.begin(), kf_find.unadded_hits.end());
 
-	//		std::cout << "first unused length " << unused_hits.size() << std::endl;
-	//		std::cout << "second unused length " << unused_hits.size() << std::endl;
-
-	//		file << "hits size 3: " << hits_k.size() << std::endl;
-
-//			drops = 0;
+			int drops = 0;
 
 			//dropping hits
 			for (int n = 0; n < good_hits.size(); n++)
 			{
+				// make an eigenvector for the velocity at the lowest (in y) state of the track
 				Eigen::VectorXd v(3);
 				v << kft_.v_s_list[n][0], kft_.v_s_list[n][1], kft_.v_s_list[n][2];
 
-				file << "beta is " << v.norm() / constants::c << std::endl;
-				file << "beta drop " << !(cuts::kalman_v_drop[0] < v.norm() / constants::c
-							&& v.norm() / constants::c < cuts::kalman_v_drop[1]) << std::endl;
-				if (kft_.chi_s[n] > cuts::kalman_chi_s
-			           || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1]))
+//				if (kft_.chi_s[n] > cuts::kalman_chi_s
+				if (kft_.chi_s[n] > par_handler->par_map["kalman_chi_s"]
+			           || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c
+				   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))
+//			           || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1]))
 				{
-					file << "dropped with chi: " << kft_.chi_s[n] << '\n';
 					unused_hits.push_back(good_hits[n]);
 //					drops++;
 				}
 				else
 				{
-					file << "added with chi: " << kft_.chi_s[n] << '\n';
 					undropped_hits.push_back(good_hits[n]);
 				}
 			}
 
-//			file << "number of hits dropped " << drops << std::endl;
-//			std::cout << "number of hits dropped " << drops << std::endl;
-
 			if (undropped_hits.size() < cuts::track_nlayers)
 			{
-				file << "track failed! with " << undropped_hits.size() << " hits" << '\n';
-				failure_reason[0] += 1;
-				file.close();
 				failed = true;
 //				break;
 				continue;
 			}
-			file.close();
 
-			//king_move_inds = kft_.king_move_inds;
-//			for (auto ind : kft_.king_move_inds) king_move_inds.push_back(ind);
+		//} // dropping while loop
 
-			//// end where kft used to be
-
-//			if (i == 15) {std::cout << "track i break " << std::endl; break;}
-
-//			std::cout << "Iteration " << i << std::endl;
-//			i++;
-
-//			if (drops != 0) continue; // new
-//			drops = 0;
-
-		// don't do an extra fit?
+		// Do a final hit with bad hits removed
 		kalman_track kft_2;
+		kft_2.par_handler = par_handler;
 		kft_2.finding = false;
 		kft_2.dropping = false;
+
 		kft_2.kalman_all(undropped_hits, &current_seed);
 
-//		kft_ = kft_2
-		//kalman_track kft_ = *kfts.back();
-
-//		for (auto ind : kft_.king_move_inds) king_move_inds.push_back(ind);
-
-		//if (kft_.king_move_inds.size() != 0) std::cout << "\n trackfinder first";
-		//for (auto ind : kft_.king_move_inds) std::cout << ind << ", ";
-
-		file.open("print.txt", std::ios_base::app);
-
-		if (file.fail()) std::cout << "open didn't work 7" << std::endl;
-		if (file.bad()) std::cout << "bad: " << file.bad() << std::endl;
-
-		file << " status is " << kft_.status << std::endl;
-
-/*
-		if (kft_.status == 0)
-		{
-			failure_reason[1] += 1;
-			file.close();
-//			continue;
-			failed = true;
-			break;
-		}
-		if (kft_.status == -1)
-		{
-			failure_reason[8] += 1;
-			file.close();
-//			continue;
-			failed = true;
-			break;
-		}
-		if (kft_.status == -2)
-		{
-			failure_reason[7] += 1;
-			file.close();
-//			continue;
-			failed = true;
-			break;
-		}
-*/
 		if (kft_2.status != 2)
 		{
-			file.close();
-			failed = true;
 			continue;
 		}
-
-//		file << "test 0" << std::endl;
 
 		auto current_track = new physics::track(kft_2.x_s, kft_2.P_s);
 		current_track->hits = undropped_hits;
 
-//		file << "test 1" << std::endl;
-
 		current_track->x_scats = kft_2.x_scat;
 		current_track->z_scats = kft_2.z_scat;
-
-//		file << "test 2" << std::endl;
 
 		current_track->chi_f = kft_2.chi_f;
 		current_track->chi_s = kft_2.chi_s;
 
-//		file << "test 3" << std::endl;
-
 		current_track->estimate_list = kft_2.x_s_list;
 		current_track->P_s = kft_2.P_s0;
 
-//		file << "test 4" << std::endl;
-
 		current_track->king_move_inds = kft_2.king_move_inds;
-
-		//if (king_move_inds.size() != 0) std::cout << "\n trackfinder second";
-		//for (auto ind : king_move_inds) std::cout << ind << ", ";
 
 		static double cov_matrix[7][7];
 		for (int i = 0; i < 7; i++)
@@ -1179,69 +944,34 @@ void TrackFinder::FindTracks_kalman()
 			local_chi_f.push_back(chi);
 		for (auto chi : kft_2.chi_s)
 			local_chi_s.push_back(chi);
-/*
-		file << "chi f is ";
-		for (auto chi : kft_.chi_f)
-			file << chi << " , ";
-		file << std::endl;
 
-		file << "chi s is ";
-		for (auto chi : kft_.chi_s)
-			file << chi << " , ";
-		file << std::endl;
-*/
+		// calculate chi per ndof from sum of chi increments in the track
 		double chi_sum = 0;
 		for (auto chi : kft_2.chi_s)
 			chi_sum += chi;
 		chi_sum = chi_sum / (4.0 * kft_2.chi_s.size() - 6.0);
 
-		file << "chi s sum is " << chi_sum << std::endl;
-
-		file << " chi squared is: " << current_track->chi2_per_dof() << std::endl;
-		file << " n layers is: " << current_track->nlayers() << std::endl;
-		file << " n hits is: " << current_track->hits.size() << std::endl;
-
-		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < cuts::kalman_track_chi)
+//		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < cuts::kalman_track_chi)
+		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < par_handler->par_map["kalman_track_chi"])
 		{
 			tracks_k.push_back(current_track);
-			file << "track made it!" << '\n';
-			// std::cout << "kalman track layers: "<< '\n';
-			// for (auto layer : current_track->layers()){std::cout << "layer: "<< layer << '\n';}
 		}
 		else
 		{
-			if (current_track->nlayers() < cuts::track_nlayers)
-				failure_reason[2] += 1;
-			if (current_track->hits.size() < cuts::ntrack_hits)
-				failure_reason[3] += 1;
-			file << "track failed" << '\n';
 			delete current_track;
-			file.close();
-			failed = true;
-//			break;
 			continue;
 		}
 
 
-//		std::cout << "third unused length " << unused_hits.size() << std::endl;
-
-//		} // drop for loop
-
-		if (failed) continue;
+		//if (failed) continue;
 
 		hits_k = unused_hits;
-
-		file << "seeds k size is " << seeds_k.size() << std::endl;
-		file << "hits k size is " << hits_k.size() << std::endl;
-
-//		std::cout << "hits k size is " << hits_k.size() << std::endl;
 
 		if (seeds_k.size() == 0)
 			iterate = false;
 		if (hits_k.size() < cuts::nseed_hits)
 			iterate = false;
 
-		file.close();
 	}
 	// assign indices
 	for (int i=0; i < tracks_k.size(); i++)

@@ -1,0 +1,17 @@
+kalman_chi_s 150.0
+kalman_chi_add 200.0
+kalman_track_chi 15.0
+p 500.0
+merge_cos_theta 0.998
+merge_distance 25.0
+seed_closest_approach 100.0
+vertex_chi2 15.0
+closest_approach_add 100.0
+kalman_vertex_chi_add 100000.0
+kalman_vertex_chi 100.0
+kalman_v_add[0] 0.8
+kalman_v_add[1] 1.2
+kalman_v_drop[0] 0.9
+kalman_v_drop[1] 1.1
+start_ev 0.0
+end_ev 5000.0

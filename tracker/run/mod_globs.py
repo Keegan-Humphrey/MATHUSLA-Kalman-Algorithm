@@ -14,7 +14,7 @@ class Editor:
 
                 self.pars = np.genfromtxt('Parameters.txt',delimiter=',')
 
-                if len(np.shape(self.pars)) == 1: #1 dimensional array not two
+                if len(np.shape(self.pars)) == 1: #1 dimensional array, need 2
                         self.pars = [self.pars]
 
                 self.i = i
@@ -27,55 +27,40 @@ class Editor:
 
         def alter(self):
 
-                j = 0
-                for line in self.lines:
-                        if "kalman_chi_s" in line:
-                                self.lines[j] = "        const double kalman_chi_s = {};\n".format(self.pars[self.i][0])
+                pars_to_handle = ['kalman_chi_s',
+				'kalman_chi_add',
+				'kalman_track_chi',
+				'p',
+				'merge_cos_theta',
+				'merge_distance',
+				'seed_closest_approach',
+				'vertex_chi2',
+				'closest_approach_add',
+				'kalman_vertex_chi_add',
+				'kalman_vertex_chi',
+				'kalman_v_add[0]',
+				'kalman_v_add[1]',
+				'kalman_v_drop[0]',
+				'kalman_v_drop[1]',
+				'start_ev',
+				'end_ev']
 
-                        elif "kalman_chi_add" in line:
-                                self.lines[j] = "        const double kalman_chi_add = {};\n".format(self.pars[self.i][1])
+                pars_dict = dict()
 
-                        elif "kalman_track_chi" in line:
-                                self.lines[j] = "        const double kalman_track_chi = {};\n".format(self.pars[self.i][2])
+                k = 0
+                for par in pars_to_handle:
+                        pars_dict[par] = self.pars[self.i][k]
+                        k += 1
 
-                        elif "double p " in line:
-                                self.lines[j] = "        const double p = {}; // [MeV] representative momentum\n".format(self.pars[self.i][3])
+		# start and end event for each dataset
+                pars_dict[pars_to_handle[-2]] = self.pars[self.i][15 + 2 * self.j]
+                pars_dict[pars_to_handle[-1]] = self.pars[self.i][16 + 2 * self.j]
 
-                        elif "merge_cos_theta" in line:
-                                self.lines[j] = "        const double merge_cos_theta = {};\n".format(self.pars[self.i][4])
+                for k in range(len(self.lines)):
+                    par = self.lines[k].split(' ')[0]
 
-                        elif "merge_distance" in line:
-                                self.lines[j] = "        const double merge_distance = {}*units::cm;\n".format(self.pars[self.i][5])
-
-                        elif "seed_closest_approach" in line:
-                                self.lines[j] = "        const double seed_closest_approach = {}*units::cm;\n".format(self.pars[self.i][6])
-
-                        elif "vertex_chi2" in line:
-                                self.lines[j] = "        const double vertex_chi2 = {};\n".format(self.pars[self.i][7])
-
-                        elif "closest_approach_add" in line:
-                                self.lines[j] = "        const double closest_approach_add = {}*units::cm;\n".format(self.pars[self.i][8])
-
-                        elif "kalman_vertex_chi_add" in line:
-                                self.lines[j] = "        const double kalman_vertex_chi_add = {};\n".format(self.pars[self.i][9])
-
-                        elif "kalman_vertex_chi" in line:
-                                self.lines[j] = "        const double kalman_vertex_chi = {};\n".format(self.pars[self.i][10])
-
-                        elif "kalman_v_add" in line:
-                                self.lines[j] = "        const std::vector<double> kalman_v_add = {%f,%f};\n"%(self.pars[self.i][11],self.pars[self.i][12])
-
-                        elif "kalman_v_drop" in line:
-                                self.lines[j] = "        const std::vector<double> kalman_v_drop = {%f,%f};\n"%(self.pars[self.i][13],self.pars[self.i][14])
-
-                        elif "start_ev" in line:
-                                self.lines[j] = "        const int start_ev = {:.00f};\n".format(self.pars[self.i][15 + 2 * self.j])
-
-                        elif "end_ev" in line:
-                                self.lines[j] = "        const int end_ev = {:.00f};\n".format(self.pars[self.i][16 + 2 * self.j])
-
-
-                        j += 1
+                    if par in pars_to_handle:
+                        self.lines[k] = par + ' {}\n'.format(pars_dict[par])
 
         def write(self):
 
@@ -94,7 +79,8 @@ def main():
 	print("current parameter counter: ",i)
 	print("current dataset counter: ",j)
 
-	edt = Editor("../include/globals.hh",i,j)
+#	edt = Editor("../include/globals.hh",i,j)
+	edt = Editor("par_card.txt",i,j)
 
 	print(edt.pars[i])
 
@@ -102,7 +88,6 @@ def main():
 	edt.write()
 
 	if i == np.shape(edt.pars)[0]-1: #last parameter has been used, increment j
-
 		g = open("done.txt","w+")
 		g.write("All done! Please delete me.")
 		g.close()

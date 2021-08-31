@@ -143,7 +143,7 @@ namespace cuts{
 
 	//run options
         const int start_ev = 0;
-        const int end_ev = 500;
+        const int end_ev = 50;
 
     //digi hit cuts for floors and wall
     const std::vector<bool> include_floor = { true, true, true }; //ith index for ith floor from bottom

@@ -9,6 +9,7 @@ Program assumes that the build directory is /path/to/tracker/build/. If building
 mkdir /path/to/tracker/build/
 cd /path/to/tracker/build/
 cmake ../
+make
 
 -- To Run:
 
