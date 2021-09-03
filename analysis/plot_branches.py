@@ -45,20 +45,26 @@ class Plot:
 
 if __name__ == "__main__":
 
-    ''''
+    '''
     branches = ["x_estimates_m:z_estimates_m", \
 		"y_estimates_m:z_estimates_m", \
 		"x_estimates_m:y_estimates_m"]
 
+    '''
+    '''
     branches = ["Hit_x:Hit_z", \
 		"Hit_y:Hit_z", \
 		"Hit_x:Hit_y"]
-    '''
+
     branches = ["Track_k_x0:Track_k_z0", \
 		"Track_k_y0:Track_k_z0", \
 		"Track_k_x0:Track_k_y0"]
     '''
-    '''
+
+    branches = ["Digi_x:Digi_z", \
+                "Digi_y:Digi_z", \
+                "Digi_x:Digi_y"]
+
     plt = Plot()
 
     plt.Make_Plots(branches)
