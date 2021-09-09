@@ -188,17 +188,12 @@ public:
 		_merit = fmin;
 
 		//while (ierflg) minimizer.mnexcm("MIGRAD", arglist ,2,ierflg);
-		std::ofstream file;
-		file.open("print.txt", std::ios_base::app);
-
-		file << " Parameters are " << std::endl;
 		for (int k = 0; k < npar; k++)
 		{
 			minimizer.GetParameter(k, parameters[k], parameter_errors[k]);
-			file << parameters[k] << ", ";
 		}
-		file << std::endl;
-		//minimizer.mnemat(&cov_matrix[0][0], npar);
+
+		minimizer.mnemat(&cov_matrix[0][0], npar);
 
 		return (istat >= 2) ? true : false;
 	}

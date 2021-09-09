@@ -108,7 +108,8 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	srand( time(NULL) );
 	TRandom generator;
 //	generator.SetSeed( rand()*rand()*rand() % rand() );
-	int seed = 14557409;
+//	int seed = 14557409;
+	int seed = rand()*rand()*rand() % rand();
 	generator.SetSeed(seed);
 
 	for (auto digi : digis){

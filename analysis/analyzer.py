@@ -3,6 +3,7 @@ import os
 import ROOT as root
 import util
 from event import Event
+import numpy as np
 
 class H_mumu_Analyzer:
 
@@ -12,8 +13,8 @@ class H_mumu_Analyzer:
 	det = Detector()
 
 	def __init__(self, loop_dir):
-		self.files = [loop_dir] # global path and filename
-		#self.files = util.GetFilesInDir(loop_dir)
+		#self.files = [loop_dir] # global path and filename
+		self.files = util.GetFilesInDir(loop_dir)
 		self.passed_files = []
 		self.passed_events = []
 		self.floor_hit_location = root.TH2D("floor_hit_location", "floor hit x,z", 1000, -5100., 5100., 1000, 6900., 17100. )
@@ -90,6 +91,12 @@ class H_mumu_Analyzer:
 		self.Tree.SetBranchStatus("Track_expectedHitLayer", 1)
 		self.Tree.SetBranchStatus("track_ipDistance", 1)
 		self.Tree.SetBranchStatus("Track_hitIndices", 1)
+		self.Tree.SetBranchStatus("GenParticle_G4index",1)
+		self.Tree.SetBranchStatus("GenParticle_pdgid",1)
+		self.Tree.SetBranchStatus("GenParticle_x",1)
+		self.Tree.SetBranchStatus("GenParticle_y",1)
+		self.Tree.SetBranchStatus("GenParticle_z",1)
+		self.Tree.SetBranchStatus("GenParticle_time",1)
 
 
 	def Trigger(self):
@@ -249,6 +256,72 @@ class H_mumu_Analyzer:
 	def Plot1D(self, branch_name):
 		plotvar = 0.0
 		self.Tree.SetBranchStatus("")
+
+	def PlotSelection(self):
+		if (int(self.Tree.NumVertices) == 1 and int(self.Tree.NumTracks) == 2):
+			if self.det.inBox(self.Tree.Vertex_x[0], self.Tree.Vertex_y[0], self.Tree.Vertex_z[0]):
+				return True
+		return False
+
+	def Plot(self, tree_name="integral_tree"):
+		plotx = root.TH1D("x_res", "Vertex X Resolution (truth-actual)", 100, -500, 500)
+		ploty = root.TH1D("y_res", "Vertex Y Resolution (truth-actual)", 100, -500, 500)
+		plotz = root.TH1D("z_res", "Vertex Z Resolution (truth-actual)", 100, -500, 500)
+		plott = root.TH1D("t_res", "Vertex t Resolution (truth-actual)", 100, -500, 500)
+
+		self.tree_name = tree_name
+		for file in self.files:
+			print("Working in file: " + file)
+			tfile = root.TFile.Open(file)
+			self.InitTree(tfile.Get(tree_name))
+			for eventNumber in range(self.Tree.GetEntries()):
+				self.Tree.GetEntry(eventNumber)
+				if self.PlotSelection():
+					vx = self.Tree.Vertex_x[0]
+					#evx = self.Tree.Vertex_ErrorX[0]
+					vy = self.Tree.Vertex_y[0]
+					#evy = self.Tree.Vertex_ErrorY[0]
+					vz = self.Tree.Vertex_z[0]
+					#evz = self.Tree.Vertex_ErrorZ[0]
+					vt = self.Tree.Vertex_t[0]
+					#evt = self.Tree.Vertex_ErrorT[0]
+					for k in range(int(len(self.Tree.GenParticle_G4index))):
+						if (self.Tree.GenParticle_G4index[k] == 1) and int(np.absolute(self.Tree.GenParticle_pdgid[k] == 13)) :
+							gen_x = self.Tree.GenParticle_y[k]/10.
+							plotx.Fill( (gen_x-vx))#/evx )
+							gen_y = self.Tree.GenParticle_x[k]/10.
+							ploty.Fill( (gen_y-vy))#/evy )
+							gen_z = self.Tree.GenParticle_z[k]/10.
+							plotz.Fill( (gen_z-vz))#/evz )
+							gen_t = self.Tree.GenParticle_time[k]
+							plott.Fill( (gen_t-vt))#/evt )
+
+							print( [(vt-gen_t), (vx-gen_x), (vy-gen_y), (vz-gen_z)])
+							break
+					
+
+		c1 = root.TCanvas("c1")
+		plotx.Draw()
+		plotx.GetXaxis().SetTitle("distance [cm]")
+		c1.Print("plotxcm.png")
+
+		c2 = root.TCanvas("c2")
+		ploty.Draw()
+		ploty.GetXaxis().SetTitle("distance [cm]")
+		c2.Print("plotycm.png")
+
+		c3 = root.TCanvas("c3")
+		plotz.Draw()
+		plotz.GetXaxis().SetTitle("distance [cm]")
+		c3.Print("plotzcm.png")
+
+		c4 = root.TCanvas("c4")
+		plott.Draw()
+		plott.GetXaxis().SetTitle("time difference [ns]")
+		c4.Print("plottcm.png")
+
+
+					
 
 ###############################################################################################################################################################################
 ###############################################################################################################################################################################

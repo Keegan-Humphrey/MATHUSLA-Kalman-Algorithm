@@ -245,10 +245,14 @@ public:
         OutputTree->Branch("Vertex_k_z", &vertex_k_z);
         OutputTree->Branch("Vertex_k_trackIndices", &vertex_track_k_indices);
 
-				OutputTree->Branch("Vertex_k_m_t", &vertex_k_m_t);
+	OutputTree->Branch("Vertex_k_m_t", &vertex_k_m_t);
         OutputTree->Branch("Vertex_k_m_x", &vertex_k_m_x);
         OutputTree->Branch("Vertex_k_m_y", &vertex_k_m_y);
         OutputTree->Branch("Vertex_k_m_z", &vertex_k_m_z);
+      	OutputTree->Branch("Vertex_k_m_ErrorT", &vertex_t_k_m_error);
+      	OutputTree->Branch("Vertex_k_m_ErrorX", &vertex_x_k_m_error);
+      	OutputTree->Branch("Vertex_k_m_ErrorY", &vertex_y_k_m_error);
+      	OutputTree->Branch("Vertex_k_m_ErrorZ", &vertex_z_k_m_error);
         OutputTree->Branch("Vertex_k_m_trackIndices", &vertex_track_k_m_indices);
 	OutputTree->Branch("NumVertices_k_m", &numvertices_k_m, "NumVertices/D");
 
@@ -426,6 +430,10 @@ std::vector<double>	vertex_k_m_t;
 std::vector<double>	vertex_k_m_x;
 std::vector<double>	vertex_k_m_y;
 std::vector<double>	vertex_k_m_z;
+  	std::vector<double> vertex_t_k_m_error;
+  	std::vector<double> vertex_x_k_m_error;
+  	std::vector<double> vertex_y_k_m_error;
+  	std::vector<double> vertex_z_k_m_error;
 std::vector<double>	vertex_track_k_m_indices;
 Double_t numvertices_k_m;
 
@@ -853,6 +861,10 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 	vertex_k_s_beta.clear();
 	vertex_k_s_beta_err.clear();
 
+	vertex_t_k_m_error.clear();
+	vertex_x_k_m_error.clear();
+	vertex_y_k_m_error.clear();
+	vertex_z_k_m_error.clear();
 	numvertices_k_m = vertices.size();
 
 	//std::cout << "export test 1 " << std::endl;
@@ -867,6 +879,10 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 		vertex_k_m_z.push_back(v->z);
 
 		//std::cout << "export test 3 " << std::endl;
+		vertex_x_k_m_error.push_back(sqrt(v->CovMatrix()[0][0]));
+		vertex_y_k_m_error.push_back(sqrt(v->CovMatrix()[1][1]));
+		vertex_z_k_m_error.push_back(sqrt(v->CovMatrix()[2][2]));
+		vertex_t_k_m_error.push_back(sqrt(v->CovMatrix()[3][3]));
 
 		for (auto q_f : v->q_f) vertex_k_f_beta.push_back(q_f.norm() / constants::c);
 		vertex_k_f_beta.push_back(-1.0);

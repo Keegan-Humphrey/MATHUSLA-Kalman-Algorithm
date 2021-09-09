@@ -204,7 +204,7 @@ void VertexFinder::FindVertices_k_hybrid()
 			good_vertex->track_indices.push_back(track->index);
 		}
 
-		//good_vertex->CovMatrix(fitter.cov_matrix, fitter.npar);
+		good_vertex->CovMatrix(fitter.cov_matrix, fitter.npar);
 		good_vertex->merit(fitter.merit());
 		vertices_k.push_back(good_vertex);
 		tracks_k = unused_tracks;

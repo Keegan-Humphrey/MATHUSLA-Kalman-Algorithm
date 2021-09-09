@@ -72,11 +72,11 @@ do
 			./tracker "$line" ../
 			cd ../
 
-            # move and rename output files
+	                # move and rename output files
 			mv stat0.root "$1/$day/$time/trees/stat_${n}_${c}.root"
 #			mv ./build/print.txt "$1/$day/$time/prints/print_${n}_${c}.txt"
 
-            # run cutflow script on output tree
+            		# run cutflow script on output tree
 			python "$script_dir/../../analysis/cutflow.py" "$1/$day/$time/trees/stat_${n}_${c}.root"
 
 			((c++))
@@ -98,20 +98,6 @@ done < "$input"
 # for reference in plots*.zip file!
 cp ./run/*.txt "$1/$day/$time/"
 cp ./run/*.txt "$1/$day/$time/plots"
-
-# make directories to write plots into
-mkdir "$1/$day/$time/plots/NumTracks"
-mkdir "$1/$day/$time/plots/NumTracks_k"
-mkdir "$1/$day/$time/plots/NumTracks_k_m"
-mkdir "$1/$day/$time/plots/Track_numHits"
-mkdir "$1/$day/$time/plots/Track_k_numHits"
-mkdir "$1/$day/$time/plots/local_chi_f"
-mkdir "$1/$day/$time/plots/local_chi_s"
-mkdir "$1/$day/$time/plots/Track_k_smooth_chi_sum"
-mkdir "$1/$day/$time/plots/vertex_k_f_beta"
-mkdir "$1/$day/$time/plots/vertex_k_s_beta"
-mkdir "$1/$day/$time/plots/Track_k_beta"
-mkdir "$1/$day/$time/plots/Track_k_beta_err"
 
 python ./run/plotting.py "$1/$day/$time/"
 

@@ -223,10 +223,10 @@ def Histogram(data, rng=None, Title=None, xaxis=None, log=False, fname='hist.png
     ax.set_xlabel(xaxis)
 
     if rng != None:
-        ax.text(rng[1]*0.75,np.shape(data)[0]*5e-2,"Mean: {:.03g} \nSTD: {:0.3g} \nOverflow: {}".format(mean,std,above))
+        ax.text(rng[1]*0.7,np.shape(data)[0]*5e-2,"Mean: {:.03g} \nSTD: {:0.3g} \nOverflow: {}".format(mean,std,above))
 
     else:
-        ax.text(np.max(data)*0.75,np.shape(data)[0]*5e-2,"Mean: {:.03g} \nSTD: {:0.3g}".format(mean,std))
+        ax.text(np.max(data)*0.7,np.shape(data)[0]*5e-2,"Mean: {:.03g} \nSTD: {:0.3g}".format(mean,std))
 
     plt.savefig(fname)
 #    plt.show()

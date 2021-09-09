@@ -126,6 +126,9 @@ class Event:
 		self.Tree.SetBranchStatus("GenParticle_x",1) # start position of particles
 		self.Tree.SetBranchStatus("GenParticle_y",1)
 		self.Tree.SetBranchStatus("GenParticle_z",1)
+		self.Tree.SetBranchStatus("Vertex_x", 1)
+		self.Tree.SetBranchStatus("Vertex_y", 1)
+		self.Tree.SetBranchStatus("Vertex_z", 1)
 
 		visEngine_local = visualization.Visualizer()
 
@@ -161,9 +164,19 @@ class Event:
 
 			num_truth += 1
 
+
+		'''
+		for n in range(len(self.Tree.Vertex_x)):
+			xv = self.Tree.Vertex_x[n]
+			yv = self.Tree.Vertex_y[n]
+			zv = self.Tree.Vertex_z[n]
+
+			# made vertex passed to visualiser
+			visEngine_local.AddVertex( {'point':[xv, yv, zv], 'col':'tab:red', 'vert vel':[[]*3]} )
+		'''
+
 		self.num_truth = num_truth
 		visEngine_local.Draw(self.Tree_nm.split('/')[-1].split('.')[0]+'_{}_{}.pdf'.format(self.EventNumber,'truth'))
-
 
 
 
@@ -343,10 +356,10 @@ class Event:
 
 		# get truth vertex info (decay location of parent particle used in the event)
 		used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
-		dump(used_gens_inds,"used_gens_inds.joblib")
+		#dump(used_gens_inds,"used_gens_inds.joblib")
 		#used_gens_inds = load("used_gens_inds.joblib")
 
-		# Vertex truth location (translated from Geant coordinate system)
+		# Vertex truth location (translated from Pythia coordinate system)
 		vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
 			      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
 			      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
@@ -443,46 +456,102 @@ class Event:
 		self.Tree.SetBranchStatus("Vertex_k_m_x",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_y",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_z",1)
-
-
-		self.Tree.GetEntry(self.EventNumber)
-
-		used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
-		dump(used_gens_inds,"used_gens_inds.joblib")
-		#used_gens_inds = load("used_gens_inds.joblib")
-
-		# particles form one vertex only first since all used
-		vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
-			      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
-			      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
-
-		x = self.Tree.Vertex_k_m_x
-		y = self.Tree.Vertex_k_m_y
-		z = self.Tree.Vertex_k_m_z
+		self.Tree.SetBranchStatus("Vertex_k_m_ErrorX",1)
+		self.Tree.SetBranchStatus("Vertex_k_m_ErrorY",1)
+		self.Tree.SetBranchStatus("Vertex_k_m_ErrorZ",1)
 
 		dx, dy, dz = [], [], []
+		ex, ey, ez = [], [], []
+		px, py, pz = [], [], []
+		chi = []
 
-		min_dist = 1e6
-		min_index = -1
+		max = 1e3
 
-		for vert in range(len(x)):
-			_dx = x[vert] - vert_truth[0]
-			_dy = y[vert] - vert_truth[1]
-			_dz = z[vert] - vert_truth[2]
+		res_info_txt = []
 
-			dr = np.sqrt(_dx**2 + _dy**2 + _dz**2)
+		for ev_num in range(self.Tree.GetEntries()):
 
-			if dr < min_dist:
-				min_index = vert
+			print("event {}".format(ev_num)) if ev_num % 100 == 0 else None
 
-#			drs.append(dr)
+			self.Tree.GetEntry(ev_num)
 
-		if min_index != -1:
-			dx.append(x[min_index] - vert_truth[0])
-			dy.append(y[min_index] - vert_truth[1])
-			dz.append(z[min_index] - vert_truth[2])
+			used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
+			#dump(used_gens_inds,"used_gens_inds.joblib")
+			#used_gens_inds = load("used_gens_inds.joblib")
 
-		return dx, dy, dz
+			# particles form one vertex only first since all used
+			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
+				      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
+				      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
+
+			x = self.Tree.Vertex_k_m_x
+			y = self.Tree.Vertex_k_m_y
+			z = self.Tree.Vertex_k_m_z
+			_ex = self.Tree.Vertex_k_m_ErrorX
+			_ey = self.Tree.Vertex_k_m_ErrorY
+			_ez = self.Tree.Vertex_k_m_ErrorZ
+
+			min_dist = 1e6
+			min_index = -1
+
+			for vert in range(len(x)):
+				_dx = x[vert] - vert_truth[0]
+				_dy = y[vert] - vert_truth[1]
+				_dz = z[vert] - vert_truth[2]
+
+				dr = np.sqrt(_dx**2 + _dy**2 + _dz**2)
+
+				if dr < min_dist:
+					min_index = vert
+
+			if min_index != -1:
+				dx.append(x[min_index] - vert_truth[0])
+				dy.append(y[min_index] - vert_truth[1])
+				dz.append(z[min_index] - vert_truth[2])
+				ex.append(_ex[min_index])
+				ey.append(_ey[min_index])
+				ez.append(_ez[min_index])
+				px.append(dx[-1] / ex[-1])
+				py.append(dy[-1] / ey[-1])
+				pz.append(dz[-1] / ez[-1])
+				chi.append(dx[-1]**2 / ex[-1]**2 + dy[-1]**2 / ey[-1]**2 + dz[-1]**2 / ez[-1]**2)
+
+				res_info_txt.append("\nev num is " + str(ev_num)+ '\n')
+				res_info_txt.append("chi is " + str(chi[-1]) + '\n')
+				res_info_txt.append("pull X is " + str(px[-1]) + '\n')
+				res_info_txt.append("pull Y is " + str(py[-1]) + '\n')
+				res_info_txt.append("pull Z is " + str(pz[-1]) + '\n')
+				res_info_txt.append("error X is " + str(ex[-1]) + '\n')
+				res_info_txt.append("error Y is " + str(ey[-1]) + '\n')
+				res_info_txt.append("error Z is " + str(ez[-1]) + '\n')
+				res_info_txt.append("diff X is " + str(dx[-1]) + '\n')
+				res_info_txt.append("diff Y is " + str(dy[-1]) + '\n')
+				res_info_txt.append("diff Z is " + str(dz[-1]) + '\n')
+
+		f = open("res_info.txt","w+")
+		f.writelines(res_info_txt)
+		f.close()
+
+		vis_engine = visualization.Histogram(dx, rng=(-max,max), Title='Vertex X Resolution', \
+                	xaxis='Vertex X - Decay Location X [cm]', fname='resolutionX.png')
+		vis_engine = visualization.Histogram(dy, rng=(-max,max), Title='Vertex Y Resolution', \
+                	xaxis='Vertex Y - Decay Location Y [cm]', fname='resolutionY.png')
+		vis_engine = visualization.Histogram(dz, rng=(-max,max), Title='Vertex Z Resolution', \
+                	xaxis='Vertex Z - Decay Location Z [cm]', fname='resolutionZ.png')
+		vis_engine = visualization.Histogram(ex, rng=(0,max), Title='Vertex X Error', \
+                	xaxis='Error X [cm]', fname='errorX.png')
+		vis_engine = visualization.Histogram(ey, rng=(0,max), Title='Vertex Y Error', \
+                	xaxis='Error Y [cm]', fname='errorY.png')
+		vis_engine = visualization.Histogram(ez, rng=(0,max), Title='Vertex Z Error', \
+                	xaxis='Error Z [cm]', fname='errorZ.png')
+		vis_engine = visualization.Histogram(px, rng=(-100,100), Title='Vertex X Pull', \
+                	xaxis='Pull X []', fname='pullX.png')
+		vis_engine = visualization.Histogram(py, rng=(-100,100), Title='Vertex Y Pull', \
+                	xaxis='Pull Y []', fname='pullY.png')
+		vis_engine = visualization.Histogram(pz, rng=(-100,100), Title='Vertex Z Pull', \
+                	xaxis='Pull Z []', fname='pullZ.png')
+		vis_engine = visualization.Histogram(chi, rng=(0,200), Title='Vertex chi', \
+                	xaxis='Chi []', fname='chi.png')
 
 
 

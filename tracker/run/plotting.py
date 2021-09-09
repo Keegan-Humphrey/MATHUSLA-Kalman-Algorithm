@@ -11,12 +11,20 @@ class Plot:
 
     def __init__(self):
 
+	# output directory for a tracker run with ./run.sh
         self.write_dir = sys.argv[1]
 
         self.filelist = [filename for filename in glob.iglob(self.write_dir+'/trees/*.root', recursive=True)]
 
 
     def Make_Plots(self, branches):
+
+        # make write directories for each branch
+        for branch in branches:
+             directory = self.write_dir+'/plots/'+branch
+
+             if not os.path.exists(directory):
+                 os.makedirs(directory)
 
         for file in self.filelist:
              infile = root.TFile.Open( file ," READ ")
@@ -50,7 +58,7 @@ class Plot:
 
 
 if __name__ == "__main__":
-
+    '''
     branches = ["Track_k_numHits",
 		"Track_numHits",
 		"local_chi_f",
@@ -63,6 +71,11 @@ if __name__ == "__main__":
 		"vertex_k_s_beta",
 		"Track_k_beta",
 		"Track_k_beta_err"]
+    branches = ["Vertex_k_m_ErrorT",
+		"Vertex_k_m_ErrorX",
+		"Vertex_k_m_ErrorY",
+		"Vertex_k_m_ErrorZ"]
+    '''
 
     plt = Plot()
 
