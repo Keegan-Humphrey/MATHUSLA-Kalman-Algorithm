@@ -55,146 +55,6 @@ class sample_space():
         return 999
 
 
-    def get_states(self):
-
-        global ncuts
-
-        tracking_file = root.TFile.Open(self.file)
-        self.tree = tracking_file.Get("integral_tree")
-        self.tree.SetBranchStatus("*", 0)
-        self.tree.SetBranchStatus("Digi_y", 1)
-        self.tree.SetBranchStatus("Digi_time", 1)
-        self.tree.SetBranchStatus("NumTracks", 1)
-        self.tree.SetBranchStatus("NumTracks_k", 1)
-
-        self.tree.SetBranchStatus("Vertex_x", 1)
-        self.tree.SetBranchStatus("Vertex_y", 1)
-        self.tree.SetBranchStatus("Vertex_z", 1)
-        self.tree.SetBranchStatus("Vertex_k_x", 1)
-        self.tree.SetBranchStatus("Vertex_k_y", 1)
-        self.tree.SetBranchStatus("Vertex_k_z", 1)
-        self.tree.SetBranchStatus("Vertex_k_t", 1)
-
-        self.tree.SetBranchStatus("Vertex_k_trackIndices", 1)
-        self.tree.SetBranchStatus("Track_x0", 1)
-        self.tree.SetBranchStatus("Track_k_x0", 1)
-        self.tree.SetBranchStatus("Track_k_velX", 1)
-        self.tree.SetBranchStatus("Track_k_velY", 1)
-        self.tree.SetBranchStatus("Track_k_velZ", 1)
-        self.tree.SetBranchStatus("Track_k_hitIndices", 1)
-
-        cut_vectors = []
-
-        for event_number in range(int(self.tree.GetEntries())):
-
-            current_vector = np.zeros(1+ncuts) # first will be the event number
-
-            self.tree.GetEntry(event_number)
-            if event_number % 500 == 0:
-                print("event:", event_number)
-
-            current_vector[0] = event_number
-
-            current_vector[1] = self.tree.NumTracks_k
-
-            current_vector[2] = len(self.tree.Vertex_k_x)
-
-            inside = False
-
-            for num in range(len(self.tree.Vertex_k_x)):
-                vtxx, vtxy, vtxz = self.tree.Vertex_k_x[num], self.tree.Vertex_k_y[num], self.tree.Vertex_k_z[num]
-                if self.inside_box(vtxx, vtxy, vtxz):
-                    inside = True
-
-            current_vector[3] = int(inside)
-
-            floorveto = False
-            for num in range(len(self.tree.Vertex_k_x)):
-                vertexveto = False
-                for hit in range(len(self.tree.Digi_y)):
-                    if self.in_layer(self.tree.Digi_y[hit]) < 2:
-                        if self.tree.Vertex_k_t[num] > self.tree.Digi_time[hit]:
-                            vertexveto = True
-                if not vertexveto:
-                    break
-            if len(self.tree.Vertex_k_x) != 0:
-                if vertexveto:
-                    floorveto = True
-
-            current_vector[4] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] < 1
-
-            expectedveto = False
-            fulltrackindices = util.unzip(self.tree.Vertex_k_trackIndices)
-            fullhitindices = util.unzip(self.tree.Track_k_hitIndices)
-            fullexp_layers = util.unzip(self.tree.Vertex_k_m_trackIndices)
-
-            for j in range(int(tree.NumVertices)):
-                bottomlayer_exp = []
-                bottomlayer_hits = []
-                trackindices = fulltrackindices[j]
-                for track in trackindices:
-                    exp_layers = fullexp_layers[track]
-                    for hit in exp_layers:
-                        if hit < 2:
-                            bottomlayer_exp.append(hit)
-                    hitindices = fullhitindices[track]
-                    for i in hitindices:
-                        hity = tree.Digi_y[i]
-                        if in_layer(hity) < 2:
-                                bottomlayer_hits.append(hity)
-            if (len(bottomlayer_hits) < 1 and len(bottomlayer_exp) >= 3):
-                expectedveto = True
-
-            current_vector[5] = int(expectedveto)
-
-            open_angles = []
-            fulltrackindices = util.unzip(self.tree.Vertex_k_trackIndices)
-            for k1 in range(len(self.tree.Vertex_k_x)):
-                trackindices = fulltrackindices[k1]
-                combolist = list(combinations(trackindices, 2))
-
-                for combo in combolist:
-                    cos_opening_angle = self.tree.Track_k_velX[combo[0]]*self.tree.Track_k_velX[combo[1]] + \
-                                        self.tree.Track_k_velY[combo[0]]*self.tree.Track_k_velY[combo[1]] + \
-                                        self.tree.Track_k_velZ[combo[0]]*self.tree.Track_k_velZ[combo[1]]
-                    mag1 = np.sqrt(self.tree.Track_k_velX[combo[0]]**2 + self.tree.Track_k_velY[combo[0]]**2 + self.tree.Track_k_velZ[combo[0]]**2)
-                    mag2 = np.sqrt(self.tree.Track_k_velX[combo[1]]**2 + self.tree.Track_k_velY[combo[1]]**2 + self.tree.Track_k_velZ[combo[1]]**2)
-                    cos_opening_angle = cos_opening_angle/( mag1*mag2 )
-                    open_angles.append(acos(cos_opening_angle))
-
-            open_angles.sort(reverse = True)
-
-            if len(open_angles) != 0:
-                	current_vector[6] = open_angles[0]
-
-
-            # check if any vertices are below all corresponding track hits
-            topoveto = 0
-
-            fulltrackindices = util.unzip(self.tree.Vertex_k_trackIndices)
-            fullhitindices = util.unzip(self.tree.Track_k_hitIndices)
-
-            for k1 in range(len(self.tree.Vertex_k_x)):
-                vertexveto = False
-                trackindices = fulltrackindices[k1]
-                for t1 in range(len(self.tree.Track_k_x0)):
-                    hitindices = fullhitindices[t1]
-                    for hit in hitindices:
-                        if self.tree.Digi_y[hit] < self.tree.Vertex_k_y[k1]:
-                            vertexveto = True
-                if vertexveto:
-                    topoveto += 1
-
-            if topoveto < current_vector[2]: # vetoed vertices < total vertices
-                current_vector[7] = 1
-
-            cut_vectors.append(current_vector)
-
-        self.cut_vectors = np.array(cut_vectors)
-
-        return self.cut_vectors
-
-
     def get_states_m(self):
 
         global ncuts
@@ -231,10 +91,13 @@ class sample_space():
             if event_number % 500 == 0:
                 print("event:", event_number)
 
+            # record the event number for reference
             current_vector[0] = event_number
 
+            # cut on the number of made tracks in the event
             current_vector[1] = self.tree.NumTracks_k_m
 
+            # cut on the number of vertices made in the event
             current_vector[2] = len(self.tree.Vertex_k_m_x)
 
             inside = False
@@ -244,13 +107,14 @@ class sample_space():
                 if self.inside_box(vtxx, vtxy, vtxz):
                     inside = True
 
+            # check if at least one vertex is in the detector
             current_vector[3] = int(inside) # fiducial
 
             floorveto = False
-            for num in range(len(self.tree.Vertex_k_m_x)):
+            for num in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
                 vertexveto = False
-                for hit in range(len(self.tree.Digi_y)):
-                    if self.in_layer(self.tree.Digi_y[hit]) < 2:
+                for hit in range(len(self.tree.Digi_y)): # loop over the hits
+                    if self.in_layer(self.tree.Digi_y[hit]) < 2: # check if layer index is a floor layer index
                         if self.tree.Vertex_k_m_t[num] > self.tree.Digi_time[hit]:
                             vertexveto = True
                 if not vertexveto:
@@ -259,32 +123,40 @@ class sample_space():
                 if vertexveto:
                     floorveto = True
 
-            current_vector[4] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] < 1
-						   # track floor veto
+            # track floor veto
+            current_vector[4] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] (< 1 is true)
+
+
             expectedveto = False
             fulltrackindices = util.unzip(self.tree.Vertex_k_m_trackIndices)
             fullhitindices = util.unzip(self.tree.Track_k_m_hitIndices)
             fullexp_layers = util.unzip(self.tree.Track_k_m_expected_hit_layer)
-            '''
+
             for j in range(int(self.tree.NumVertices_k_m)):
                 bottomlayer_exp = []
                 bottomlayer_hits = []
                 trackindices = fulltrackindices[j]
+
                 for track in trackindices:
-                    exp_layers = fullexp_layers[int(track)]
+                    exp_layers = fullexp_layers[int(track)]  # layers the track is expected to hit
+
                     for hit in exp_layers:
                         if hit < 2:
-                            bottomlayer_exp.append(hit)
+                            bottomlayer_exp.append(hit) # a floor layer hit is expected, record the layer
+
                     hitindices = fullhitindices[int(track)]
+
                     for i in hitindices:
                         hity = self.tree.Digi_y[i]
+
                         if self.in_layer(hity) < 2:
-                                bottomlayer_hits.append(hity)
+                                bottomlayer_hits.append(hity) # hit is in a floor layer
+
+                # we get 3 or more expected hits, but no hits, veto
                 if (len(bottomlayer_hits) < 1 and len(bottomlayer_exp) >= 3):
                     expectedveto = True
-            '''
-            #current_vector[5] = int(expectedveto) # bottom layer hits
-            current_vector[5] = 1
+
+            current_vector[5] = int(expectedveto) # bottom layer hits
 
             open_angles = []
             fulltrackindices = util.unzip(self.tree.Vertex_k_m_trackIndices)
@@ -303,9 +175,11 @@ class sample_space():
                     cos_opening_angle = cos_opening_angle/( mag1*mag2 )
                     open_angles.append(acos(cos_opening_angle))
 
+            # sort in terms of descending opening angle
             open_angles.sort(reverse = True)
 
             if len(open_angles) != 0:
+                        # cut on largest opening angle
                 	current_vector[6] = open_angles[0]
 
 
@@ -327,6 +201,7 @@ class sample_space():
                     topoveto += 1
 
             if topoveto < current_vector[2]: # vetoed vertices < total vertices
+                # see if there is at least one vertex below all hits in its made tracks
                 current_vector[7] = 1
 
             cut_vectors.append(current_vector)
@@ -381,6 +256,7 @@ class scissors():
 
 
 class par_func():
+    ''' handle multiple files to cut and create a function that takes cut parameters and returns signal to background ratios'''
 
     def __init__(self,backgrounds,signals):
 
@@ -413,6 +289,7 @@ class par_func():
 
 #    def cut(self, p0, p1, p2, p3, p4, p5):
     def cut(self, p0, p1, p4):
+        ''' calculate and return signal to background ratio for all handled files'''
 
         i = 0
         self.scores = [[],[]]
@@ -452,13 +329,6 @@ class par_func():
 
 
 def main():
-#    files  = ["/scratch/keeganh/stat_files/29_06_21/10_16_21/trees/stat_2_0.root",
-#               "/scratch/keeganh/stat_files/29_06_21/10_16_21/trees/stat_1_0.root",
-#               "/scratch/keeganh/stat_files/29_06_21/09_58_55/trees/stat_0_0.root"]
-
-    #npars = 1
-
-    #directory = "/scratch/keeganh/stat_files/01_07_21/11_54_02/trees/"
 
     directory = sys.argv[1]
 
@@ -509,5 +379,5 @@ if __name__ == '__main__':
     scissor.cut(2,1,1,1,1,-1,1)
 
     print("flows are ",scissor.flows)
-    print("events with vertices ",scissor.survivor_inds[1])
+#    print("events with vertices ",scissor.survivor_inds[1])
 #    print("survivor inds are ",np.array(scissor.survivor_inds[6]))

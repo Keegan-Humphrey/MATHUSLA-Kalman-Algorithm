@@ -76,6 +76,7 @@ if __name__ == "__main__":
 		"Vertex_k_m_ErrorY",
 		"Vertex_k_m_ErrorZ"]
     '''
+    branches = []
 
     plt = Plot()
 

@@ -41,10 +41,10 @@ fi
 cd "$script_dir/../"
 
 # keep source for version control
-zip -r include.zip ./include/
-zip -r src.zip ./src/
-mv include.zip "$1/$day/$time"
-mv src.zip "$1/$day/$time"
+#zip -r include.zip ./include/
+#zip -r src.zip ./src/
+#mv include.zip "$1/$day/$time"
+#mv src.zip "$1/$day/$time"
 
 # file containing paths to input trees
 input="./run/DataNames.txt"

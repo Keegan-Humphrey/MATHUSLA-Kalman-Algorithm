@@ -96,12 +96,13 @@ int RunManager::StartTracking()
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 
 			made_its += _tracker->tracks.size();
-			made_its_k += _tracker->tracks_k.size();
+			made_its_k += _tracker->tracks_k_m.size();
 
 			TH->ExportTracks(_tracker->tracks);
 			TH->ExportTracks_k(_tracker->tracks_k);
 			TH->ExportTracks_k_m(_tracker->tracks_k_m);
 			TH->Export_kalman_info(_tracker->local_chi_f, _tracker->local_chi_s);
+
 
 			// check for negative covariance matrices in made tracks
 			for (auto track : _tracker->tracks_k_m)
@@ -149,8 +150,10 @@ int RunManager::StartTracking()
 		events_handled++;
 	}
 
-	std::cout << verts << " Old vertices made it" << std::endl;
-	std::cout << verts_k << " Kalman vertices made it" << std::endl;
+	std::cout << made_its << " Linear tracks made it" << std::endl;
+	std::cout << made_its_k << " Kalman tracks made it" << std::endl;
+	std::cout << verts << " Linear vertices made it" << std::endl;
+	//std::cout << verts_k << " Kalman vertices made it" << std::endl;
 	std::cout << verts_k_m << " Merged Kalman vertices made it" << std::endl;
 
 	TH->Write();

@@ -137,7 +137,7 @@ class Visualizer:
 	        for dic in self.vertices:
 	#            if len(pnt) == 3:
 	             scatters.append(self.ax.scatter(dic['point'][0],dic['point'][1],dic['point'][2],s=20,c=dic['col'],marker="x"))
-	             print("with color {}".format(dic['col']))
+	             #print("with color {}".format(dic['col']))
 	
 	#             print(dic['vert vel'][0])
 	#             print(dic['vert vel'])
@@ -205,19 +205,33 @@ def Histogram(data, rng=None, Title=None, xaxis=None, log=False, fname='hist.png
 
     fig, ax = plt.subplots(figsize=(8,5))
 
-    ax.hist(data,100,range=rng)
+    #ax.hist(data,100,range=rng)
 
     if log:
         ax.semilogy()
 
-    mean = np.mean(data)
-    std = np.std(data)
 
     if rng != None:
+        arg_data = np.copy(data)
+
         data = np.array(data)
+
+        before = np.count_nonzero(data)
+
         data[data < rng[0]] = 0
         data[data > rng[1]] = 0
-        above = len(data) - np.count_nonzero(data)
+        data[data == np.nan] = 0
+
+        #above = len(data) - np.count_nonzero(data)
+        above = before - np.count_nonzero(data) # how many got set to zero
+
+        ax.hist(data,int(np.sqrt(len(arg_data)-above)),range=rng)
+
+    else:
+        ax.hist(data,int(np.sqrt(len(data))),range=rng)
+
+    mean = np.mean(data)
+    std = np.std(data)
 
     ax.set_title(Title)
     ax.set_xlabel(xaxis)
@@ -230,3 +244,84 @@ def Histogram(data, rng=None, Title=None, xaxis=None, log=False, fname='hist.png
 
     plt.savefig(fname)
 #    plt.show()
+
+
+
+def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis=None, log=False, fname='hist.png'):
+
+    canv = root.TCanvas("canv","newCanvas")
+
+    bins = int(np.sqrt(len(data))) + bins
+
+    if rng != None:
+        #hist = root.TH1F("hist",Title,bins,rng[0],rng[1])
+        #hist = root.TH1F("hist",Title,bins,np.amin(data),np.max(data))
+        #hist = root.TH1F("hist",Title,bins,-100,100)
+        hist = root.TH1F("hist",Title+[';'+xaxis,''][xaxis==None],bins,rng[0],rng[1])
+
+    else:
+        hist = root.TH1F("hist",Title+[';'+xaxis,''][xaxis==None],bins,np.amin(data),np.max(data))
+
+#    if len(ft_rng) != 0:
+    if ft_rng != None:
+        #hist.Fit('gaus','','',rng[0],rng[1])
+        #fit = root.TF1("fit", "gaus", rng[0], rng[1])
+        #fit = root.TF1("fit", "gaus", -3, 3)
+        fit = root.TF1("fit", "gaus", ft_rng[0], ft_rng[1])
+
+    else:
+        #hist.Fit('gaus','','',np.amin(data),np.max(data))
+        fit = root.TF1("fit", "gaus", np.amin(data), np.max(data))
+
+    for elm in range(len(data)):
+        hist.Fill(data[elm])
+
+    root.gStyle.SetOptStat(111111)
+
+    #hist.Draw()
+
+    #hist.Draw()
+
+    #hist.GetXaxis().SetRangeUser(-3,3);
+    hist.GetXaxis().SetRangeUser(ft_rng[0],ft_rng[1]);
+
+    hist.Fit("fit")
+
+    hist.GetXaxis().SetRangeUser(rng[0],rng[1]);
+
+    '''
+    f_ptr = hist.GetFunction('gaus')
+
+    f = f_ptr.Get()
+
+    const, mu, sigma = f.GetParameter(0), f.GetParameter(1), f.GetParameter(2)
+    econst, emu, esigma = f.GetParError(0), f.GetParError(1), f.GetParError(2)
+    ndf, chi2, prob = f.GetNDF(), f.GetChisquare(), f.GetProb()
+
+    fit.SetParameters([const,mu,sigma])
+
+    print(chi2, ndf)
+    print(chi2/ndf,prob)
+    #hist.Fit("fit")
+
+    leg = root.TLegend(0.15, 0.70, 0.38, 0.85)
+    leg.AddEntry(fit, " Fit with Gaussian ", "L")
+
+    leg.Draw()
+    '''
+
+    hist.Draw()
+
+    bin1 = hist.FindFirstBinAbove(hist.GetMaximum()/2)
+    bin2 = hist.FindLastBinAbove(hist.GetMaximum()/2)
+    fwhm = hist.GetBinCenter(bin2) - hist.GetBinCenter(bin1)
+    hwhm = fwhm / 2
+
+    print("fwhm is ", fwhm)
+    print("hwhm is ", hwhm)
+
+    canv.Update()
+    canv.Draw()
+
+    canv.SaveAs(fname)
+    #canv.Print(fname.split('.')[0]+".pdf","PDF")

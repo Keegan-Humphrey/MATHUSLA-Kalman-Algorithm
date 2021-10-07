@@ -107,6 +107,9 @@ public:
  	InputTree->SetBranchAddress("GenParticle_x", &sim_GenParticle_x);
  	InputTree->SetBranchAddress("GenParticle_y", &sim_GenParticle_y);
  	InputTree->SetBranchAddress("GenParticle_z", &sim_GenParticle_z);
+ 	InputTree->SetBranchAddress("GenParticle_px", &sim_GenParticle_px);
+ 	InputTree->SetBranchAddress("GenParticle_py", &sim_GenParticle_py);
+ 	InputTree->SetBranchAddress("GenParticle_pz", &sim_GenParticle_pz);
  	InputTree->SetBranchAddress("GenParticle_mass", &sim_GenParticle_mass);
 
 
@@ -120,9 +123,9 @@ public:
 //    InputTree->SetBranchStatus("GenParticle_y", 0);
 //    InputTree->SetBranchStatus("GenParticle_z", 0);
    // InputTree->SetBranchStatus("GenParticle_energy", 0);
-    InputTree->SetBranchStatus("GenParticle_px", 0);
-    InputTree->SetBranchStatus("GenParticle_py", 0);
-    InputTree->SetBranchStatus("GenParticle_pz", 0);
+//    InputTree->SetBranchStatus("GenParticle_px", 0);
+//    InputTree->SetBranchStatus("GenParticle_py", 0);
+//    InputTree->SetBranchStatus("GenParticle_pz", 0);
 
 //    InputTree->SetBranchStatus("GenParticle_mass", 0);
     InputTree->SetBranchStatus("GenParticle_pt", 0);
@@ -194,9 +197,9 @@ public:
  		OutputTree->Branch("GenParticle_y", "std::vector<double>", sim_GenParticle_y);
  		OutputTree->Branch("GenParticle_z", "std::vector<double>", sim_GenParticle_z);
  		OutputTree->Branch("GenParticle_energy", "std::vector<double>", sim_GenParticle_energy);
-// 		OutputTree->Branch("GenParticle_px", "std::vector<double>", sim_GenParticle_px);
-// 		OutputTree->Branch("GenParticle_py", "std::vector<double>", sim_GenParticle_py);
-// 		OutputTree->Branch("GenParticle_pz", "std::vector<double>", sim_GenParticle_pz);
+ 		OutputTree->Branch("GenParticle_px", "std::vector<double>", sim_GenParticle_px);
+ 		OutputTree->Branch("GenParticle_py", "std::vector<double>", sim_GenParticle_py);
+ 		OutputTree->Branch("GenParticle_pz", "std::vector<double>", sim_GenParticle_pz);
 //		OutputTree->Branch("GenParticle_p_mag", &p);
  	//	OutputTree->Branch("GenParticle_mo1", "std::vector<double>", sim_GenParticle_mo1);
  	//	OutputTree->Branch("GenParticle_mo2", "std::vector<double>", sim_GenParticle_mo2);

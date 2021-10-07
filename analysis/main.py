@@ -15,7 +15,7 @@ import visualization
 RUN OPTION
 '''
 
-option = 3
+option = 1
 
 
 
@@ -24,19 +24,17 @@ def main(opt):
 
     ev = event.Event(sys.argv[1], 0)
 
-
     if opt == 1:
         # plot vertex info
 
         def bool_func(tree, op=0):
             ''' event selection function '''
 
-#            tree.SetBranchStatus("Vertex_x",1)
+            tree.SetBranchStatus("Vertex_x",1)
             tree.SetBranchStatus("Vertex_k_m_x",1)
-#            tree.SetBranchStatus("NumTracks_k_m",1)
+            tree.SetBranchStatus("NumTracks_k_m",1)
 
             # choose (or make a new) event selection criteria
-#            if op == 0 and len(tree.Vertex_x) >= 1:
             if op == 0 and len(tree.Vertex_k_m_x) >= 1:
                 return True
 
@@ -46,17 +44,19 @@ def main(opt):
             if op == 2 and tree.NumTracks_k_m >= 2 and len(tree.Vertex_k_m_x) == 0:
                 return True
 
+            if op == 3 and len(tree.Vertex_k_m_x) >= 1 and len(tree.Vertex_x) >= 1:
+                return True
+
             else:
                 return False
 
         ev = event.Event(sys.argv[1], 0)
+
         inds = ev.find_with_bool(bool_func, Op=0)
-
-        #inds = [35, 40, 77, 82, 85]
-
         inds = inds[:100]
+        #inds = np.arange(100)
 
-        print(inds)
+        #print(inds)
 
         for ind in inds:
 
@@ -73,6 +73,7 @@ def main(opt):
             ev.Print()
 
             ev.RecoVertex()
+            ev.RecoLinVertex()
 
 
     elif opt == 2:
@@ -117,6 +118,9 @@ def main(opt):
         ev.TrackResolution()
 
     elif opt == 10:
+        ev.GunStudies()
+
+    elif opt == 11:
         hmu = analyzer.H_mumu_Analyzer('/home/keeganh/scratch/stat_files//27_08_21/09_59_36/trees/')
 
         hmu.Plot()

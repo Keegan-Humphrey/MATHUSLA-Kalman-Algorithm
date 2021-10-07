@@ -53,8 +53,10 @@ class Editor:
                         k += 1
 
 		# start and end event for each dataset
-                pars_dict[pars_to_handle[-2]] = self.pars[self.i][15 + 2 * self.j]
-                pars_dict[pars_to_handle[-1]] = self.pars[self.i][16 + 2 * self.j]
+                #pars_dict[pars_to_handle[-2]] = self.pars[self.i][15 + 2 * self.j]
+                #pars_dict[pars_to_handle[-1]] = self.pars[self.i][16 + 2 * self.j]
+                pars_dict[pars_to_handle[-2]] = self.pars[self.i][15]
+                pars_dict[pars_to_handle[-1]] = self.pars[self.i][16]
 
                 for k in range(len(self.lines)):
                     par = self.lines[k].split(' ')[0]

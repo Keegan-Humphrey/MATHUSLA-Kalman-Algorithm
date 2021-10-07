@@ -1,5 +1,5 @@
-/home/keeganh/input_data/run_h10_5m_9_9_21.root
-#/home/keeganh/input_data/run_w_wall_25_8_21.root
-#/home/keeganh/input_data/run_mu_gun_1e5.root
-#/home/keeganh/input_data/h2_mumu_1mil.root
-#/home/keeganh/input_data/run_h10_26_8_21.root
+#/home/keeganh/scratch/presentation_dir/sim_trees/h10_1mill.root
+#/home/keeganh/scratch/presentation_dir/sim_trees/h2_1e5.root
+#/home/keeganh/scratch/presentation_dir/sim_trees/h2_1mill.root
+#/home/keeganh/scratch/presentation_dir/sim_trees/uubar_1e5.root
+/home/keeganh/scratch/presentation_dir/sim_trees/W_1mill.root

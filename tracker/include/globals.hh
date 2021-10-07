@@ -20,6 +20,7 @@ namespace detector{
 	const double ip_z = 0.0;
 
 	//specifies the bottom and top y position of every layer
+	/*
 	const std::vector<std::vector<double>> LAYERS_Y={{6003.0*cm, 6006.0*cm},  //layer 0
  												 	{6106.0*cm, 6109.0*cm}, //layer 1
 													{6209.0*cm, 6212.0*cm}, //layer 2
@@ -29,7 +30,18 @@ namespace detector{
  													{8606.0*cm, 8609.0*cm}, //layer 6
  													{8709.0*cm, 8712.0*cm}, //layer 7
  													{8812.0*cm, 8815.0*cm}, //layer 8
-													{8915.0*cm, 8918.0*cm} };  //layer 9
+													{8915.0*cm, 8918.0*cm}};  //layer 9
+	*/
+	const std::vector<std::vector<double>> LAYERS_Y={{6003.0*cm + 547*cm, 6006.0*cm + 547*cm,},  //layer 0
+ 												 	{6106.0*cm + 547*cm, 6109.0*cm + 547*cm}, //layer 1
+													{6209.0*cm + 547*cm, 6212.0*cm + 547*cm}, //layer 2
+ 													{8003.0*cm + 547*cm, 8006.0*cm + 547*cm}, //layer 3
+ 													{8106.0*cm + 547*cm, 8109.0*cm + 547*cm}, //layer 4
+ 													{8503.0*cm + 547*cm, 8506.0*cm + 547*cm}, //layer 5
+ 													{8606.0*cm + 547*cm, 8609.0*cm + 547*cm}, //layer 6
+ 													{8709.0*cm + 547*cm, 8712.0*cm + 547*cm}, //layer 7
+ 													{8812.0*cm + 547*cm, 8815.0*cm + 547*cm}, //layer 8
+													{8915.0*cm + 547*cm, 8918.0*cm + 547*cm}};  //layer 9
 	const int n_layers = 10;
 
 	const std::vector<std::vector<double>> MODULE_X = { 	{-4950.0*cm, -4050.0*cm},

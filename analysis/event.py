@@ -126,24 +126,22 @@ class Event:
 		self.Tree.SetBranchStatus("GenParticle_x",1) # start position of particles
 		self.Tree.SetBranchStatus("GenParticle_y",1)
 		self.Tree.SetBranchStatus("GenParticle_z",1)
-		self.Tree.SetBranchStatus("Vertex_x", 1)
-		self.Tree.SetBranchStatus("Vertex_y", 1)
-		self.Tree.SetBranchStatus("Vertex_z", 1)
 
 		visEngine_local = visualization.Visualizer()
 
 		visEngine_local.writeDirectory = self.writeDirectory
 
 		used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
-		dump(used_gens_inds,"used_gens_inds.joblib")
+		#dump(used_gens_inds,"used_gens_inds.joblib")
                 #used_gens_inds = load("used_gens_inds.joblib")
 
-		vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
-                              self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
-                              self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10] # only first since all used
+		if len(used_gens_inds) != 0:
+			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
+        	                      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
+                	              self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10] # only first since all used
 
-                #truth vertex location
-		visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
+	                #truth vertex location
+			visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
 
 		num_truth = 0
 #		list_of_truth_hits = []
@@ -163,17 +161,6 @@ class Event:
 			visEngine_local.TrackDisplayPoints(x, y, z, track.color(), track.LabelString())
 
 			num_truth += 1
-
-
-		'''
-		for n in range(len(self.Tree.Vertex_x)):
-			xv = self.Tree.Vertex_x[n]
-			yv = self.Tree.Vertex_y[n]
-			zv = self.Tree.Vertex_z[n]
-
-			# made vertex passed to visualiser
-			visEngine_local.AddVertex( {'point':[xv, yv, zv], 'col':'tab:red', 'vert vel':[[]*3]} )
-		'''
 
 		self.num_truth = num_truth
 		visEngine_local.Draw(self.Tree_nm.split('/')[-1].split('.')[0]+'_{}_{}.pdf'.format(self.EventNumber,'truth'))
@@ -297,6 +284,122 @@ class Event:
 		return inds
 
 
+	def RecoLinVertex(self):
+		''' visualise tracks and vertices made by ML Tracker, and the digi hits and truth decay locations '''
+
+		visEngine_local = visualization.Visualizer()
+
+		visEngine_local.vert_vel = self.vert_vel
+
+		visEngine_local.writeDirectory = self.writeDirectory
+
+		det = Detector()
+
+		self.Tree.SetBranchStatus("GenParticle_G4index",1)
+		self.Tree.SetBranchStatus("GenParticle_x",1) # start position of particles
+		self.Tree.SetBranchStatus("GenParticle_y",1)
+		self.Tree.SetBranchStatus("GenParticle_z",1)
+
+		self.Tree.SetBranchStatus("Track_x0", 1)
+		self.Tree.SetBranchStatus("Track_y0", 1)
+		self.Tree.SetBranchStatus("Track_z0", 1)
+		self.Tree.SetBranchStatus("Track_velX", 1)
+		self.Tree.SetBranchStatus("Track_velY", 1)
+		self.Tree.SetBranchStatus("Track_velZ", 1)
+
+		self.Tree.SetBranchStatus("Vertex_x", 1)
+		self.Tree.SetBranchStatus("Vertex_y", 1)
+		self.Tree.SetBranchStatus("Vertex_z", 1)
+
+
+		self.Tree.GetEntry(self.EventNumber)
+
+		digi_hit_inds = util.unzip(self.Tree.Track_hitIndices)
+
+		used_inds = set(self.Tree.Track_hitIndices)
+
+		numtracks = int(self.Tree.NumTracks)
+
+		used_track_inds = set()
+
+		vert_inds = util.unzip(self.Tree.Vertex_trackIndices)
+
+		# get truth vertex info (decay location of parent particle used in the event)
+		used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
+                #dump(used_gens_inds,"used_gens_inds.joblib")
+                #used_gens_inds = load("used_gens_inds.joblib")
+
+		if len(used_gens_inds) != 0:
+                        # Vertex truth location (translated from Pythia coordinate system)
+			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
+                                      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
+                                      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
+
+                        # pass truth vertex to visualiser
+			visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
+
+		colors = ["tab:"+col for col in ['blue','orange','red','purple','brown','pink','olive','cyan']]
+
+		for n in range(len(self.Tree.Vertex_x)):
+			c = n if n < len(colors) else n%len(colors)
+
+			xv = self.Tree.Vertex_x[n]
+			yv = self.Tree.Vertex_y[n]
+			zv = self.Tree.Vertex_z[n]
+
+			visEngine_local.AddVertex( {'point':[xv, yv, zv], 'col':colors[c], 'vert vel':[[]*3]} )
+
+			for trk_ind in vert_inds[n]:
+				if self.used:
+					for ind in digi_hit_inds[int(trk_ind)]:
+						x = self.Tree.Digi_x[ind]
+						y = self.Tree.Digi_y[ind]
+						z = self.Tree.Digi_z[ind]
+						visEngine_local.AddPoint( [[x, y, z], colors[c]] )
+
+
+				x0, y0, z0 = self.Tree.Track_x0[int(trk_ind)], self.Tree.Track_y0[int(trk_ind)], self.Tree.Track_z0[int(trk_ind)]
+				vx, vy, vz = self.Tree.Track_velX[int(trk_ind)], self.Tree.Track_velY[int(trk_ind)], self.Tree.Track_velZ[int(trk_ind)]
+
+				[xi, yi, zi] = det.FindIntercept(x0, y0, z0, vx, vy, vz) # find intercept with boundary
+
+				visEngine_local.TrackDisplayPoints([x0,xi], [y0,yi], [z0,zi])
+
+				used_track_inds.add(int(trk_ind))
+
+
+		if self.unused:
+			for n in range(len(self.Tree.Digi_numHits)):
+				if not (n in used_inds):
+					x = self.Tree.Digi_x[n]
+					y = self.Tree.Digi_y[n]
+					z = self.Tree.Digi_z[n]
+					visEngine_local.AddHit( [x, y, z] )
+
+			print(used_track_inds)
+
+			for n in range(int(self.Tree.NumTracks)):
+				if not (n in used_track_inds):
+
+					x0, y0, z0 = self.Tree.Track_x0[n], self.Tree.Track_y0[n], self.Tree.Track_z0[n]
+					vx, vy, vz = self.Tree.Track_velX[n], self.Tree.Track_velY[n], self.Tree.Track_velZ[n]
+
+					[xi, yi, zi] = det.FindIntercept(x0, y0, z0, vx, vy, vz) # find intercept with boundary
+
+					visEngine_local.TrackDisplayPoints([x0,xi], [y0,yi], [z0,zi])
+
+					for ind in digi_hit_inds[n]:
+						x = self.Tree.Digi_x[ind]
+						y = self.Tree.Digi_y[ind]
+						z = self.Tree.Digi_z[ind]
+						visEngine_local.AddPoint( [[x, y, z], 'tab:gray'] )
+
+
+
+
+		visEngine_local.Draw(self.Tree_nm.split('/')[-1].split('.')[0]+'_{}_{}.pdf'.format(self.EventNumber,'_linear'))
+
+
 	def RecoVertex(self):
 		''' visualise tracks and vertices made by kalman filter, and the digi hits and truth decay locations '''
 
@@ -359,13 +462,14 @@ class Event:
 		#dump(used_gens_inds,"used_gens_inds.joblib")
 		#used_gens_inds = load("used_gens_inds.joblib")
 
-		# Vertex truth location (translated from Pythia coordinate system)
-		vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
-			      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
-			      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
+		if len(used_gens_inds) != 0:
+			# Vertex truth location (translated from Pythia coordinate system)
+			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
+				      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
+				      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
 
-		# pass truth vertex to visualiser
-		visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
+			# pass truth vertex to visualiser
+			visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
 
 		# track and vertex colors
 		colors = ["tab:"+col for col in ['blue','orange','red','purple','brown','pink','olive','cyan']]
@@ -452,24 +556,27 @@ class Event:
 		self.Tree.SetBranchStatus("GenParticle_x",1) # start position of particles
 		self.Tree.SetBranchStatus("GenParticle_y",1)
 		self.Tree.SetBranchStatus("GenParticle_z",1)
+		self.Tree.SetBranchStatus("GenParticle_time",1)
 
 		self.Tree.SetBranchStatus("Vertex_k_m_x",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_y",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_z",1)
+		self.Tree.SetBranchStatus("Vertex_k_m_t",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_ErrorX",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_ErrorY",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_ErrorZ",1)
 
-		dx, dy, dz = [], [], []
+		dx, dy, dz, dt = [], [], [], []
 		ex, ey, ez = [], [], []
 		px, py, pz = [], [], []
 		chi = []
 
-		max = 1e3
+		max = 1e2
 
 		res_info_txt = []
 
 		for ev_num in range(self.Tree.GetEntries()):
+		#for ev_num in [34, 38, 52]:
 
 			print("event {}".format(ev_num)) if ev_num % 100 == 0 else None
 
@@ -480,13 +587,17 @@ class Event:
 			#used_gens_inds = load("used_gens_inds.joblib")
 
 			# particles form one vertex only first since all used
+			# Conversion from Gen (Pythia) info to CMS: all in mm, y <-> x, same origin
+			# in CMS: x, y, z, t
 			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
 				      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
-				      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10]
+				      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10,
+				      self.Tree.GenParticle_time[int(used_gens_inds[0])] / 300]
 
 			x = self.Tree.Vertex_k_m_x
 			y = self.Tree.Vertex_k_m_y
 			z = self.Tree.Vertex_k_m_z
+			t = self.Tree.Vertex_k_m_t
 			_ex = self.Tree.Vertex_k_m_ErrorX
 			_ey = self.Tree.Vertex_k_m_ErrorY
 			_ez = self.Tree.Vertex_k_m_ErrorZ
@@ -508,6 +619,7 @@ class Event:
 				dx.append(x[min_index] - vert_truth[0])
 				dy.append(y[min_index] - vert_truth[1])
 				dz.append(z[min_index] - vert_truth[2])
+				dt.append(t[min_index] - vert_truth[3])
 				ex.append(_ex[min_index])
 				ey.append(_ey[min_index])
 				ez.append(_ez[min_index])
@@ -528,10 +640,10 @@ class Event:
 				res_info_txt.append("diff Y is " + str(dy[-1]) + '\n')
 				res_info_txt.append("diff Z is " + str(dz[-1]) + '\n')
 
-		f = open("res_info.txt","w+")
-		f.writelines(res_info_txt)
-		f.close()
-
+		#f = open("res_info.txt","w+")
+		#f.writelines(res_info_txt)
+		#f.close()
+		'''
 		vis_engine = visualization.Histogram(dx, rng=(-max,max), Title='Vertex X Resolution', \
                 	xaxis='Vertex X - Decay Location X [cm]', fname='resolutionX.png')
 		vis_engine = visualization.Histogram(dy, rng=(-max,max), Title='Vertex Y Resolution', \
@@ -552,8 +664,17 @@ class Event:
                 	xaxis='Pull Z []', fname='pullZ.png')
 		vis_engine = visualization.Histogram(chi, rng=(0,200), Title='Vertex chi', \
                 	xaxis='Chi []', fname='chi.png')
+		'''
 
-
+		vis_engine = visualization.root_Histogram(dx, rng=(-300,300), ft_rng=(-20,20), bins=50, Title='Vertex X Residual', \
+                	xaxis='Vertex X - Decay Location X [cm]', fname='residualX.png')
+		vis_engine = visualization.root_Histogram(dy, rng=(-700,700), ft_rng=(-50,50), bins=50, Title='Vertex Y Residual', \
+                	xaxis='Vertex Y - Decay Location Y [cm]', fname='residualY.png')
+		vis_engine = visualization.root_Histogram(dz, rng=(-700,700), ft_rng=(-50,50), bins=50, Title='Vertex Z Residual', \
+                	xaxis='Vertex Z - Decay Location Z [cm]', fname='residualZ.png')
+#		vis_engine = visualization.root_Histogram(dt, rng=(-max,max), Title='Vertex T Resolution', \
+		vis_engine = visualization.root_Histogram(dt, rng=(-100,100), ft_rng=(-3,3), bins=100, Title='Vertex T Residual', \
+                	xaxis='Vertex T - Decay Time T [ns]', fname='residualT.png')
 
 	def PlotMomentum(self, num=100, cut=0):
 		''' plot momentum distribution of sim hits '''
@@ -704,7 +825,7 @@ class Event:
 		self.Tree.SetBranchStatus("Track_k_m_z0", 1)
 
 		self.Tree.SetBranchStatus("Track_k_velX", 1)
-		self.Tree.SetBranchStatus("Track_k_velY", 1)
+		self.Tree.SetBranchStatus("Track_k_velY", 1) # should this be _k_m_?
 		self.Tree.SetBranchStatus("Track_k_velZ", 1)
 		self.Tree.SetBranchStatus("NumTracks_k_m", 1)
 
@@ -752,6 +873,108 @@ class Event:
 
 		visualization.Histogram(min_distances,Title='Truth vs Track distance',xaxis='Distance [cm]',fname='distance.png')
 		visualization.Histogram(angle_difference,Title='Truth vs Track angle',xaxis='cos(angle) []',log=True,fname='angle.png')
+
+
+	def GunStudies(self):
+
+		self.Tree.SetBranchStatus("*",0)
+		self.Tree.SetBranchStatus("Hit_particlePx", 1)
+		self.Tree.SetBranchStatus("Hit_particlePy", 1)
+		self.Tree.SetBranchStatus("Hit_particlePz", 1)
+		self.Tree.SetBranchStatus("Hit_particleEnergy", 1)
+
+		self.Tree.SetBranchStatus("Hit_x", 1)
+		self.Tree.SetBranchStatus("Hit_y", 1)
+		self.Tree.SetBranchStatus("Hit_z", 1)
+		self.Tree.SetBranchStatus("Hit_time", 1)
+
+		self.Tree.SetBranchStatus("Track_k_m_t0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_x0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_y0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_z0", 1)
+
+		# t, x, y, z
+		vertex_truth = [0, 0, 10547, 12000]
+
+		dxs_y, dzs_y = [], []
+		dxs_t, dys_t, dzs_t = [], [], []
+		dang_yx, dang_yz = [], []
+
+		for ev in range(self.Tree.GetEntries()): # event
+			self.Tree.GetEntry(ev)
+
+			print("event {}".format(ev)) if ev % 100 == 0 else None
+
+			#if len(self.Tree.Track_k_m_y0) != 0:
+			for tr in range(len(self.Tree.Track_k_m_x0)):
+				t_0 = self.Tree.Track_k_m_t0[tr]
+				x_0 = self.Tree.Track_k_m_x0[tr]
+				y_0 = self.Tree.Track_k_m_y0[tr]
+				z_0 = self.Tree.Track_k_m_z0[tr]
+
+				dy = vertex_truth[2] - y_0
+
+				#highest_hit_y_ind = np.where(self.Tree.Hit_y == np.max(self.Tree.Hit_y))[0]
+				#highest_hit_y_ind = int(highest_hit_y_ind)
+
+				hit_y = np.array(self.Tree.Hit_y)
+				highest_hit_y_ind = np.where(hit_y == np.max(hit_y))[0][0]
+				highest_hit_y_ind = int(highest_hit_y_ind)
+
+				px = self.Tree.Hit_particlePx[highest_hit_y_ind]
+				py = self.Tree.Hit_particlePy[highest_hit_y_ind]
+				pz = self.Tree.Hit_particlePz[highest_hit_y_ind]
+
+				if py != 0:
+					pred_x = vertex_truth[1] + dy * (px / py)
+					pred_z = vertex_truth[3] + dy * (pz / py)
+
+					dx = np.abs(x_0 - pred_x)
+					dz = np.abs(z_0 - pred_z)
+
+					dxs_y.append(dx)
+					dzs_y.append(dz)
+
+					yx_ang = np.abs(np.arctan(px / py))
+					yz_ang = np.abs(np.arctan(pz / py))
+
+					dang_yx.append(yx_ang)
+					dang_yz.append(yz_ang)
+
+				dt = t_0 - vertex_truth[0]
+
+				#p = np.sqrt(px**2 + py**2 + pz**2)
+				E = self.Tree.Hit_particleEnergy[highest_hit_y_ind]
+
+				if E != 0:
+					vx = physics.c * px / E
+					vz = physics.c * pz / E
+					vy = physics.c * py / E
+
+					pred_x = vertex_truth[1] + dt * vx
+					pred_y = vertex_truth[2] + dt * vy
+					pred_z = vertex_truth[3] + dt * vz
+
+					dx = np.abs(x_0 - pred_x)
+					dy = np.abs(y_0 - pred_y)
+					dz = np.abs(z_0 - pred_z)
+
+					dxs_t.append(dx)
+					dys_t.append(dy)
+					dzs_t.append(dz)
+
+		'''
+		'''
+		visualization.Histogram(dxs_y, fname="dxs_y.png", Title="Distance between truth (predicted with y) and x0", xaxis="Distance [cm]")
+		visualization.Histogram(dzs_y, fname="dzs_y.png", Title="Distance between truth (predicted with y) and z0", xaxis="Distance [cm]")
+
+		visualization.Histogram(dxs_t, fname="dxs_t.png", Title="Distance between truth (predicted with t) and x0", xaxis="Distance [cm]", rng=(0,1000))
+		visualization.Histogram(dys_t, fname="dys_t.png", Title="Distance between truth (predicted with t) and y0", xaxis="Distance [cm]", rng=(0,1000))
+		visualization.Histogram(dzs_t, fname="dzs_t.png", Title="Distance between truth (predicted with t) and z0", xaxis="Distance [cm]", rng=(0,1000))
+
+		visualization.Histogram(dang_yx, fname="dang_yx.png", Title="x-y plane momentum projection angle", xaxis="angle [rad]")
+		visualization.Histogram(dang_yz, fname="dang_yz.png", Title="z-y plane momentum projection angle", xaxis="angle [rad]")
+
 
 
 

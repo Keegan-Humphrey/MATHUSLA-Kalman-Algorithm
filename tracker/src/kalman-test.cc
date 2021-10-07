@@ -109,6 +109,17 @@ void kalman_track::init_matrices(seed *current_seed)
   double dy = dr.y;
   double dz = dr.z;
 
+  // jacobian of calculated first state (seed1 (+) seed2 space to filter state space)
+  Eigen::MatrixXd jac;
+  jac = Eigen::MatrixXd::Zero(n, 8);
+  jac << 1      , 0           , 0       , 0       , 0       , 0             , 0     , 0     ,
+      	0       , 1           , 0       , 0       , 0       , 0             , 0     , 0     ,
+        0       , 0           , 1       , 0       , 0       , 0             , 0     , 0     ,
+	- 1 / dt, dx / (dt*dt), 0       , 0       , 1 / dt  , - dx / (dt*dt), 0     , 0     ,
+	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt,
+	0       , dz / (dt*dt), - 1 / dt, 0       , 0       , - dz / (dt*dt), 1 / dt, 0     ;
+
+  /*
   // propagate velocity errors
   double v_x_err = 2.0 * dx / dt * std::sqrt(std::pow(first_hit->ex, 2) / (dx * dx) + 1.0 / (dt * dt));
   double v_y_err = 2.0 * dy / dt * std::sqrt(9.0 / (dy * dy * 12.0) + 1.0 / (dt * dt));
@@ -125,6 +136,28 @@ void kalman_track::init_matrices(seed *current_seed)
       0, 0, 0, 0, errs[4], 0,
       0, 0, 0, 0, 0, errs[5];
   P = P * P;
+  */
+  physics::digi_hit* first = current_seed->hits.first;
+  physics::digi_hit* second = current_seed->hits.second;
+
+  Eigen::VectorXd errs(8);
+  errs << first->ex, first->et, first->ez, first->ey,
+          second->ex, second->et, second->ez, second->ey;
+
+  // covariance matrix of measured hits
+  Eigen::MatrixXd V(8,8);
+  V << errs[0], 0, 0, 0, 0, 0, 0, 0,
+      0, errs[1], 0, 0, 0, 0, 0, 0,
+      0, 0, errs[2], 0, 0, 0, 0, 0,
+      0, 0, 0, errs[3], 0, 0, 0, 0,
+      0, 0, 0, 0, errs[4], 0, 0, 0,
+      0, 0, 0, 0, 0, errs[5], 0, 0,
+      0, 0, 0, 0, 0, 0, errs[6], 0,
+      0, 0, 0, 0, 0, 0, 0, errs[7];
+  V = V * V;
+
+  // track covariance matrix
+  P = jac * V * jac.transpose();
 }
 
 void kalman_track::init_first_state()
