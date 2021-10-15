@@ -30,6 +30,9 @@ class Editor:
                 pars_to_handle = ['kalman_chi_s',
 				'kalman_chi_add',
 				'kalman_track_chi',
+				'kalman_pval_drop',
+				'kalman_pval_add',
+				'kalman_pval_track',
 				'p',
 				'merge_cos_theta',
 				'merge_distance',
@@ -55,8 +58,8 @@ class Editor:
 		# start and end event for each dataset
                 #pars_dict[pars_to_handle[-2]] = self.pars[self.i][15 + 2 * self.j]
                 #pars_dict[pars_to_handle[-1]] = self.pars[self.i][16 + 2 * self.j]
-                pars_dict[pars_to_handle[-2]] = self.pars[self.i][15]
-                pars_dict[pars_to_handle[-1]] = self.pars[self.i][16]
+                pars_dict[pars_to_handle[-2]] = self.pars[self.i][-2]
+                pars_dict[pars_to_handle[-1]] = self.pars[self.i][-1]
 
                 for k in range(len(self.lines)):
                     par = self.lines[k].split(' ')[0]

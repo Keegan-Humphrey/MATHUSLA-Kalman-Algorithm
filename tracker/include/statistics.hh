@@ -3,6 +3,7 @@
 #include "LinearAlgebra.hh"
 #include <iostream>
 #include <fstream>
+#include <math.h>
 
 #ifndef STAT_HH
 #define STAT_HH
@@ -199,5 +200,70 @@ public:
 	}
 
 }; //class VertexFitter
+
+class Stat_Funcs
+{
+public:
+
+	double chi_prob(double chi2, double ndof) {
+		/* P-value for a chi squared approximation that is computationally efficient
+		formula is eqn (8) of the following paper
+
+		Beh, E. (2018). Exploring How to Simply Approximate the P-value of a
+		Chi-squared Statistic. Austrian Journal of Statistics, 47(3), 63–75.
+		https://doi.org/10.17713/ajs.v47i3.757 */
+
+		std::vector<double> c = {-1.37266,
+					1.06807,
+					2.13161,
+					-0.04859}; // fitting constants
+
+		double chi = std::sqrt(chi2);
+		double nu = std::sqrt(ndof);
+
+		if ( chi < (c[0] + c[1] * nu) ) return 1;
+
+		else {
+			double expon = ( chi - (c[0] + c[1] * nu) )
+					/ (c[2] + c[3] * nu);
+
+			return std::pow( 0.1 , expon*expon );
+		};
+
+
+	}
+
+	double chi_prob_eld(double chi2, double ndof) {
+		/* P-value for a chi squared approximation, from the following paper
+
+		Elderton, W. P. (1902). Tables for Testing the Goodness of Fit of Theory to Observation.
+		Biometrika, 1(2), 155–163. https://doi.org/10.2307/2331485
+
+		assumes all ndof <= 30, since ndof = 4 * hits - 6 and hits <= 9, we're good!*/
+
+		double sum = 0;
+		double chi = std::sqrt(chi2);
+
+		if (ndof == 1) return 1 - erf(std::sqrt(2) * chi);
+
+		bool odd = ((int)(ndof) % 2 == 1);
+
+		for (int i = 1 ? odd : 0; i < ndof / 2; i++) {
+
+			sum += std::pow(chi, 2 * i) * std::pow(2, i) * tgamma(i + 1) / tgamma(2.0 * i + 1); // chi^i / (2 i - 1)!!
+
+		};
+
+		sum *= exp(- chi2 / 2);
+
+		if (odd) {
+			sum *= std::sqrt(2 / M_PI);
+			sum += 1 - erf(std::sqrt(2) * chi);
+		};
+		return sum;
+
+	}
+
+};
 
 #endif

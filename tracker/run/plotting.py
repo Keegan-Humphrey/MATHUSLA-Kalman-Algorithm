@@ -75,6 +75,13 @@ if __name__ == "__main__":
 		"Vertex_k_m_ErrorX",
 		"Vertex_k_m_ErrorY",
 		"Vertex_k_m_ErrorZ"]
+
+    branches = ["Track_k_filterchi",
+		"Track_k_smoothchi",
+		"local_chi_f",
+                "local_chi_s",
+		"Track_k_beta"]
+
     '''
     branches = []
 

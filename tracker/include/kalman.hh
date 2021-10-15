@@ -14,6 +14,7 @@
 #include <iostream>
 #include <fstream>
 #include "par_handler.hh"
+#include "statistics.hh"
 
 #pragma once
 
@@ -55,13 +56,16 @@ public:
     double min_val;
 
     if (initialized)
-//      min_val = cuts::kalman_chi_add;
       min_val = par_handler->par_map["kalman_chi_add"];
+//      min_val = par_handler->par_map["kalman_pval_add"];
+//      min_val = cuts::kalman_chi_add;
     else
       min_val = 1e6; // if the filter hasn't been initialised take hit
                      // with lowest chi regardless of the value
 
     Eigen::MatrixXd P_temp = P;
+
+    Stat_Funcs sts;
 
 //    Eigen::MatrixXd err_metric = R + C * P * C.transpose();
 
@@ -85,6 +89,14 @@ public:
       // compute the chi increment
 //      double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
       double del_chi = (hit_eig - C * x_hat_new_temp).transpose() * err_metric.inverse() * (hit_eig - C * x_hat_new_temp);
+
+      /*
+      // calculate p value from the chi increment
+      double ndof = added_hits.size() + 1;
+      ndof = 4.0 * ndof - 6.0 ? ndof > 1.0 : 1.0;
+      //del_chi = sts.chi_prob(del_chi, ndof);
+      del_chi = sts.chi_prob_eld(del_chi, ndof);
+      */
 
       if (del_chi < min_val) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best

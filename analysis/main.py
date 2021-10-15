@@ -38,7 +38,7 @@ def main(opt):
             if op == 0 and len(tree.Vertex_k_m_x) >= 1:
                 return True
 
-            if op == 1 and tree.NumTracks_k_m == 1:
+            if op == 1 and tree.NumTracks_k_m >= 1:
                 return True
 
             if op == 2 and tree.NumTracks_k_m >= 2 and len(tree.Vertex_k_m_x) == 0:
@@ -50,11 +50,11 @@ def main(opt):
             else:
                 return False
 
-        ev = event.Event(sys.argv[1], 0)
+        ev = event.Event(sys.argv[1], 1)
 
         inds = ev.find_with_bool(bool_func, Op=0)
         inds = inds[:100]
-        #inds = np.arange(100)
+        #inds = np.arange(200)
 
         #print(inds)
 
@@ -121,6 +121,9 @@ def main(opt):
         ev.GunStudies()
 
     elif opt == 11:
+        ev.Chi_by_ndof()
+
+    elif opt == 12:
         hmu = analyzer.H_mumu_Analyzer('/home/keeganh/scratch/stat_files//27_08_21/09_59_36/trees/')
 
         hmu.Plot()

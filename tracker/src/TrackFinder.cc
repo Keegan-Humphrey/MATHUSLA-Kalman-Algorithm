@@ -12,6 +12,7 @@
 #include <fstream>
 #include <Eigen/Dense>
 #include "par_handler.hh"
+#include "Math/ProbFunc.h"
 
 void TrackFinder::Seed()
 {
@@ -352,6 +353,8 @@ void TrackFinder::MergeTracks_k()
 
 	std::vector<int> deleted_tracks = {};
 
+	Geometry geo;
+
 	for (int first_track = 0; first_track < tracks_k_m.size(); first_track++)
 	{
 
@@ -454,9 +457,15 @@ void TrackFinder::MergeTracks_k()
 			if (joint_missing_hit_layers.size() < 3 and (tr1_missing_hits > 2 or tr2_missing_hits > 2))
 				merge = true;
 
-			//if (!merge)
+			//if (!merge) // only affects above condition
 			//	continue;
-			if (!mergebool){continue;}
+			if (!mergebool){continue;} // from above loop
+
+			Vector CA_mid = tr1->closest_approach_midpoint(tr2);
+			if (!geo.inBox(CA_mid.x, CA_mid.y, CA_mid.z)) {
+				std::cout << "CA is outside of detector" << std::endl;
+				continue;
+			}
 
 			seed artificial_seed = seed(tr1->hits[0], tr1->hits[1]);
 
@@ -765,6 +774,8 @@ void TrackFinder::FindTracks_kalman()
 	int j = 0;
 	int MAX_ITS = 25;
 
+	Stat_Funcs sts;
+
 	while (iterate)
 	{
 		if (seeds_k.size() == 0)
@@ -852,6 +863,9 @@ void TrackFinder::FindTracks_kalman()
 
 //			int drops = 0;
 
+			double ndof = good_hits.size();
+			ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+
 			//dropping hits
 			for (int n = 0; n < good_hits.size(); n++)
 			{
@@ -860,7 +874,9 @@ void TrackFinder::FindTracks_kalman()
 				v << kft_.v_s_list[n][0], kft_.v_s_list[n][1], kft_.v_s_list[n][2];
 
 //				if (kft_.chi_s[n] > cuts::kalman_chi_s
-				if (kft_.chi_s[n] > par_handler->par_map["kalman_chi_s"]
+				//if (sts.chi_prob_eld(kft_.chi_s[n],ndof) > par_handler->par_map["kalman_pval_s"]
+//				if (kft_.chi_s[n] > par_handler->par_map["kalman_chi_s"]
+				if (ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) >= par_handler->par_map["kalman_pval_drop"]
 			           || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c
 				   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))
 //			           || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1]))
@@ -896,7 +912,11 @@ void TrackFinder::FindTracks_kalman()
 			continue;
 		}
 
-		auto current_track = new physics::track(kft_2.x_s, kft_2.P_s);
+		std::vector<double> diag_cov;
+		for (int i = 0; i < 7; i++) diag_cov.push_back(kft_2.track_cov[i][i]);
+
+		//auto current_track = new physics::track(kft_2.x_s, kft_2.P_s);
+		auto current_track = new physics::track(kft_2.x_s, diag_cov);
 		current_track->hits = undropped_hits;
 
 		current_track->x_scats = kft_2.x_scat;
@@ -909,12 +929,13 @@ void TrackFinder::FindTracks_kalman()
 		current_track->P_s = kft_2.P_s0;
 
 		current_track->king_move_inds = kft_2.king_move_inds;
-
 		static double cov_matrix[7][7];
 		for (int i = 0; i < 7; i++)
 		{
 			for (int j = 0; j < 7; j++)
 			{
+				cov_matrix[i][j] = kft_2.track_cov[i][i];
+				/*
 				if (i == j)
 				{
 					cov_matrix[i][j] = std::pow(kft_2.P_s[i],2);
@@ -923,21 +944,42 @@ void TrackFinder::FindTracks_kalman()
 				{
 					cov_matrix[i][j] = 0;
 				}
+				*/
 			}
 		}
+		//current_track->CovMatrix(cov_matrix, 7);
 
-		current_track->CovMatrix(cov_matrix, 7);
+		//static double cov_matrix[7][7];
+		//cov_matrix = kft_2.track_cov;
+		current_track->CovMatrix(kft_2.track_cov, 7);
 
-		for (auto chi : kft_2.chi_f)
+		//double ndof = kft_2.chi_s.size();
+		ndof = kft_2.chi_s.size();
+		ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+
+		for (auto chi : kft_2.chi_f) {
 			local_chi_f.push_back(chi);
-		for (auto chi : kft_2.chi_s)
+
+			//double p_val = sts.chi_prob(chi,ndof);
+                        //local_chi_f.push_back(p_val);
+		}
+		local_chi_f.push_back(-1);
+
+		for (auto chi : kft_2.chi_s) {
 			local_chi_s.push_back(chi);
+
+			//double p_val = sts.chi_prob(chi,ndof);
+			//local_chi_s.push_back(p_val);
+		}
+		local_chi_s.push_back(-1);
 
 		// calculate chi per ndof from sum of chi increments in the track
 		double chi_sum = 0;
 		for (auto chi : kft_2.chi_s)
 			chi_sum += chi;
-		chi_sum = chi_sum / (4.0 * kft_2.chi_s.size() - 6.0);
+
+		//chi_sum = chi_sum / (4.0 * kft_2.chi_s.size() - 6.0); // always non_negative due to num_hit cut (if track can be passed)
+		chi_sum = chi_sum / ndof;
 
 //		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < cuts::kalman_track_chi)
 		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < par_handler->par_map["kalman_track_chi"])

@@ -30,7 +30,9 @@ public:
   std::vector<std::vector<double>> x_s_list;
   std::vector<std::vector<double>> v_s_list;
   std::vector<double> x_s;
-  std::vector<double> P_s;
+  //std::vector<double> P_s;
+  std::vector<std::vector<double>> track_cov;
+  //static double track_cov[7][7];
   std::vector<double> chi_s;
   std::vector<double> chi_f;
   Eigen::MatrixXd P_s0;
@@ -245,11 +247,31 @@ private:
       x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], kf.x_s[0][4], kf.x_s[0][5], kf.x_s[0][1]};
 
       // prepare track error vector from covariance matrix
+      /*
       for (int i = 0; i < n; i++)
         P_s.push_back(std::sqrt(std::abs(kf.P_s[0](i, i))));
       P_s.push_back(P_s[1]);
       P_s[1] = layer_hits[layers[0]][0]->ey;
+      */
+      std::vector<std::vector<double>> _track_cov;
+      Eigen::MatrixXd TC = kf.P_s[0];
+      _track_cov = {{TC(0,0),0,TC(0,2),TC(0,3),TC(0,4),TC(0,5),TC(0,1)},
+                   {0      ,0,0      ,0      ,0      ,0      ,0      },
+                   {TC(2,0),0,TC(2,2),TC(2,3),TC(2,4),TC(2,5),TC(2,1)},
+                   {TC(3,0),0,TC(3,2),TC(3,3),TC(3,4),TC(3,5),TC(3,1)},
+                   {TC(4,0),0,TC(4,2),TC(4,3),TC(4,4),TC(4,5),TC(4,1)},
+                   {TC(5,0),0,TC(5,2),TC(5,3),TC(5,4),TC(5,5),TC(5,1)},
+                   {TC(1,0),0,TC(1,2),TC(1,3),TC(1,4),TC(1,5),TC(1,1)}};
 
+      _track_cov[1][1] = std::pow(layer_hits[layers[0]][0]->ey, 2);
+      track_cov = _track_cov;
+      /*
+      for (int i = 0; i < 7; i++) {
+        for (int j = 0; j < 7; j++) {
+          track_cov[i][j] = _track_cov[i][j];
+        }
+      }
+      */
       //pass last covariance matrix
       P_s0 = kf.P_s[0];
     }

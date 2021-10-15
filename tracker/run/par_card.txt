@@ -1,6 +1,9 @@
 kalman_chi_s 150.0
 kalman_chi_add 200.0
 kalman_track_chi 15.0
+kalman_pval_drop 1.0
+kalman_pval_add 0.99999999
+kalman_pval_track 0.95
 p 500.0
 merge_cos_theta 0.998
 merge_distance 25.0

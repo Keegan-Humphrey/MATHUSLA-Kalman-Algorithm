@@ -132,7 +132,7 @@ class Visualizer:
 #        print(type(self.vertices),' and ',type(dict()))
 #        if type(self.vertices) == type(dict):
 
-        print(self.vert_vel)
+        #print(self.vert_vel)
         if self.vert_vel:
 	        for dic in self.vertices:
 	#            if len(pnt) == 3:

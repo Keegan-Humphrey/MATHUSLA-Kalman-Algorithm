@@ -43,8 +43,19 @@ class sample_space():
 
     def in_layer(self,y_val):
 
-        LAYERS_Y=[[6001.0, 6004.0],  [6104.0, 6107.0], [8001.0, 8004.0], [8104.0, 8107.0], \
-        [8501.0, 8504.0], [8604.0, 8607.0], [8707.0, 8710.0], [8810.0, 8813.0], [8913.0, 8916.0]]
+        #LAYERS_Y=[[6001.0, 6004.0],  [6104.0, 6107.0], [8001.0, 8004.0], [8104.0, 8107.0], \
+        #[8501.0, 8504.0], [8604.0, 8607.0], [8707.0, 8710.0], [8810.0, 8813.0], [8913.0, 8916.0]]
+
+        LAYERS_Y=[[6003.0 + 547, 6006.0 + 547],  #layer 0 (floor)
+		[6106.0 + 547, 6109.0 + 547], #layer 1 (floor)
+		[6209.0 + 547, 6212.0 + 547], #layer 2 (floor)
+		[8003.0 + 547, 8006.0 + 547], #layer 3
+		[8106.0 + 547, 8109.0 + 547], #layer 4
+		[8503.0 + 547, 8506.0 + 547], #layer 5
+		[8606.0 + 547, 8609.0 + 547], #layer 6
+		[8709.0 + 547, 8712.0 + 547], #layer 7
+		[8812.0 + 547, 8815.0 + 547], #layer 8
+		[8915.0 + 547, 8918.0 + 547]] #layer 9
 
         for n in range(len(LAYERS_Y)):
             _min = LAYERS_Y[n][0]
@@ -114,10 +125,10 @@ class sample_space():
             for num in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
                 vertexveto = False
                 for hit in range(len(self.tree.Digi_y)): # loop over the hits
-                    if self.in_layer(self.tree.Digi_y[hit]) < 2: # check if layer index is a floor layer index
-                        if self.tree.Vertex_k_m_t[num] > self.tree.Digi_time[hit]:
+                    if self.in_layer(self.tree.Digi_y[hit]) <= 2: # check if layer index is a floor layer index
+                        if self.tree.Vertex_k_m_t[num] > self.tree.Digi_time[hit]: # check if the floor hit happened before the vertex
                             vertexveto = True
-                if not vertexveto:
+                if not vertexveto: # There's a vertex in the event that isn't vetoed
                     break
             if len(self.tree.Vertex_k_m_x) != 0:
                 if vertexveto:
@@ -149,7 +160,7 @@ class sample_space():
                     for i in hitindices:
                         hity = self.tree.Digi_y[i]
 
-                        if self.in_layer(hity) < 2:
+                        if self.in_layer(hity) <= 2:
                                 bottomlayer_hits.append(hity) # hit is in a floor layer
 
                 # we get 3 or more expected hits, but no hits, veto
@@ -376,7 +387,7 @@ if __name__ == '__main__':
     scissor = scissors(sys.argv[1])
 
     scissor.store_space()
-    scissor.cut(2,1,1,1,1,-1,1)
+    scissor.cut(2,1,1,1,-1,-1,1)
 
     print("flows are ",scissor.flows)
 #    print("events with vertices ",scissor.survivor_inds[1])

@@ -24,6 +24,7 @@
 #include "globals.hh"
 #include <fstream>
 #include <algorithm>
+#include "statistics.hh"
 
 void kalman_track::kalman_all(std::vector<physics::digi_hit *> trackhits, seed *current_seed)
 { // tracking algorithm using the kalman filter
@@ -266,6 +267,10 @@ void kalman_track::filter()
 
 //  skipped = false;
 
+  double n = 0;
+  double chi_tot = 0;
+  Stat_Funcs sts;
+
   for (int i = det_ind_to_layers[filter_start_layer]; i < layers.size() - 1; i++)
   {
 
@@ -289,7 +294,13 @@ void kalman_track::filter()
     }
     else
     {
-      chi_f.push_back(chi);
+      //chi_f.push_back(chi);
+
+      n += 1.0;
+      double ndof = n > 1.0 ? 4.0 * n - 6.0 : 1.0;
+
+      chi_f.push_back(sts.chi_prob(chi, ndof));
+
       x_scat.push_back(kf.x_scat);
       z_scat.push_back(kf.z_scat);
     }

@@ -6,6 +6,9 @@ import util
 import ROOT as root
 from joblib import dump, load
 import matplotlib.pyplot as plt
+#from scipy.stats import chisquare
+from scipy import stats
+from array import array
 
 #########################################################################################
 ### DEFINITION OF EVENT CLASS ###########################################################
@@ -363,7 +366,7 @@ class Event:
 
 				[xi, yi, zi] = det.FindIntercept(x0, y0, z0, vx, vy, vz) # find intercept with boundary
 
-				visEngine_local.TrackDisplayPoints([x0,xi], [y0,yi], [z0,zi])
+				visEngine_local.TrackDisplayPoints([x0,xi], [y0,yi], [z0,zi], color=colors[c])
 
 				used_track_inds.add(int(trk_ind))
 
@@ -376,7 +379,7 @@ class Event:
 					z = self.Tree.Digi_z[n]
 					visEngine_local.AddHit( [x, y, z] )
 
-			print(used_track_inds)
+			#print(used_track_inds)
 
 			for n in range(int(self.Tree.NumTracks)):
 				if not (n in used_track_inds):
@@ -386,7 +389,7 @@ class Event:
 
 					[xi, yi, zi] = det.FindIntercept(x0, y0, z0, vx, vy, vz) # find intercept with boundary
 
-					visEngine_local.TrackDisplayPoints([x0,xi], [y0,yi], [z0,zi])
+					visEngine_local.TrackDisplayPoints([x0,xi], [y0,yi], [z0,zi], color='k', opac=0.2)
 
 					for ind in digi_hit_inds[n]:
 						x = self.Tree.Digi_x[ind]
@@ -534,7 +537,7 @@ class Event:
 
 			king_move_inds = util.unzip(self.Tree.king_move_inds)
 
-			print('king move indices are ',king_move_inds)
+			#print('king move indices are ',king_move_inds)
 
 			# show hits dropped from the hit pool (via king moves algorithm)
 			for inds in king_move_inds:
@@ -786,31 +789,74 @@ class Event:
 		''' plot distribution of reconstructed lowest hit location'''
 
 		self.Tree.SetBranchStatus("Track_k_m_x0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_y0", 1)
 		self.Tree.SetBranchStatus("Track_k_m_z0", 1)
 		self.Tree.SetBranchStatus("NumTracks_k_m", 1)
 
-		x0, z0 = [], []
+		self.Tree.SetBranchStatus("GenParticle_y",1)
+		self.Tree.SetBranchStatus("GenParticle_px",1)
+		self.Tree.SetBranchStatus("GenParticle_py",1)
+		self.Tree.SetBranchStatus("GenParticle_pz",1)
+		self.Tree.SetBranchStatus("GenParticle_energy",1)
+
+		xT, zT = [], []
+		xG, zG = [], []
 
 		has_a_track = 0
+
+		y_layer = 8500 # [cm]
 
 		for ev in range(self.Tree.GetEntries()): # event
 			self.Tree.GetEntry(ev)
 
 			for tr in range(self.Tree.NumTracks_k_m):
-				x0.append(self.Tree.Track_k_m_x0[tr])
-				z0.append(self.Tree.Track_k_m_z0[tr])
 
+				xT.append(self.Tree.Track_k_m_x0[tr])
+				zT.append(self.Tree.Track_k_m_z0[tr])
+			'''
+			for pt in range(len(GenParticle_px)):
+
+				xG.append()
+				zG.append()
+			'''
 			if self.Tree.NumTracks_k_m > 0:
 				has_a_track += 1
 
 		#plt.hist2d(trackx0, trackz0)
-
-		hist, bin_x, bin_y = np.histogram2d(x0,z0,bins=150)
+		'''
+		hist, bin_x, bin_y = np.histogram2d(xT,zT,bins=150) # change this to ROOT 2D
 
 		fig, ax = plt.subplots(figsize=(8,5))
 		plt.imshow(hist,alpha=0.5)
 		plt.colorbar(orientation='vertical')
 		plt.savefig("Efficiency.png")
+		'''
+		canv = root.TCanvas("canv","newCanvas")
+
+		xbins, zbins = 100, 100
+
+		#zlims = (np.amin(zT), np.max(zT))
+		#xlims = (np.amin(xT),np.max(xT))
+		zlims = (1.5e4, 1e4)
+		xlims = (-2000,3000)
+
+		Title = "Lowest Hit Positions for made tracks"
+
+		hist = root.TH2F("hist",Title,xbins,xlims[0],xlims[1],zbins,zlims[0],zlims[1])
+
+		hist.SetStats(0)
+		hist.GetXaxis().SetTitle("X [cm]")
+		hist.GetYaxis().SetTitle("Z [cm]")
+
+		for i in range(len(xT)):
+			hist.Fill(xT[i],zT[i])
+
+		hist.Draw("colz")
+
+		canv.Update()
+		canv.Draw()
+
+		canv.SaveAs("Efficiency.png")
 
 		efficiency = has_a_track / self.Tree.GetEntries()
 
@@ -974,6 +1020,145 @@ class Event:
 
 		visualization.Histogram(dang_yx, fname="dang_yx.png", Title="x-y plane momentum projection angle", xaxis="angle [rad]")
 		visualization.Histogram(dang_yz, fname="dang_yz.png", Title="z-y plane momentum projection angle", xaxis="angle [rad]")
+
+
+
+	def Chi_by_ndof(self):
+		self.Tree.SetBranchStatus("local_chi_s",1)
+		self.Tree.SetBranchStatus("Track_k_smoothchi",1)
+		self.Tree.SetBranchStatus("Track_k_hitIndices",1)
+
+		num_layers = 10
+
+		chi_by_hits = [[] for i in range(num_layers)]
+		chi_by_hits_all = [[] for i in range(num_layers)]
+
+		for ev in range(self.Tree.GetEntries()): # event
+			self.Tree.GetEntry(ev)
+
+			chi_s = util.unzip(self.Tree.Track_k_smoothchi)
+			chi_s_all = util.unzip(self.Tree.local_chi_s)
+
+			hit_inds = util.unzip(self.Tree.Track_k_hitIndices)
+
+			#print("chi smooth: ",chi_s)
+			#print("hit inds ",hit_inds)
+
+			for tr in range(len(chi_s)): # track
+
+				#if len(hit_inds) == 0:
+				#	continue
+
+				num_hits = len(hit_inds[tr])
+
+				#chi_by_hits[num_hits-1].append(np.sum(chi_s[tr]))
+				#chi_by_hits[num_hits-1].append(chisquare(chi_s[tr], ddof = -(4 * num_hits - 6) - num_hits + 1)[1])
+				chi_by_hits[num_hits-1].append(stats.chi2.cdf(np.sum(chi_s[tr]), (4 * num_hits - 6)))
+				#for ht in range(len(chi_s[tr])):
+				#	chi_by_hits[num_hits-1].append(stats.chi2.cdf(chi_s[tr][ht], (4 * num_hits - 6)))
+
+			#print("chi smooth: ",chi_s_all)
+
+			for tr in range(len(chi_s_all)): # track
+
+				#chi_by_hits_all[len(chi_s_all[tr][:-1])].append(np.sum(chi_s_all[tr][:-1]))
+
+				num_hits = len(chi_s_all[tr])
+
+				chi_by_hits_all[num_hits-1].append(stats.chi2.cdf(np.sum(chi_s_all[tr]), (4 * num_hits - 6)))
+				#for ht in range(len(chi_s_all[tr])):
+				#	chi_by_hits_all[num_hits-1].append(stats.chi2.cdf(chi_s_all[tr][ht], (4 * num_hits - 6)))
+
+
+
+		for hits in range(num_layers):
+
+			if len(chi_by_hits[hits]) == 0:
+				continue
+
+			canv = root.TCanvas("canv","newCanvas")
+
+			#xlims = (0,1) #,200 * (hits + 1))
+			xlims = (0,1) #,200 * (hits + 1))
+
+			#Title = "Chi sum for {} hits of made tracks".format(hits+1)
+			Title = "P-value for {} hits of made tracks".format(hits+1)
+
+			#hist = root.TH1F("hist",Title,100,xlims[0],xlims[1])
+			num_bins = 30
+			hist = root.TH1F("hist",Title,num_bins-1,array('d',sorted([0]+[10**(-i) for i in range(num_bins-1)])))
+			#hist = root.TH1F("hist",Title,num_bins-1,[10**(-i) for i in range(num_bins)])
+			#hist = root.TH1F("hist",Title,10-1,np.array([10**(-i) for i in range(10)].reverse()))
+
+			#hist.GetXaxis().SetTitle("Chi / ndof sum by track")
+			hist.GetXaxis().SetTitle("Track 1 - p-values")
+
+			for chi in chi_by_hits[hits]:
+				hist.Fill(1 - chi)
+				#hist.Fill(chi / (4 * (hits + 1) - 6))
+
+			root.gStyle.SetOptStat(111111)
+
+			canv.SetLogy()
+			canv.SetLogx()
+
+			hist.Draw()
+
+			canv.Update()
+			canv.Draw()
+
+			#print("(Passed tracks) / (total tracks): ", len(chi_by_hits[hits])/len(chi_by_hits_all[hits]))
+
+			canv.SaveAs("Chis_{}_hits.png".format(hits + 1))
+
+
+
+		for hits in range(num_layers):
+
+			if len(chi_by_hits[hits]) == 0:
+				continue
+
+			canv = root.TCanvas("canv","newCanvas")
+
+			xlims = (0,1) #,200 * (hits + 1))
+
+			#Title = "Chi sum for {} hits of made tracks".format(hits+1)
+			Title = "P-value for {} hits of tracks at global chi cut".format(hits+1)
+
+			#hist = root.TH1F("hist",Title,100,xlims[0],xlims[1])
+			num_bins = 30
+			hist = root.TH1F("hist",Title,num_bins-1,array('d',sorted([0]+[10**(-i) for i in range(num_bins-1)])))
+
+			#hist.GetXaxis().SetTitle("Chi / ndof sum by track")
+			hist.GetXaxis().SetTitle("Track 1 - p-values")
+
+			for chi in chi_by_hits_all[hits]:
+				hist.Fill(1-chi)
+				#hist.Fill(chi / (4 * (hits + 1) - 6))
+
+			root.gStyle.SetOptStat(111111)
+
+			canv.SetLogy()
+			canv.SetLogx()
+
+			hist.Draw()
+
+			canv.Update()
+			canv.Draw()
+
+			#print("(Passed tracks) / (total tracks): ", len(chi_by_hits[hits])/len(chi_by_hits_all[hits]))
+
+			canv.SaveAs("Chis_all_{}_hits.png".format(hits + 1))
+
+		'''
+		[print("1 - p-value cut for {} dof: {:0.2g}".format(i,1-stats.chi2.cdf(100,(4 * i - 6)))) for i in range(3,11)]
+		[print("1 - p-value cut for {} dof: {:0.2g}".format(i,1-root.Math.chisquared_cdf(100,(4 * i - 6)))) for i in range(3,11)]
+		'''
+
+
+
+
+
 
 
 

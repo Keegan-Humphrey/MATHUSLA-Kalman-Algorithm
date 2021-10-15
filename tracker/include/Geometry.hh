@@ -430,8 +430,18 @@ public:
 	}
 
 
+	bool inBox(double x, double y, double z) {
 
+		if (detector::x_min < x < detector::x_max) {
+			if (detector::y_min < y < detector::y_max) {
+				if (detector::z_min < z < detector::z_max) {
+					return true;
+				};
+			};
+		};
 
+		return false;
+	}
 
 
 

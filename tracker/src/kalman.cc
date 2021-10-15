@@ -22,6 +22,9 @@
 #include <unsupported/Eigen/MatrixFunctions>
 #include "globals.hh"
 #include "Geometry.hh"
+#include "statistics.hh"
+//#include "ROOT/Math.h"
+#include "Math/ProbFunc.h"
 
 KalmanFilter::KalmanFilter(
     double dy,
@@ -140,6 +143,12 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
   added_inds.push_back(hit_inds[0]);
   added_hits.push_back(y);
 
+  // calculate probability from the chi increment
+  //Stat_Funcs sts;
+  //double ndof = added_hits.size();
+  //ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+  //chi_plus = sts.chi_prob(chi_plus, ndof);
+
   // store prediction data
   x_p.push_back(x_hat_new); // store for x^(k-1)_k
   P_p.push_back(P);         // C^(k-1)_k
@@ -248,11 +257,14 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
   Eigen::VectorXd v(3);
   v << x_n[3], x_n[4], x_n[5];
 
-  //
+  double ndof = x_f.size();
+  ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+
   if (dropping
 //     && (chi_plus_s > cuts::kalman_chi_s
 //     || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1])))
-     && (chi_plus_s > par_handler->par_map["kalman_chi_s"]
+//     && (chi_plus_s > par_handler->par_map["kalman_chi_s"]
+     && (ROOT::Math::chisquared_cdf(chi_plus_s, ndof) >= par_handler->par_map["kalman_pval_drop"]
      || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"])))
   {
     Eigen::MatrixXd K_n = P_n * C.transpose() * (-R + C * P_n * C.transpose()).inverse();
@@ -301,6 +313,19 @@ void KalmanFilter::update_matrices(physics::digi_hit *a_hit)
 
 void KalmanFilter::Q_update(double dy, double a, double b, double c)
 {
+  // See MATHUSLA Calculations paper in ../docs/ for details
+
+  double mag = std::sqrt(a*a + b*b + c*c);
+
+  a /= mag; // normalise to 1 (ensures positive definite)
+  b /= mag;
+  c /= mag;
+
+  //mag = std::sqrt(a*a + b*b + c*c); // just 1, only included incase above norm is removed
+  mag = 1;
+
+  double sin_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
+
   Q << dy * dy * (b * b + a * a) / std::pow(b, 4),
       dy * dy * a / (constants::c * std::pow(b, 4)),
       dy * dy * a * c / std::pow(b, 4),
@@ -338,8 +363,24 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
       -std::pow(constants::c, 2) * (b * c),
       std::pow(constants::c, 2) * (1 - c * c);
 
-//  double sigma_ms = kalman::sigma_ms_p / kalman::p; // [rad]
-  double sigma_ms = par_handler->par_map["sigma_ms_p"] / par_handler->par_map["p"]; // [rad]
+  //double sigma_ms = kalman::sigma_ms_p / kalman::p; // [rad]
+  //double sigma_ms = par_handler->par_map["sigma_ms_p"] / par_handler->par_map["p"]; // [rad]
+
+  double L_Al = detector::scintillator_height - detector::scintillator_thickness; // [cm] Aluminum
+  double L_Sc = detector::scintillator_thickness; // [cm] Scintillator
+
+  double L_r_Sc = 43; // [cm] Radiation length Scintillator (Saint-Gobain paper)
+  double L_r_Al = 24.0111; // [g cm^(-2)] Radiation length Aluminum
+
+  double rho_Al = 2.7; // [g cm^(-3)] density of Aluminum
+  L_r_Al /= rho_Al; // [cm]
+
+  double L_rad = L_Al / L_r_Al + L_Sc / L_r_Sc; // [rad lengths] orthogonal to Layer
+
+  L_rad /= sin_theta; // [rad lengths] in direction of track
+
+  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log(L_rad));
+  sigma_ms /= par_handler->par_map["p"];
 
   Q = Q * std::pow(sigma_ms, 2);
 }
