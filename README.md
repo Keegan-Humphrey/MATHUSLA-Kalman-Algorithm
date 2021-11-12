@@ -4,7 +4,7 @@ Tracking software for MATHUSLA Experiment
 ## Introduction
 This is an updated version of the MATHUSLA Experiment tracking software currently under development. The goal of this software is to implement a simple, highly portable, and easily understandable algorithm for tracking highly relativistic particles.
 
-This repository, and much of the documentation, is a modification of the following code from: https://github.com/seg188/MATHUSLA-MLTracker 
+This repository, including this documentation, is a modification of the following code from: https://github.com/seg188/MATHUSLA-MLTracker 
 
 ## Installation
 
