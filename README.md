@@ -16,6 +16,7 @@ Once anaconda is installed, the enviornment can be created using the .yml file a
 $ conda env create -f env/environment.yml
 $ conda activate tracker
 ```
+You will also need to install the Eigen Library for c++ and the joblib package to python.
 
 Now, the project can be built using cmake:
 
