@@ -1,6 +1,5 @@
 The contents of this directory, allow series runs of the MATHUSLA tracker across a set of input datasets 
-and run parmameters. The directory is intended to be portable to any version of the tracker by simply
-copying /run/ into /tracker/ and correctly placing the build directory.
+and run parmameters. 
 
 -- To Prepare:
 
@@ -20,7 +19,7 @@ make
 DataNames.txt specifies the datasets over which the tracker will be run.
 Paramaters are specified in Parameters.txt, they will be run for each dataset in series.
 
-./run.sh will modify ../include/globals.hh by running ./mod_glob.py. 
+./run.sh will modify ./par_card.txt by running ./mod_glob.py. 
 ./run.sh contains a while loop that is broken when ./done.txt is created by ./mod_globs.py. 
 
 output directories are organised by <path to write directory>/<date>/<time>/
