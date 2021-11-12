@@ -3,6 +3,8 @@ and run parmameters.
 
 -- To Prepare:
 
+This script requires that you have installed the joblib package to python. 
+
 Program assumes that the build directory is /path/to/tracker/build/. If building from scratch:
 
 mkdir /path/to/tracker/build/
