@@ -21,14 +21,14 @@ You will also need to install the Eigen Library for c++ and the joblib package t
 Now, the project can be built using cmake:
 
 ```bash
-$ cd /tracker/
+$ cd tracker
 $ mkdir build
 $ cd build
 $ cmake ../ 
 $ make 
 ```
 
-At this point, the tracker executable is available in the build directory. Note that the /build/ directory MUST be placed in the /tracker/ directory. 
+At this point, the tracker executable is available in the /build/ directory. Note that the /build/ directory MUST be placed in the /tracker/ directory. 
 
 
 ## Running the Tracker
