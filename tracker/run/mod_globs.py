@@ -27,7 +27,9 @@ class Editor:
 
         def alter(self):
 
-                pars_to_handle = ['kalman_chi_s',
+                pars_to_handle = ['debug',
+				'seed',
+				'kalman_chi_s',
 				'kalman_chi_add',
 				'kalman_track_chi',
 				'kalman_pval_drop',

@@ -182,7 +182,7 @@ namespace physics{
 
         void missing_layers(std::vector<int> layers){_missing_layers = layers; };
 
-        //sets covariance matrix [arg mat] to more friendly form defined by the arg size 
+        //sets covariance matrix [arg mat] to more friendly form defined by the arg size
         template<typename matrix>
         void CovMatrix(matrix mat, int size);
 
@@ -339,11 +339,11 @@ namespace physics{
         _CovMatrix.ResizeTo(size, size);
             for (int i = 0; i < size; i++){
                 for (int j = i; j < size; j++){
-                
+
                     _CovMatrix[i][j] = mat[i][j];
                     _CovMatrix[j][i] = _CovMatrix[i][j];
                 }
-            }   
+            }
 
     }
 

@@ -22,6 +22,9 @@ int RunManager::StartTracking()
 	int made_its = 0;
 	int made_its_k = 0;
 
+	int events_w_tracks = 0;
+	int events_w_k_tracks = 0;
+
 	int neg_covs = 0;
 
 	int verts = 0;
@@ -36,6 +39,7 @@ int RunManager::StartTracking()
 
 //	std::cout << hndlr.par_map["p"] << std::endl;
 
+	_digitizer->par_handler = &hndlr;
 	_tracker->par_handler = &hndlr;
 	_vertexer->par_handler = &hndlr;
 
@@ -48,7 +52,7 @@ int RunManager::StartTracking()
 		}
 		if (events_handled > hndlr.par_map["start_ev"]) //cuts::start_ev)
 		{
-			if ((events_handled - 1) % 100 == 0)
+			if ((events_handled - 1) % 100 == 0 || hndlr.par_map["debug"] == 1)
 				std::cout << "Event is " << events_handled - 1 << std::endl;
 
 			TotalEventsProcessed++;
@@ -66,6 +70,7 @@ int RunManager::StartTracking()
 				_digitizer->AddHit(current);
 			}
 
+			_digitizer->ev_num = events_handled; // used to vary the seed, otherwise for events < 1 s seperatred in run time will have the same seed
 			std::vector<physics::digi_hit *> digi_list = _digitizer->Digitize();
 
 			TH->ExportDigis(digi_list);
@@ -145,6 +150,10 @@ int RunManager::StartTracking()
 			TH->ExportVertices_k_m(_vertexer->vertices_k_m);
 
 			TH->Fill();
+
+			if (_tracker->tracks.size() > 0) events_w_tracks++;
+			if (_tracker->tracks_k_m.size() > 0) events_w_k_tracks++;
+
 		}
 
 		events_handled++;
@@ -155,6 +164,8 @@ int RunManager::StartTracking()
 	std::cout << verts << " Linear vertices made it" << std::endl;
 	//std::cout << verts_k << " Kalman vertices made it" << std::endl;
 	std::cout << verts_k_m << " Merged Kalman vertices made it" << std::endl;
+	std::cout << events_w_tracks << " Events had a linear track" << std::endl;
+	std::cout << events_w_k_tracks << " Events had a kalman track" << std::endl;
 
 	TH->Write();
 

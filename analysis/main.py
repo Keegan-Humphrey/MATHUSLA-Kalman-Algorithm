@@ -17,7 +17,7 @@ RUN OPTION
 
 option = 1
 
-
+print('hello viewer')
 
 def main(opt):
     ''' opt (option) determines what process to run '''
@@ -50,18 +50,17 @@ def main(opt):
             else:
                 return False
 
-        ev = event.Event(sys.argv[1], 1)
-
         inds = ev.find_with_bool(bool_func, Op=0)
-        inds = inds[:100]
-        #inds = np.arange(200)
+        inds = inds[:50]
 
-        #print(inds)
-
+        #inds = np.arange(50)
+    
         for ind in inds:
 
             print("Event number: ",ind)
-            ev = event.Event(sys.argv[1],ind)
+#                ev = event.Event(sys.argv[1],ind)
+            ev = event.Event(file_ev[i][0],ind)
+            
             ev.writeDirectory = str(sys.argv[2])
 
             ev.used = True
@@ -124,6 +123,9 @@ def main(opt):
         ev.Chi_by_ndof()
 
     elif opt == 12:
+        ev.PlotExpectedPositions()
+
+    elif opt == 13:
         hmu = analyzer.H_mumu_Analyzer('/home/keeganh/scratch/stat_files//27_08_21/09_59_36/trees/')
 
         hmu.Plot()

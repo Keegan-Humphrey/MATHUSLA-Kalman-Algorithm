@@ -22,7 +22,7 @@ public:
 
   int status;
 
-  std::ofstream file;
+  //std::ofstream file;
 
   std::vector<int> king_move_inds;
   std::vector<double> x_scat;
@@ -45,6 +45,8 @@ public:
   std::vector<physics::track *> unadded_tracks;
 
   kalman_track(){};
+
+  seed choose_seed(seed* current_seed);
 
   void kalman_all(std::vector<physics::digi_hit *> trackhits, seed *current_seed);
 
@@ -90,7 +92,7 @@ public:
       }
     }
     layer_hits = layer_list;
-
+    /*
     for (int i = 0; i < layer_list.size(); i++)
     {
 
@@ -99,7 +101,7 @@ public:
         file << hit->index << " , ";
       file << std::endl;
     }
-
+    */
     // get indices of layers with hits
     for (int i = 0; i < layer_hits.size(); i++)
     {
@@ -166,15 +168,15 @@ private:
 
     double dt = -dy / seedguess[4];
 
-    file << " dt is " << dt << std::endl;
+    //file << " dt is " << dt << std::endl;
 
     y_guess[0] += dt * y_guess[3]; // x + dt * v_x
     y_guess[1] += dt;              // t + dt
     y_guess[2] += dt * y_guess[5]; // z + dt * v_z
 
-    file << " t is " << y_guess[1] << std::endl;
+    //file << " t is " << y_guess[1] << std::endl;
 
-    file.close();
+//    file.close();
 
     return y_guess;
   }
@@ -189,15 +191,16 @@ private:
 
     // layer of first hit (times two to account for spaces between layers)
     seed_layer = (first_hit->det_id).layerIndex * 2;
-    file << "Seed layer is " << seed_layer << std::endl;
+    //file << "Seed layer is " << seed_layer << std::endl;
 
     seedguess = current_seed->guess();
 
+    /*
     file << " seed guess is ";
     for (auto pos : seedguess)
       file << pos << ", ";
     file << std::endl;
-
+    */
     x0 = Eigen::VectorXd::Zero(n);
     x0 << first_hit->x, first_hit->t, first_hit->z, seedguess[3], seedguess[4], seedguess[5];
 
@@ -216,7 +219,7 @@ private:
     { // find highest layer on or below seed_layer_ind
       // with hits (or lowest above)
 //      file << "next index is " << i << std::endl;
-      file << "next layer is " << next_layer << std::endl;
+//      file << "next layer is " << next_layer << std::endl;
 
       if (layers[i] <= seed_layer)
         next_layer = layers[i];
@@ -308,7 +311,7 @@ private:
 */
 //    std::cout << "kalman unadded_hits len 3: " << unadded_hits.size() << std::endl;
 
-    file.close();
+//    file.close();
   }
 };
 

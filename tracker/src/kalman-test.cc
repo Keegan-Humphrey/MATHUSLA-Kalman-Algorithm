@@ -43,10 +43,13 @@ void kalman_track::kalman_all(std::vector<physics::digi_hit *> trackhits, seed *
 
   while (status == 1)
   {
+//    seed filt_seed = choose_seed(current_seed);
 
     init_seed_info(current_seed);
+//    init_seed_info(&filt_seed);
 
     init_matrices(current_seed);
+//    init_matrices(&filt_seed);
 
     init_first_state();
 
@@ -85,6 +88,24 @@ void kalman_track::kalman_all(std::vector<physics::digi_hit *> trackhits, seed *
   } // while loop
 }
 
+seed kalman_track::choose_seed(seed *current_seed)
+{ // choose either ds^2 based seed or lowest hits based on algorithm stage
+
+  seed filt_seed;
+
+  if (finding) {
+    filt_seed = *current_seed; // seed based on ds^2 (for hit selection)
+  }
+  else {
+    physics::digi_hit* lowest = layer_hits[layers[0]][0];
+    physics::digi_hit* second_lowest = layer_hits[layers[1]][0];
+
+    filt_seed = seed(lowest,second_lowest); // seed with bottom hits (we've chosen hits already)
+  }
+
+  return filt_seed;
+}
+
 void kalman_track::init_matrices(seed *current_seed)
 { // initialise matrices for the filter
 
@@ -99,13 +120,22 @@ void kalman_track::init_matrices(seed *current_seed)
       0, 1, 0, 0, 0, 0,
       0, 0, 1, 0, 0, 0;
 
+  physics::digi_hit* first;
+  physics::digi_hit* second;
+
+  first = current_seed->hits.first;
+  second = current_seed->hits.second;
+
   // seed position vectors
-  auto P1 = current_seed->hits.first->PosVector();
-  auto P2 = current_seed->hits.second->PosVector();
+//  auto P1 = current_seed->hits.first->PosVector();
+//  auto P2 = current_seed->hits.second->PosVector();
+  auto P1 = first->PosVector();
+  auto P2 = second->PosVector();
   auto dr = P2 - P1;
 
   // differences between the vector components
-  double dt = current_seed->hits.second->t - current_seed->hits.first->t;
+//  double dt = current_seed->hits.second->t - current_seed->hits.first->t;
+  double dt = second->t - first->t;
   double dx = dr.x;
   double dy = dr.y;
   double dz = dr.z;
@@ -138,9 +168,6 @@ void kalman_track::init_matrices(seed *current_seed)
       0, 0, 0, 0, 0, errs[5];
   P = P * P;
   */
-  physics::digi_hit* first = current_seed->hits.first;
-  physics::digi_hit* second = current_seed->hits.second;
-
   Eigen::VectorXd errs(8);
   errs << first->ex, first->et, first->ez, first->ey,
           second->ex, second->et, second->ez, second->ey;
@@ -249,7 +276,9 @@ void kalman_track::find_first()
   found_hits = kf_find.added_hits;
 
   lowest_hit = kf_find.added_hits.back();
-  velocity = {kf_find.x_f_list().back()[3], kf_find.x_f_list().back()[4], kf_find.x_f_list().back()[5]};
+
+//  velocity = {kf_find.x_f_list().back()[3], kf_find.x_f_list().back()[4], kf_find.x_f_list().back()[5]};
+  velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
 
   filter_start_layer = layers[start_ind];
 }

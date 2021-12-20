@@ -77,7 +77,7 @@ do
 #			mv ./build/print.txt "$1/$day/$time/prints/print_${n}_${c}.txt"
 
             		# run cutflow script on output tree
-			python "$script_dir/../../analysis/cutflow.py" "$1/$day/$time/trees/stat_${n}_${c}.root"
+#			python "$script_dir/../../analysis/cutflow.py" "$1/$day/$time/trees/stat_${n}_${c}.root"
 
 			((c++))
 		done

@@ -9,6 +9,7 @@
 #include <array>
 #include <iostream>
 #include <vector>
+#include <sys/time.h>
 //#include "units.hh"
 //DIGITIZATION ALGORITHM
 namespace physics{
@@ -105,11 +106,27 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	//We incoorporate the time and position smearing into this calculation as well
 
 	int counter = 0;
-	srand( time(NULL) );
+
+	struct timeval curTime;
+	gettimeofday(&curTime, NULL);
+	long int micro_sec = curTime.tv_usec;
+	srand( micro_sec );
+//	srand( time(NULL) + ev_num ); // incase called more than once per second across events
+
 	TRandom generator;
 //	generator.SetSeed( rand()*rand()*rand() % rand() );
 //	int seed = 14557409;
-	int seed = rand()*rand()*rand() % rand();
+//	int seed = 897765236; // bad eff seed
+//	int seed = -182399494; // good eff seed
+//	int seed = rand()*rand()*rand() % rand();
+
+        int seed = par_handler->par_map["seed"];
+        seed = seed == -1 ? rand()*rand()*rand() % rand() : seed;
+
+        if (par_handler->par_map["debug"] == 1) {
+                std::cout << "Digi seed is: " << seed << std::endl;
+	}
+
 	generator.SetSeed(seed);
 
 	for (auto digi : digis){

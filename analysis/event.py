@@ -738,6 +738,103 @@ class Event:
 		visualization.Histogram(betas, Title="Vertex Velocity Best Estimates", xaxis="beta", log=True, rng=(0,10))
 
 
+	def PlotExpectedPositions(self):
+		''' plot expected positions of tracks in made vertices on floor layers if no hits are in the floor'''
+
+		self.Tree.SetBranchStatus("Digi_y", 1)
+
+		self.Tree.SetBranchStatus("Track_k_m_x0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_y0", 1)
+		self.Tree.SetBranchStatus("Track_k_m_z0", 1)
+
+		self.Tree.SetBranchStatus("Track_k_m_velX", 1)
+		self.Tree.SetBranchStatus("Track_k_m_velY", 1)
+		self.Tree.SetBranchStatus("Track_k_m_velZ", 1)
+
+		self.Tree.SetBranchStatus("Vertex_k_m_trackIndices",1)
+
+		expected_x = []
+		expected_z = []
+
+		floor_y = np.sum(Detector.LayerYLims[2]) / 2
+
+		hits_in_floor = False
+
+		print('starting now')
+
+		for ev in range(self.Tree.GetEntries()): # event
+			self.Tree.GetEntry(ev)
+
+			if ev % 100 == 0:
+				print(ev)
+
+			for digi in self.Tree.Digi_y:
+				if self.Tree.Digi_y in np.mean(Detector.LayerYLims[:3],axis=1):
+					hits_in_floor = True
+
+			vertex_trackIndices = self.Tree.Vertex_k_m_trackIndices
+			vertex_trackIndices = util.unzip(vertex_trackIndices)
+
+			#print(vertex_trackIndices)
+
+			if len(vertex_trackIndices) > 0 and not hits_in_floor:
+				for vert in range(len(vertex_trackIndices)): # vertex
+					vert = int(vert)
+
+					for ind in vertex_trackIndices[vert]: # track
+						ind = int(ind)
+
+						x = self.Tree.Track_k_m_x0[ind]
+						y = self.Tree.Track_k_m_y0[ind]
+						z = self.Tree.Track_k_m_z0[ind]
+
+						vx = self.Tree.Track_k_m_velX[ind]
+						vy = self.Tree.Track_k_m_velY[ind]
+						vz = self.Tree.Track_k_m_velZ[ind]
+
+						del_t = (floor_y - y) / vy
+
+						expected_x.append(x + vx * del_t)
+						expected_z.append(z + vz * del_t)
+
+			hits_in_floor = False
+
+
+#		visualization.root_Histogram(expected_x,rng=[Detector.BoxLimits[0][0]-2000,Detector.BoxLimits[0][1]+2000],Title='Expected x Positions',xaxis='x expected on {} [cm]'.format(floor_y),fname='Exp_x.png')
+#		visualization.root_Histogram(expected_z,rng=[Detector.BoxLimits[2][0]-5000,Detector.BoxLimits[2][1]+5000],Title='Expected z Positions',xaxis='z expected on {} [cm]'.format(floor_y),fname='Exp_z.png')
+
+		canv = root.TCanvas("canv","newCanvas")
+
+		xbins, zbins = 100, 100
+
+		xlims = (np.amin(expected_x),np.max(expected_x))
+		zlims = (np.amin(expected_z),np.max(expected_z))
+
+		#xlims = [Detector.BoxLimits[0][0]-2000,Detector.BoxLimits[0][1]+2000]
+		#zlims = [Detector.BoxLimits[2][0]-5000,Detector.BoxLimits[2][1]+5000]
+
+		Title = "Expected Hit Positions"
+
+		hist = root.TH2F("hist",Title,xbins,xlims[0],xlims[1],zbins,zlims[0],zlims[1])
+
+		hist.SetStats(0)
+		hist.GetXaxis().SetTitle('x expected on {} [cm]'.format(floor_y))
+		hist.GetYaxis().SetTitle('z expected on {} [cm]'.format(floor_y))
+
+		for i in range(len(expected_x)):
+		        hist.Fill(expected_x[i],expected_z[i])
+
+		hist.Draw("colz")
+
+		canv.Update()
+		canv.Draw()
+
+		canv.SaveAs("Expected.png")
+
+		visualization.root_Histogram(expected_x,rng=xlims,Title=Title,fname='Exp_x.png')
+		visualization.root_Histogram(expected_z,rng=zlims,Title=Title,fname='Exp_z.png')
+
+
 	def PlotVertexBeta(self):
 		''' Plot beta required for a particle to move from bottom of a track to location of the vertex it belongs to'''
 
@@ -1041,6 +1138,9 @@ class Event:
 
 			hit_inds = util.unzip(self.Tree.Track_k_hitIndices)
 
+			#if ev in set([i for i in range(1,20)]):
+			#	print("chi sum for all tracks \n",chi_s_all)
+
 			#print("chi smooth: ",chi_s)
 			#print("hit inds ",hit_inds)
 
@@ -1065,7 +1165,9 @@ class Event:
 
 				num_hits = len(chi_s_all[tr])
 
-				chi_by_hits_all[num_hits-1].append(stats.chi2.cdf(np.sum(chi_s_all[tr]), (4 * num_hits - 6)))
+				#chi_by_hits_all[num_hits-1].append(stats.chi2.cdf(np.sum(chi_s_all[tr]), (4 * num_hits - 6))) # for p-value
+				chi_by_hits_all[num_hits-1].append(np.sum(chi_s_all[tr])) # for chi sum
+
 				#for ht in range(len(chi_s_all[tr])):
 				#	chi_by_hits_all[num_hits-1].append(stats.chi2.cdf(chi_s_all[tr][ht], (4 * num_hits - 6)))
 
@@ -1146,10 +1248,48 @@ class Event:
 			canv.Update()
 			canv.Draw()
 
-			#print("(Passed tracks) / (total tracks): ", len(chi_by_hits[hits])/len(chi_by_hits_all[hits]))
+			print("(Passed tracks) / (total tracks = {}): ".format(len(chi_by_hits_all[hits])), len(chi_by_hits[hits])/len(chi_by_hits_all[hits]))
 
 			canv.SaveAs("Chis_all_{}_hits.png".format(hits + 1))
 
+		'''
+		'''
+		for hits in range(num_layers):
+
+			if len(chi_by_hits_all[hits]) == 0:
+				continue
+
+			canv = root.TCanvas("canv","newCanvas")
+
+			xlims = (np.amin(chi_by_hits_all[hits])/ (4 * (hits + 1) - 6),np.max(chi_by_hits_all[hits])/ (4 * (hits + 1) - 6)) #,200 * (hits + 1))
+			#xlims = (np.amin(chi_by_hits_all[hits]),np.max(chi_by_hits_all[hits])) #,200 * (hits + 1))
+
+			#Title = "Chi sum for {} hits of made tracks".format(hits+1)
+			Title = "Chi / ndof for {} hits of tracks that reach global chi cut".format(hits+1)
+
+			hist = root.TH1F("hist",Title,100,xlims[0],xlims[1])
+			#num_bins = 30
+
+			#hist.GetXaxis().SetTitle("Chi / ndof sum by track")
+			hist.GetXaxis().SetTitle("Track Chi / ndof at Global Cut")
+
+			for chi in chi_by_hits_all[hits]:
+				#hist.Fill(chi)
+				hist.Fill(chi / (4 * (hits + 1) - 6))
+
+			root.gStyle.SetOptStat(111111)
+
+			#canv.SetLogy()
+			#canv.SetLogx()
+
+			hist.Draw()
+
+			canv.Update()
+			canv.Draw()
+
+			#print("(Passed tracks) / (total tracks): ", len(chi_by_hits[hits])/len(chi_by_hits_all[hits]))
+
+			canv.SaveAs("Chis_all_{}_hits_sum.png".format(hits + 1))
 		'''
 		[print("1 - p-value cut for {} dof: {:0.2g}".format(i,1-stats.chi2.cdf(100,(4 * i - 6)))) for i in range(3,11)]
 		[print("1 - p-value cut for {} dof: {:0.2g}".format(i,1-root.Math.chisquared_cdf(100,(4 * i - 6)))) for i in range(3,11)]

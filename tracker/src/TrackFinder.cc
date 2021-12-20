@@ -788,6 +788,8 @@ void TrackFinder::FindTracks_kalman()
 
 		seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
 
+		if (par_handler->par_map["debug"] == 1) std::cout << "New Seed ---------" << std::endl;
+
 		// check if the first seed hit is in the hit pool
 		bool used = !seed_unused(current_seed); // double negative! used = not unused
 
@@ -801,6 +803,8 @@ void TrackFinder::FindTracks_kalman()
 		kf_find.finding = true;
 		kf_find.dropping = true;
 		kf_find.seed_was_used = used;
+
+		if (par_handler->par_map["debug"] == 1) std::cout << "first fit" << std::endl;
 
 		kf_find.kalman_all(hits_k, &current_seed);
 
@@ -834,6 +838,8 @@ void TrackFinder::FindTracks_kalman()
                 	kft_.dropping = true;
 	                kft_.seed_was_used = used;
 			kft_.unadded_hits = unused_hits;
+
+			if (par_handler->par_map["debug"] == 1) std::cout << "second fit" << std::endl;
 
                 	kft_.kalman_all(undropped_hits, &current_seed);
 
@@ -881,6 +887,10 @@ void TrackFinder::FindTracks_kalman()
 				   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))
 //			           || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1]))
 				{
+					if (par_handler->par_map["debug"] == 1) {
+						std::cout << "hit dropped with y " << good_hits[n]->y << " chi " << ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) <<
+							" v " << v.norm() / constants::c << std::endl;
+					}
 					unused_hits.push_back(good_hits[n]);
 //					drops++;
 				}
@@ -904,6 +914,8 @@ void TrackFinder::FindTracks_kalman()
 		kft_2.par_handler = par_handler;
 		kft_2.finding = false;
 		kft_2.dropping = false;
+
+		if (par_handler->par_map["debug"] == 1) std::cout << "third fit" << std::endl;
 
 		kft_2.kalman_all(undropped_hits, &current_seed);
 
@@ -929,24 +941,26 @@ void TrackFinder::FindTracks_kalman()
 		current_track->P_s = kft_2.P_s0;
 
 		current_track->king_move_inds = kft_2.king_move_inds;
+
+		/*
 		static double cov_matrix[7][7];
 		for (int i = 0; i < 7; i++)
 		{
 			for (int j = 0; j < 7; j++)
 			{
-				cov_matrix[i][j] = kft_2.track_cov[i][i];
-				/*
-				if (i == j)
-				{
-					cov_matrix[i][j] = std::pow(kft_2.P_s[i],2);
-				}
+				//cov_matrix[i][j] = kft_2.track_cov[i][i];
+				//if (i == j)
+				//{
+				//	cov_matrix[i][j] = std::pow(kft_2.P_s[i],2);
+				//}
 				else
 				{
 					cov_matrix[i][j] = 0;
 				}
-				*/
+
 			}
 		}
+		*/
 		//current_track->CovMatrix(cov_matrix, 7);
 
 		//static double cov_matrix[7][7];
@@ -985,6 +999,8 @@ void TrackFinder::FindTracks_kalman()
 		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < par_handler->par_map["kalman_track_chi"])
 		{
 			tracks_k.push_back(current_track);
+
+			if (par_handler->par_map["debug"] == 1) std::cout << "Track made it" << std::endl;
 		}
 		else
 		{

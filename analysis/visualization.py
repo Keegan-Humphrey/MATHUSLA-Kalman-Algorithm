@@ -278,37 +278,12 @@ def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis
 
     root.gStyle.SetOptStat(111111)
 
-    #hist.Draw()
+    if ft_rng != None:
+        hist.GetXaxis().SetRangeUser(ft_rng[0],ft_rng[1]);
 
-    #hist.Draw()
+        hist.Fit("fit")
 
-    #hist.GetXaxis().SetRangeUser(-3,3);
-    hist.GetXaxis().SetRangeUser(ft_rng[0],ft_rng[1]);
-
-    hist.Fit("fit")
-
-    hist.GetXaxis().SetRangeUser(rng[0],rng[1]);
-
-    '''
-    f_ptr = hist.GetFunction('gaus')
-
-    f = f_ptr.Get()
-
-    const, mu, sigma = f.GetParameter(0), f.GetParameter(1), f.GetParameter(2)
-    econst, emu, esigma = f.GetParError(0), f.GetParError(1), f.GetParError(2)
-    ndf, chi2, prob = f.GetNDF(), f.GetChisquare(), f.GetProb()
-
-    fit.SetParameters([const,mu,sigma])
-
-    print(chi2, ndf)
-    print(chi2/ndf,prob)
-    #hist.Fit("fit")
-
-    leg = root.TLegend(0.15, 0.70, 0.38, 0.85)
-    leg.AddEntry(fit, " Fit with Gaussian ", "L")
-
-    leg.Draw()
-    '''
+        hist.GetXaxis().SetRangeUser(rng[0],rng[1]);
 
     hist.Draw()
 
@@ -317,11 +292,39 @@ def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis
     fwhm = hist.GetBinCenter(bin2) - hist.GetBinCenter(bin1)
     hwhm = fwhm / 2
 
-    print("fwhm is ", fwhm)
-    print("hwhm is ", hwhm)
+#    print("fwhm is ", fwhm)
+#    print("hwhm is ", hwhm)
 
     canv.Update()
     canv.Draw()
 
     canv.SaveAs(fname)
     #canv.Print(fname.split('.')[0]+".pdf","PDF")
+
+
+
+def root_2D_Histogram(data_x, data_z, xlims, zlims, Title='Plot', xbins=100, zbins=100, xlabel='x', zlabel='z', fname='plot.png'):
+
+    if len(data_x) != len(data_z):
+        return print("Length of data must be equal")
+
+    canv = root.TCanvas("canv","newCanvas")
+
+    hist = root.TH2F("hist",Title,xbins,xlims[0],xlims[1],zbins,zlims[0],zlims[1])
+
+    root.gStyle.SetOptStat(111111)
+
+#    hist.SetStats(0)
+    hist.GetXaxis().SetTitle(xlabel)
+    hist.GetYaxis().SetTitle(zlabel)
+
+    for i in range(len(data_x)):
+        hist.Fill(data_x[i],data_z[i])
+
+    hist.Draw("colz")
+
+    canv.Update()
+    canv.Draw()
+
+    canv.SaveAs(fname)
+

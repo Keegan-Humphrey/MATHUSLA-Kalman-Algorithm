@@ -78,6 +78,17 @@ void KalmanFilter::init_gain(const Eigen::VectorXd &x0, std::vector<physics::dig
   physics::digi_hit *y0 = first_layer[x_ind];
   x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
 
+  if (par_handler->par_map["debug"] == 1) {
+
+    Eigen::VectorXd Y(m);
+    Y << y0->x, y0->t, y0->z;
+    Eigen::VectorXd v(3);
+    v << x_hat[3], x_hat[4], x_hat[5];
+
+    std::cout << "Filtering: First velocity is " << v.transpose() / constants::c <<
+	" at y = " << y_val << " digi is " << Y.transpose() << std::endl;
+  }
+
   initialized = true;
 
   // Storage for update() data
@@ -106,7 +117,7 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
     throw std::runtime_error("Filter is not initialized!");
 
   // indices of lowest two chis in the layer
-//  std::vector<int> hit_inds = find_nearest(y_list, x_hat_new);
+  //std::vector<int> hit_inds = find_nearest(y_list, x_hat_new);
   std::vector<int> hit_inds = find_nearest(y_list, x_hat);
 
   // hit_inds[0] is index of hit w lowest chi that meets beta cut
@@ -156,6 +167,15 @@ double KalmanFilter::update_gain(const std::vector<physics::digi_hit *> y_list)
   x_hat_new += K * (Y - C * x_hat_new);
 
   P = (I - K * C) * P;
+
+  if (par_handler->par_map["debug"] == 1) {
+
+    Eigen::VectorXd v(3);
+    v << x_hat_new[3], x_hat_new[4], x_hat_new[5];
+
+    std::cout << "Filtering: Residue is " << (Y - C * x_hat_new).transpose() << " at y = " << y_val << " with chi " << chi_plus <<
+	" updated velocity is " << v.transpose() / constants::c << " digi is " << Y.transpose() << std::endl;
+  }
 
   Eigen::MatrixXd err_metric_f = R - C * P * C.transpose();
 
@@ -224,6 +244,8 @@ void KalmanFilter::init_smooth_gain()
   P_s = {P};
 
   chi = 0;
+
+  if (par_handler->par_map["debug"] == 1) std::cout << std::endl;
 };
 
 double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
@@ -257,6 +279,12 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
   Eigen::VectorXd v(3);
   v << x_n[3], x_n[4], x_n[5];
 
+  if (par_handler->par_map["debug"] == 1) {
+
+    std::cout << "Smoothing: Residue is " << (Y - C * x_n).transpose() << " at y = " << y->y << " with chi " << chi_plus_s <<
+        " updated velocity is " << v.transpose() / constants::c << " digi is " << Y.transpose() << std::endl;
+  }
+
   double ndof = x_f.size();
   ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
 
@@ -271,6 +299,8 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
 
     x_n = x_n + K_n * (Y - C * x_n);
     P_n = (I - K_n * C) * P_n;
+
+//    std::cout << "hit was dropped, new state is  " << x_n.transpose() << std::endl;
   }
 
   chi += chi_plus_s;
@@ -542,7 +572,7 @@ void KalmanFilter::Q_propagate(const physics::track *new_track)
 
     Q_update(del_y, a, b, c);
 
-    /* 
+    /*
     *
     * R_temp still needs to be updated with Q
     *
