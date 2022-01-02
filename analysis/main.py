@@ -9,6 +9,7 @@ import util
 import warnings
 import numpy as np
 import visualization
+import joblib
 
 
 '''
@@ -22,7 +23,7 @@ print('hello viewer')
 def main(opt):
     ''' opt (option) determines what process to run '''
 
-    ev = event.Event(sys.argv[1], 0)
+    #ev = event.Event(sys.argv[1], 0)
 
     if opt == 1:
         # plot vertex info
@@ -50,29 +51,54 @@ def main(opt):
             else:
                 return False
 
-        inds = ev.find_with_bool(bool_func, Op=0)
-        inds = inds[:50]
+        #ev = event.Event(sys.argv[1], 0)
+
+        #inds = ev.find_with_bool(bool_func, Op=0)
+        #inds = inds[:50]
 
         #inds = np.arange(50)
-    
-        for ind in inds:
+        
+        cut = 4
+        
+        passed_events = joblib.load('passed_events.joblib')
+        
+        if not os.path.exists('vis_plots'):
+            os.makedirs('vis_plots')
 
-            print("Event number: ",ind)
-#                ev = event.Event(sys.argv[1],ind)
-            ev = event.Event(file_ev[i][0],ind)
+        for file in passed_events.keys():
+        
+            #ev = event.Event(file, 0)
             
-            ev.writeDirectory = str(sys.argv[2])
+            try:
+                inds = passed_events[file][cut].astype(int)
 
-            ev.used = True
-            ev.unused = True
-            ev.vert_vel = True
-            ev.kalman = True
+            except:
+                inds = []
 
-            ev.ExtractTruthPhysics()
-            ev.Print()
+            if len(inds) != 0:
+                print(file)
+                #print(inds)
 
-            ev.RecoVertex()
-            ev.RecoLinVertex()
+            for ind in inds:
+    
+                print("Event number: ",ind)
+                
+#                ev = event.Event(sys.argv[1],ind)
+                ev = event.Event(file,ind)
+                
+                #ev.writeDirectory = str(sys.argv[2])
+                ev.writeDirectory = 'vis_plots/'
+    
+                ev.used = True
+                ev.unused = True
+                ev.vert_vel = True
+                ev.kalman = True
+    
+                ev.ExtractTruthPhysics()
+                ev.Print()
+    
+                ev.RecoVertex()            
+                #ev.RecoLinVertex()
 
 
     elif opt == 2:

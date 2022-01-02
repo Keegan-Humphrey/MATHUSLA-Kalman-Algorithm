@@ -16,8 +16,10 @@ import scipy.optimize as spo
 import sys
 import glob
 import pandas as pd
+import joblib
+    
 
-ncuts = 11
+ncuts = 14
 
 
 
@@ -81,6 +83,7 @@ class sample_space():
         self.tree.SetBranchStatus("*", 0)
 
         self.tree.SetBranchStatus("Digi_y", 1)
+        self.tree.SetBranchStatus("Digi_z", 1)
         self.tree.SetBranchStatus("Digi_time", 1)
         self.tree.SetBranchStatus("NumTracks_k_m", 1)
 
@@ -105,6 +108,7 @@ class sample_space():
         self.tree.SetBranchStatus("Track_k_m_x0", 1)
         self.tree.SetBranchStatus("Track_k_m_y0", 1)
         self.tree.SetBranchStatus("Track_k_m_z0", 1)
+        self.tree.SetBranchStatus("Track_k_smooth_chi_sum",1)
 
 
         cut_vectors = []
@@ -166,6 +170,12 @@ class sample_space():
 
             self.No_floor_hits()
             self.n += 1
+            
+            self.Missing_hit_sum()
+            self.n += 1
+            
+            self.Chi_ndof_cut()
+            self.n += 1
 
             #------------ All done
             cut_vectors.append(self.current_vector)
@@ -192,35 +202,14 @@ class sample_space():
             #------------- Floor hits before vertex
             floorveto = False
 
-            '''
-            min_digi_t = 1e6
-            for hit in range(len(self.tree.Digi_y)): # loop over the hits
-                if self.in_layer(self.tree.Digi_y[hit]) <= 2: # check if layer index is a floor layer index
-                    if self.tree.Digi_time[hit] < min_digi_t: # find minimum t in the floor
-                        min_digi_t = self.tree.Digi_time[hit]
-
-            vetoed_vertices = 0
-
-            for num in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
-                vtxx, vtxy, vtxz = self.tree.Vertex_k_m_x[num], self.tree.Vertex_k_m_y[num], self.tree.Vertex_k_m_z[num]
-
-                if self.tree.Vertex_k_m_t[num] > self.tree.Digi_time[hit]: # see if any floor hits happened before the vertex
-                    vetoed_vertices += 1
-
-                elif not self.inside_box(vtxx, vtxy, vtxz): # if they did, make sure the vertex is fiducial (above the floor)
-                    vetoed_vertices += 1
-
-            if len(self.tree.Vertex_k_m_x) == vetoed_vertices:
-                floorveto = True
-
-            '''
             for num in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
                 vertexveto = False
                 vtxx, vtxy, vtxz = self.tree.Vertex_k_m_x[num], self.tree.Vertex_k_m_y[num], self.tree.Vertex_k_m_z[num]
 
                 for hit in range(len(self.tree.Digi_y)): # loop over the hits
-                    if self.in_layer(self.tree.Digi_y[hit]) <= 2: # check if layer index is a floor layer index
-                        if self.tree.Vertex_k_m_t[num] > self.tree.Digi_time[hit]: # check if the floor hit happened before the vertex
+                    if self.in_layer(self.tree.Digi_y[hit]) <= 2 or self.tree.Digi_z[hit] < self.det.ModuleZLims[0][0]: # check if layer index is a floor layer index or in the wall
+                        if self.tree.Vertex_k_m_t[num] + self.tree.Vertex_k_m_ErrorT[num] > self.tree.Digi_time[hit]: # check if the floor or wall hit happened before the vertex
+                        #if self.tree.Vertex_k_m_t[num] > self.tree.Digi_time[hit]: # check if the floor or wall hit happened before the vertex
                             vertexveto = True
 
                 if not self.inside_box(vtxx, vtxy, vtxz): # make sure the vertex is fiducial (above the floor)
@@ -336,18 +325,6 @@ class sample_space():
                 self.current_vector[self.n] = np.max(pulls)
 
 
-            '''
-                        if self.tree.Digi_y[hit] < self.tree.Vertex_k_m_y[k1]:
-                            vertexveto = True
-                if vertexveto:
-                    topoveto += 1
-
-            if topoveto < current_vector[2]: # vetoed vertices < total vertices
-                # see if there is at least one vertex that isn't vetoed
-                current_vector[7] = 1
-            '''
-
-
     def Vertex_track_beta(self):
             #---------- Vertex Beta Cut
             # want at least one vertex with two betas within some threshold in each event
@@ -423,19 +400,25 @@ class sample_space():
 #        floor_y = np.sum(Detector.LayerYLims[2]) / 2
 
             vertex_trackIndices = self.tree.Vertex_k_m_trackIndices
-            vertex_trackIndices = util.unzip(vertex_trackIndices)
+            self.vertex_trackIndices = util.unzip(vertex_trackIndices)
 
             hits_in_floor = False
 
             for i in range(3):
+                    
                 if np.any(self.tree.Digi_y == np.sum(self.det.LayerYLims[i]) / 2):
                     hits_in_floor = True
+                    
+                    print("floor",np.sum(self.det.LayerYLims[i]) / 2)
+                    print("y hits ",np.array(self.tree.Digi_y))
 
-            if len(vertex_trackIndices) > 0 and not hits_in_floor:
-                for vert in range(len(vertex_trackIndices)): # vertex
+                    
+
+            if len(self.vertex_trackIndices) > 0 and not hits_in_floor:
+                for vert in range(len(self.vertex_trackIndices)): # vertex
                     vert = int(vert)
 
-                    for ind in vertex_trackIndices[vert]: # track
+                    for ind in self.vertex_trackIndices[vert]: # track
                         ind = int(ind)
 
                         x = self.tree.Track_k_m_x0[ind]
@@ -485,7 +468,74 @@ class sample_space():
 
         if floor_veto:
             self.current_vector[self.n] = True  
+            
+            
+    def Missing_hit_sum(self):
+        ''' Veto the event if there are too many missed layers for the tracks making up the vertex => likely fake'''
         
+        missed_hits_event = []
+        
+        for vert in range(len(self.vertex_trackIndices)): # vertex
+            vert = int(vert)
+
+            missed_hits_vertex = []
+
+            expected_layers = util.unzip(self.tree.Track_k_m_expected_hit_layer)
+
+            for trk in self.vertex_trackIndices[vert]: # track
+                trk = int(trk)
+    
+                #x = self.tree.Track_k_m_x0[trk]
+                y = self.tree.Track_k_m_y0[trk]
+                #z = self.tree.Track_k_m_z0[trk]
+        
+                lowest_hit_layer = self.in_layer(y)      
+                
+                expected_layers_above = len([layer for layer in expected_layers[trk] if layer >= lowest_hit_layer])
+        
+                #missed_layers = 9 - lowest_hit_layer - expected_layers_above
+
+                num_hits = len(util.unzip(self.tree.Track_k_m_hitIndices)[trk])
+                
+                missed_layers =  expected_layers_above - num_hits
+
+                missed_hits_vertex.append(missed_layers)
+                
+            missed_hits_vertex.sort(reverse=True) # sort in ascending order of missed hits
+            
+            missed_hits_sum = np.sum(missed_hits_vertex[:2]) # add missed hits in tracks with the fewest
+
+            missed_hits_event.append(missed_hits_sum)
+            
+        if len(missed_hits_event) != 0:
+            self.current_vector[self.n] = -np.max(missed_hits_event) # if missed hit sum of the event is too large cut the event            
+
+
+    def Chi_ndof_cut(self):
+    
+        chi_ndofs = []
+        
+        for vert in range(len(self.vertex_trackIndices)): # vertex
+            vert = int(vert)
+            
+            vert_chi = []
+            
+            for trk in self.vertex_trackIndices[vert]: # track
+                trk = int(trk)
+                
+                vert_chi.append(self.tree.Track_k_smooth_chi_sum[trk])
+                
+            vert_chi.sort(reverse=False)
+            
+            chi_ndofs.append(np.sum(vert_chi[:2])) # add the two lowest chi ndof in the vertex
+            
+        if len(chi_ndofs) != 0:
+            self.current_vector[self.n] = -np.amin(chi_ndofs) # choose the lowest chis
+            self.n += 1
+            
+            self.current_vector[self.n] = -np.amin(chi_ndofs) # choose the lowest chis
+        
+
 
 class scissors():
     '''since this is what does the cutting!'''
@@ -496,11 +546,16 @@ class scissors():
 
     def store_space(self):
 
-        self.space = sample_space(self.file)
-
+        #self.space = sample_space(self.file)
+        space = sample_space(self.file)
+        
         # self.cut_vectors = self.space.get_states()
-        self.cut_vectors = self.space.get_states_m()
-
+        #cut_vectors = self.space.get_states_m()
+        self.cut_vectors = space.get_states_m()
+      
+        self.expected_z_total = space.expected_z_total
+        self.expected_x_total = space.expected_x_total
+      
         self.events = len(self.cut_vectors)
 
         print('number of events is: ',len(self.cut_vectors))
@@ -537,8 +592,8 @@ class scissors():
 
         self.survivors = self.flows[-1]
         
-        if len(self.survivor_inds) != 0:
-            print('Events surviving cuts: ',self.survivor_inds[-1])
+        #if len(self.survivor_inds) != 0:
+        #    print('Events surviving cuts: ',self.survivor_inds[-1])
 
 #        print("flows are ",self.flows)
 #        print("with parameters ",self.cuts)
@@ -667,120 +722,164 @@ if __name__ == '__main__':
 
     '''
     main()
-
-    files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
-            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root',
-            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
     '''
 
-#    directory = sys.argv[1]
-#    directory = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/09_12_21/18_42_42/trees/'
+    plot = False
+    sum_flows = False  
+    load = False
+    save = True
 
-#    directory = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
-#    files = [filename for filename in glob.iglob(directory+'stat_*.root', recursive=True)]
-    '''
-    '''
+    cut = 4 # which cut to view
 
- 
-    files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/13_10_21/08_16_40/trees/stat_0_0.root',
-            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/13_10_21/08_16_40/trees/stat_2_0.root',
-            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/13_10_21/13_20_32/trees/stat_4_0.root']
-    '''
-	    '/home/keeganh/scratch/presentation_dir/sim_trees/h10_1mill.root',
-	    '/home/keeganh/scratch/presentation_dir/sim_trees/h2_1mill.root',
-	    '/home/keeganh/scratch/presentation_dir/sim_trees/W_1mill.root']
+    if sum_flows:
+        directory = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
+        files = [filename for filename in glob.iglob(directory+'stat_*.root', recursive=True)]
 
-    '''
-#    scissor = scissors(sys.argv[1])
+    else:
+        files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
+            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root'] # signal
+#            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
 
-#    files = [sys.argv[1]]
-
-    plot = True
-    sum_flows = False
     
     sum_values = []
     sum_data_x = []
     sum_data_z = []
 
     flows = dict()
-
+    passed_events = dict()
+    
     cut_name = ['2 Tracks',
-			'Vertices',
-			'Fiducial Vertex',
-			'Floor Hits Before Vertex',
-			'Expected Hits',
-			'Vertex opening angle',
-			'Topological Veto',
-			'2nd Good Betas in a Vertex',
-			'Hit Differences',
-                        'Expected hit edge distance',
-                        'No Floor Hits']
-                        
-    flows['cut name'] = cut_name
+          			'Vertices',
+          			'Fiducial Vertex',
+          			'Floor/Wall Hits Before Vertex', 
+          			'Old Expected Hits',
+          			'Vertex opening angle',
+          			'Topological Veto',
+          			'2 Good Betas in a Vertex',
+          			'Hit Differences',
+                'Expected hit edge distance',
+                'No Floor Hits',
+                'Missing Hit Sum',
+                'Chi sum cut',
+                'Chi sum cut']
+    
+    
+    cut_pars = [2,1,1,1,-1,0.02,-1e2,0.2,-1,100,1,-3,-20,-10] # cut the event if it's cut parameter is less than the value specified here
+    cut_units = ['tracks','verts','bool','bool','bool','rad','sigma','beta res','hits','cm','bool','-missed hits','-chi ndof','-chi ndof']
 
-    cut_pars = [2,1,1,1,-1,0.02,-1e6,0.2,-1,100,1] # cut the event if it's cut parameter is less than corresponding cut here
-#    cut_units = ['tracks','verts','bool','bool','bool','rad','bool','beta res','hits','cm']
-    cut_units = ['tracks','verts','bool','bool','bool','rad','sigma','beta res','hits','cm','bool']
+    cut_on_off = [1,1,1,1,0,1,0,1,0,1,0,1,1,1]
 
-    cut_on_off = [1,1,1,1,0,1,1,1,0,1,0]
+    ### add gt / lt option or general criteria (ie. pass a function to evaluate the cut)
 
+    flows['cut name'] = np.array(cut_name)
     flows['cut parameter'] = np.copy(cut_pars)
-    flows['units'] = cut_units
-    flows['on?'] = cut_on_off
+    flows['units'] = np.array(cut_units)
+    flows['on?'] = np.array(cut_on_off)
 
     cut_pars[7] = 1 / cut_pars[7] # invert if you want greater than instead of less than cut
     cut_pars[8] = 1 / cut_pars[8]
 
+    permutation = [0,1,2,3,9,11,4,5,6,7,8,10,12,13] # order in which the cuts are performed
+                                                    # describes a permutation of 
+                                                    # (0, ..., ncuts-1); indices of cut_name
+
+    #print(flows.keys())
+
+    for key in flows.keys():
+        #print(key)
+        #print(flows[key])
+        #flows[key] = np.transpose(flows[key], permutation)
+        flows[key] = flows[key].take(permutation,0)
+        #print(flows[key])
+    
     total_events = 0
 
     i = 0
 
-    for file in files:
+    temp = np.array(permutation) + 1
+    permutation = np.zeros(ncuts + 1)
+    permutation[1:] = temp
+    
+    permutation = permutation.astype(int)
 
+    drawers = [] # to hold the scissors
+
+    for file in files:
 
         if sum_flows:
             sample = 'W'
 
         else:
-            sample = ['h10','h2','W'][i]
+            sample = ['h10','h2','W'][i] # particle type for each sample in files
 
         print(file)
 
         scissor = scissors(file)
 
-        scissor.store_space()
+        if not load:
+            scissor.store_space()
+        
+        #print(scissor.cut_vectors[1,:])
+        
+        #permutation = np.array(permutation) + 1
+        #permutation.extend(0)
+        
+        
+        #print(permutation)
+        #print(scissor.cut_vectors.take(permutation,1))
 
-#        scissor.cut(2,1,1,1,-1,0.02,-1,1/0.2,1/3)
-        scissor.cut(*cut_pars,on_off=cut_on_off)
+        #scissor.cut_vectors = np.transpose(scissor.cut_vectors, permutation, axis=1)
+        
+        if not load and np.shape(scissor.cut_vectors)[0] != 0:
+            scissor.cut_vectors = scissor.cut_vectors.take(permutation,1) # permute the cuts
 
-#        print("flows are ",scissor.flows)
-#        print("flow fractions are ",scissor.flows / scissor.events)
+            if save:
+                #joblib.dump(scissor.cut_vectors,'cut_vectors_{}_{}.pkl'.format(sample,i))
+                #joblib.dump(scissor.events,'events_{}_{}.pkl'.format(sample,i))
+                #joblib.dump(scissor.space,'space_{}_{}.pkl'.format(sample,i))
+                
+                if not os.path.exists('save_files'):
+                    os.makedirs('save_files')
+                    
+                joblib.dump(scissor,'save_files/scissor_{}_{}.joblib'.format(sample,i))
+                
+        #print(scissor.cut_vectors[1,:])
 
+        if load:
+            #scissor.cut_vectors = joblib.load('cut_vectors_{}_{}.pkl'.format(sample,i))
+            #scissor.events = joblib.load('events_{}_{}.pkl'.format(sample,i))
+            #scissor.space = joblib.load('space_{}_{}.pkl'.format(sample,i))
+            
+            try:
+                scissor = joblib.load('save_files/scissor_{}_{}.joblib'.format(sample,i))
+        
+            except FileNotFoundError:
+                i += 1
+                continue
+                
+         
+        #scissor.cut(*cut_pars,on_off=cut_on_off)
+        scissor.cut(*flows['cut parameter'],on_off=flows['on?'])
+        
+        passed_events[file] = scissor.survivor_inds
+        
         if sum_flows:
             try:
                 flows['Flows'] += scissor.flows.astype(int)
-                total_events += scissor.events
-#                flows['Flows fraction'] += np.round(scissor.flows / scissor.events, 4)
+             
             except:
                 flows['Flows'] = scissor.flows.astype(int)
-                total_events += scissor.events
-#                flows['Flows fraction'] = np.round(scissor.flows / scissor.events, 4)
+
+            total_events += scissor.events
 
         else:
             flows[sample] = scissor.flows.astype(int)
             flows[sample+' fraction'] = np.round(scissor.flows / scissor.events, 4)
 
 
-#        print("events with vertices ",scissor.survivor_inds[1])
-#        if i == 2:
-#            print("Background survivor inds are ",np.array(scissor.survivor_inds[-1]))
-
-#def plot(scissor, values, cut_name, cut_units, sample='data'):
-
         if plot and len(scissor.survivor_inds) != 0:
 
-            cut = 6 # which cut to view
-
+            
             inds = np.array(scissor.survivor_inds[cut-1],dtype=int) # indices before cut
 
 #            values = 1/scissor.cut_vectors[inds,cut+1]
@@ -788,34 +887,40 @@ if __name__ == '__main__':
             values = scissor.cut_vectors[inds,cut+1]
 
             if sum_flows:
-                sum_values.append(values)
+                sum_values.extend(values)
 #            print(values)
 
-            _bins = 100
-            _rng = (-1000,1000)
+            if not sum_flows and len(values) != 0:
+                _bins = 100
+                #_rng = (-1000,1000)
+                _rng = (np.amin(values),np.max(values)*1.1)
 
-            if not sum_flows:
+
                 visualization.root_Histogram(values,
-					rng=_rng,
-					#rng=(np.amin(values),np.max(values)*1.1),
-					bins=_bins-int(np.sqrt(len(values))),
-					Title='{} {}'.format(cut_name[cut],sample),
-#					xaxis='minimum edge distance for expected hits (no floor hits) [cm]',
-					xaxis=cut_units[cut],
-					fname='distribution_{}_{}.png'.format(cut,sample))
-
+              					rng=_rng,
+              					bins=_bins-int(np.sqrt(len(values))),
+              					Title='{} {}'.format(flows['cut name'][cut],sample),
+                        #xaxis='minimum edge distance for expected hits (no floor hits) [cm]',
+              					xaxis=flows['units'][cut],
+              					fname='distribution_{}_{}.png'.format(cut,sample))
+              
 
             '''
             '''
 
-            _data_x = scissor.space.expected_x_total[inds]
-            _data_z = scissor.space.expected_z_total[inds]
+            #_data_x = scissor.space.expected_x_total[inds]
+            #_data_z = scissor.space.expected_z_total[inds]
+            _data_x = scissor.expected_x_total[inds]
+            _data_z = scissor.expected_z_total[inds]
 
 
 #            _data_z = scissor.space.expected_z_total[inds]
 
             _data_x = _data_x.flatten()
             _data_z = _data_z.flatten()
+
+            sum_data_x.extend(_data_x)
+            sum_data_z.extend(_data_z)
 
 #            _xlims =  [np.amin(_data_x),np.max(_data_x)]
 #            _zlims =  [np.amin(_data_z),np.max(_data_z)]
@@ -834,11 +939,12 @@ if __name__ == '__main__':
 #            _xlims = [-1000, (det.BoxLimits[0][1]-det.BoxLimits[0][0])/2]
 #            _xlims = [0, (det.BoxLimits[2][1]-det.BoxLimits[2][0])/2]
 #            _zlims = [-1000, (det.BoxLimits[2][1]-det.BoxLimits[2][0])/2]
-
+            
             if not sum_flows:
                 visualization.root_2D_Histogram(_data_x, _data_z, Title='Expected Positions (No Hits) {}'.format(sample), xbins=100, zbins=100,
-    	        	xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname='expected_2D_{}.png'.format(sample))
-
+    	        	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname='expected_2D_{}.png'.format(sample))
+            '''
+            '''
 
 #        if plot and not sum_flows:
 #            plot(scissor, sample)
@@ -848,17 +954,35 @@ if __name__ == '__main__':
     if sum_flows:
         flows['Flows fraction'] = np.round(flows['Flows'] / total_events, 8)
 
-        if plot:
-            visualization.root_2D_Histogram(_data_x, _data_z, Title='Expected Positions (No Hits) {}'.format(sample), xbins=100, zbins=100,
+        if plot and len(sum_values) != 0:
+            
+            visualization.root_2D_Histogram(sum_data_x, sum_data_z, Title='Expected Positions (No Hits) {}'.format(sample), xbins=100, zbins=100,
     	        	xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname='expected_2D_{}.png'.format(sample))
-
-#        plot(scissor, values, cut_name, cut_units, sample='W')
-
-    import joblib
+            '''
+            '''        
+            _bins = 100
+            #_rng = (-1000,1000)
+            _rng = (np.amin(sum_values),np.max(sum_values)*1.1)
     
-    joblib.dump(flows,'flows.pkl')
+            visualization.root_Histogram(sum_values,
+          					rng=_rng,
+          					bins=_bins-int(np.sqrt(len(values))),
+          					Title='{} {}'.format(cut_name[cut],sample),
+                    #xaxis='minimum edge distance for expected hits (no floor hits) [cm]',
+          					xaxis=cut_units[cut],
+          					fname='distribution_{}_{}.png'.format(cut,sample))
 
-    cutflow = pd.DataFrame(flows) #, index=cut_name)
+    cutflow = pd.DataFrame(flows)
 
     print(cutflow)
+    
+    if save:
+        joblib.dump(passed_events,'passed_events.joblib')
+
+        #joblib.dump(flows,'flows.joblib')
+        joblib.dump(cutflow,'cutflow.joblib')
+
+#    flows = joblib.load('flows.pkl')
+
+    
 
