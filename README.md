@@ -44,5 +44,7 @@ $ ./tracker path_to_input_file path_to_write_output
 ```
 A script for automating series runs of the tracker, and further documentation about it, is located in the /run/ directory. 
 
+Job submission scripts for parallelising the tracker or analysis code for large datasets is found in parallel.
+
 
 

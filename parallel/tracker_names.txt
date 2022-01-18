@@ -1,0 +1,7 @@
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/012643/run0.root
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/020744/run0.root
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/012648/run0.root
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/020746/run0.root
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/012647/run0.root
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/020737/run0.root
+/home/keeganh/scratch/job_test/W_sample_dir/run6/data/20220113/020728/run.temp.root

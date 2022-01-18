@@ -17,6 +17,12 @@ make
 
 -- Other Notes:
 
+Some options here mentioned may be commented out and should be looked for in run.sh to confirm they are
+turned on.
+
+A script tracker_job_submit.sh is available to run the tracker in parrallel (see ./Parallel/). 
+Specify input files in Parrallel_names.txt (can be generated using write_root_names.sh)
+
 DataNames.txt specifies the datasets over which the tracker will be run.
 Paramaters are specified in Parameters.txt, they will be run for each dataset in series.
 
@@ -25,7 +31,7 @@ Paramaters are specified in Parameters.txt, they will be run for each dataset in
 
 output directories are organised by <path to write directory>/<date>/<time>/
 
-./plotting.py is run to generate ROOT plots with each of the output trees for the run. These are stored
+./plotting.py can be run to generate ROOT plots with each of the output trees for the run. These are stored
 in <path to write directory>/<date>/<time>/plots/. This directory is automatically zipped for downloading
 and viewing if tracker has been run on a cluster.
 

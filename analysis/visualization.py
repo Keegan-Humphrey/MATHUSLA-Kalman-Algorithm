@@ -247,7 +247,7 @@ def Histogram(data, rng=None, Title=None, xaxis=None, log=False, fname='hist.png
 
 
 
-def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis=None, log=False, fname='hist.png'):
+def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis=None, logx=False, logy=False, fname='hist.png'):
 
     canv = root.TCanvas("canv","newCanvas")
 
@@ -284,6 +284,12 @@ def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis
         hist.Fit("fit")
 
         hist.GetXaxis().SetRangeUser(rng[0],rng[1]);
+    
+    if logx:
+        canv.SetLogx()
+        
+    if logy:
+        canv.SetLogy()
 
     hist.Draw()
 

@@ -1,0 +1,7 @@
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_5.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_9.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_2.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_3.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_6.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_1.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/16_01_22/11/stat_11_0.root

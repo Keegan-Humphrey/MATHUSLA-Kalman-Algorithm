@@ -97,13 +97,13 @@ done < "$input"
 
 # for reference in plots*.zip file!
 cp ./run/*.txt "$1/$day/$time/"
-cp ./run/*.txt "$1/$day/$time/plots"
+#cp ./run/*.txt "$1/$day/$time/plots"
 
 python ./run/plotting.py "$1/$day/$time/"
 
 cd "$1"
 
-zip -r "$day/$time/plots_$day-$time.zip" "$day/$time/plots/"
+#zip -r "$day/$time/plots_$day-$time.zip" "$day/$time/plots/"
 
 # if nohup was used, include output file
 nohup="$script_dir/nohup.out"

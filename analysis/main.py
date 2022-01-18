@@ -58,19 +58,27 @@ def main(opt):
 
         #inds = np.arange(50)
         
-        cut = 4
+        cut = 5
         
         passed_events = joblib.load('passed_events.joblib')
         
         if not os.path.exists('vis_plots'):
             os.makedirs('vis_plots')
 
+        events = 0
+        event_cap = 20
+
         for file in passed_events.keys():
-        
+            
             #ev = event.Event(file, 0)
             
             try:
                 inds = passed_events[file][cut].astype(int)
+                
+                #inds_before = set(passed_events[file][cut-1].astype(int))
+                #inds_after = set(passed_events[file][cut].astype(int))
+                
+                #inds = inds_before - inds_after # show events cut
 
             except:
                 inds = []
@@ -79,7 +87,15 @@ def main(opt):
                 print(file)
                 #print(inds)
 
+            #if file != '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root':
+            #    continue
+        
+
             for ind in inds:
+                if events > event_cap:
+                    break
+            
+                events += 1
     
                 print("Event number: ",ind)
                 
@@ -100,6 +116,8 @@ def main(opt):
                 ev.RecoVertex()            
                 #ev.RecoLinVertex()
 
+            if events > event_cap:
+                break
 
     elif opt == 2:
         ''' find number of truth tracks per event '''

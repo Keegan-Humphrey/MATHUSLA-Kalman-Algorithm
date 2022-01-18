@@ -13,8 +13,10 @@
 int RunManager::StartTracking()
 {
 	TreeHandler _handler(_InputTree_Name, _InputFile_Name, _OutputTree_Name, OutFileName());
-	if (_handler.IsNull())
+	if (_handler.IsNull()) {
+		std::cout << "Sorry, I couldn't open that file" << std::endl;
 		return 0;
+	}
 
 	TH = &_handler;
 	int events_handled = 0;
@@ -37,6 +39,7 @@ int RunManager::StartTracking()
 	ParHandler hndlr;
 	hndlr.Handle();
 
+//	std::cout << "Parameters are: " << std::endl;
 //	std::cout << hndlr.par_map["p"] << std::endl;
 
 	_digitizer->par_handler = &hndlr;
@@ -52,7 +55,8 @@ int RunManager::StartTracking()
 		}
 		if (events_handled > hndlr.par_map["start_ev"]) //cuts::start_ev)
 		{
-			if ((events_handled - 1) % 100 == 0 || hndlr.par_map["debug"] == 1)
+
+			if ((events_handled - 1) % 1000 == 0 || hndlr.par_map["debug"] == 1)
 				std::cout << "Event is " << events_handled - 1 << std::endl;
 
 			TotalEventsProcessed++;
@@ -159,17 +163,19 @@ int RunManager::StartTracking()
 		events_handled++;
 	}
 
-	std::cout << made_its << " Linear tracks made it" << std::endl;
-	std::cout << made_its_k << " Kalman tracks made it" << std::endl;
-	std::cout << verts << " Linear vertices made it" << std::endl;
-	//std::cout << verts_k << " Kalman vertices made it" << std::endl;
-	std::cout << verts_k_m << " Merged Kalman vertices made it" << std::endl;
-	std::cout << events_w_tracks << " Events had a linear track" << std::endl;
-	std::cout << events_w_k_tracks << " Events had a kalman track" << std::endl;
+	if (hndlr.file_opened) {
+		std::cout << made_its << " Linear tracks made it" << std::endl;
+		std::cout << made_its_k << " Kalman tracks made it" << std::endl;
+		std::cout << verts << " Linear vertices made it" << std::endl;
+		//std::cout << verts_k << " Kalman vertices made it" << std::endl;
+		std::cout << verts_k_m << " Merged Kalman vertices made it" << std::endl;
+		std::cout << events_w_tracks << " Events had a linear track" << std::endl;
+		std::cout << events_w_k_tracks << " Events had a kalman track" << std::endl;
 
-	TH->Write();
+		TH->Write();
 
-	std::cout << "Tracked " << TotalEventsProcessed << " Events" << std::endl;
+		std::cout << "Tracked " << TotalEventsProcessed << " Events" << std::endl;
+	}
 
 	return 0;
 }

@@ -84,7 +84,7 @@ if __name__ == "__main__":
 		"Track_k_beta"]
 
     '''
-    branches = ['Vertex_k_m_y']
+    branches = []
 
     plt = Plot()
 

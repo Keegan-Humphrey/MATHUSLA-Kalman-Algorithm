@@ -9,6 +9,7 @@ public:
 
 	void Handle();
 
+	bool file_opened;
 private:
 	void GetPars();
 

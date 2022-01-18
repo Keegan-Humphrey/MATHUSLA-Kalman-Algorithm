@@ -19,19 +19,6 @@ namespace detector{
 	const double ip_y = 0.0;
 	const double ip_z = 0.0;
 
-	//specifies the bottom and top y position of every layer
-	/*
-	const std::vector<std::vector<double>> LAYERS_Y={{6003.0*cm, 6006.0*cm},  //layer 0
- 												 	{6106.0*cm, 6109.0*cm}, //layer 1
-													{6209.0*cm, 6212.0*cm}, //layer 2
- 													{8003.0*cm, 8006.0*cm}, //layer 3
- 													{8106.0*cm, 8109.0*cm}, //layer 4
- 													{8503.0*cm, 8506.0*cm}, //layer 5
- 													{8606.0*cm, 8609.0*cm}, //layer 6
- 													{8709.0*cm, 8712.0*cm}, //layer 7
- 													{8812.0*cm, 8815.0*cm}, //layer 8
-													{8915.0*cm, 8918.0*cm}};  //layer 9
-	*/
 	const std::vector<std::vector<double>> LAYERS_Y={{6003.0*cm + 547*cm, 6006.0*cm + 547*cm,},  //layer 0
  												 	{6106.0*cm + 547*cm, 6109.0*cm + 547*cm}, //layer 1
 													{6209.0*cm + 547*cm, 6212.0*cm + 547*cm}, //layer 2
@@ -158,7 +145,7 @@ namespace cuts{
         const int end_ev = 50;
 
     //digi hit cuts for floors and wall
-    const std::vector<bool> include_floor = { true, true, true }; //ith index for ith floor from bottom
+    const std::vector<bool> include_floor = { false, false, true }; //ith index for ith floor from bottom
 
     const bool include_wall = true;
     const double wall_y_cut = detector::wall_start_y + detector::wall_height; //all digi hits above this will be thrown out
