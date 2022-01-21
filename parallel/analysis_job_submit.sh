@@ -57,7 +57,7 @@ while [ $n -lt $MAX_SERIES ]
 do
 	line="$(<$in_names cut -d $'\n' -f $(($MAX_SERIES*$SLURM_ARRAY_TASK_ID+$n)))"
 
-	python "$exec_dir/cutflow.py" "$line" "$ID_dir" "$(($MAX_SERIES*$SLURM_ARRAY_TASK_ID+$n)))"
+	python "$exec_dir/cutflow.py" "$line" "$ID_dir" "$(($MAX_SERIES*$SLURM_ARRAY_TASK_ID+$n))"
 
 	((n++))
 
