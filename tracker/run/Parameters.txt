@@ -1,5 +1,6 @@
 # Transposed list of parameters:
 #
+# branch (0 for main, 1 for cosmic)
 # debug (integer boolean)
 # seed (-1 for random seed)
 # kalman_chi_s 
@@ -23,5 +24,5 @@
 # start_ev
 # end_ev
 #
-0, -1, 150, 200, 15, 1, 0.99999999, 0.95, 5e2, 0.998, 25, 100, 15, 100, 1e5, 100, 0.8, 1.2, 0.8, 1.2, 0, 100000
+0, 0, -1, 150, 200, 15, 1, 0.99999999, 0.95, 5e2, 0.998, 25, 100, 15, 100, 1e5, 100, 0.8, 1.2, 0.8, 1.2, 0, 100
 

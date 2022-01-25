@@ -27,8 +27,6 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	std::vector<physics::sim_hit*> current_remaining_hits = hits;
 	std::vector<physics::sim_hit*> next_remaining_hits;
 
-
-
 	while (current_remaining_hits.size() > 0){
 
 		//current detector id which we are working in
@@ -163,6 +161,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 				long_direction_sum += hit->z * hit->e;
 			}
 		}
+
 		//std::cout << "getting energy weighting" << std::endl;
 
 	//	std::cout << "uncertainty:" << std::endl;
@@ -195,7 +194,6 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 				digi->x = center[0];
 			}
 		}
-
 
 		//TIME AND POSITION SMEARING!!!!!!!!!!!!!!!
 		//we see the random number generator with a number that should be completly random:

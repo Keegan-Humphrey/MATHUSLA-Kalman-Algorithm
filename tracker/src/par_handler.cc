@@ -23,7 +23,7 @@ void ParHandler::GetPars() {
 	std::string par_card_str = par_path.substr(0, par_path.size()-14)+"/../run/par_card.txt";
 	//par_card_str.st = myString.substr(0, myString.size()-1);
 
-	std::cout << par_card_str << std::endl;
+//	std::cout << par_card_str << std::endl;
         std::ifstream infile(par_card_str);
 
 //        std::ifstream infile("../run/par_card.txt");

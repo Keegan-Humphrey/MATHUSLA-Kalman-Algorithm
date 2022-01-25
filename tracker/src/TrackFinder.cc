@@ -765,6 +765,9 @@ void TrackFinder::CalculateMissingHits(Geometry *geo)
 
 void TrackFinder::FindTracks_kalman()
 {
+
+	if (par_handler->par_map["debug"] == 1) std::cout << "Number of seeds:" <<  seeds_k.size() << std::endl;
+
 	if (seeds_k.size() == 0)
 		return; //no seeds found in initial seeding, will be retried with <c travel
 

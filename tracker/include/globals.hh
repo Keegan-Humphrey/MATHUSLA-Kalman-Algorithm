@@ -19,6 +19,7 @@ namespace detector{
 	const double ip_y = 0.0;
 	const double ip_z = 0.0;
 
+
 	const std::vector<std::vector<double>> LAYERS_Y={{6003.0*cm + 547*cm, 6006.0*cm + 547*cm,},  //layer 0
  												 	{6106.0*cm + 547*cm, 6109.0*cm + 547*cm}, //layer 1
 													{6209.0*cm + 547*cm, 6212.0*cm + 547*cm}, //layer 2
@@ -52,6 +53,8 @@ namespace detector{
 													{14000.0*cm, 14900.0*cm},
 													{15000.0*cm, 15900.0*cm},
 													{16000.0*cm, 16900.0*cm} };
+
+	const std::vector<double> COSMIC_SHIFT = {0.0, 547*cm, 9900.0*cm}; // shift of sim cosmic -> main coordinates
 
 	const int n_modules = 100;
 	const double scintillator_length = 450.0*units::cm;
@@ -146,6 +149,7 @@ namespace cuts{
 
     //digi hit cuts for floors and wall
     const std::vector<bool> include_floor = { false, false, true }; //ith index for ith floor from bottom
+//    const std::vector<bool> include_floor = { true, true, true }; //ith index for ith floor from bottom
 
     const bool include_wall = true;
     const double wall_y_cut = detector::wall_start_y + detector::wall_height; //all digi hits above this will be thrown out

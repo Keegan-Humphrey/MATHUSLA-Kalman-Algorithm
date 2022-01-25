@@ -26,7 +26,7 @@ mkdir "$1/$day/$time/plots"
 
 # get script directory (so run.sh can be executed from a different directory)
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-echo "script directory is: $script_dir"
+#echo "script directory is: $script_dir"
 
 # check for files left from previous run
 # (necessary after keyboard interrupt)
@@ -81,8 +81,8 @@ do
 
 			((c++))
 		done
-	else
-		echo "File Doesn't exist, moving on..."
+#	else
+#		echo "File Doesn't exist, moving on..."
 	fi
 
 	((n++))

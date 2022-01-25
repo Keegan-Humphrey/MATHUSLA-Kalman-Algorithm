@@ -175,7 +175,7 @@ public:
 		double x_local = x_width*(static_cast<double>(id.xIndex) + 0.5);
 		double y_local = y_width*(static_cast<double>(id.wall_yIndex) + 0.5);
 
-		return { cx + x_local, cy + y_local, cz };
+		return { cx + x_local, cy + y_local, cz }; // z is getting fixed here for hit < 7000
 
 	}
 
@@ -339,7 +339,7 @@ public:
 			}
 		}
 
-        if (z < 7000) return GetDetIDWall(x, y, z);
+        if (z < detector::z_min) return GetDetIDWall(x, y, z);
 
 		if (layer_number == -1){
 			return detID();}

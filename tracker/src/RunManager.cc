@@ -71,6 +71,11 @@ int RunManager::StartTracking()
 			for (int n_hit = 0; n_hit < TH->sim_numhits; n_hit++)
 			{
 				physics::sim_hit *current = new physics::sim_hit(TH, n_hit);
+				if (hndlr.par_map["branch"] == 1.0) {
+					current->x += detector::COSMIC_SHIFT[0];
+					current->y += detector::COSMIC_SHIFT[1];
+					current->z += detector::COSMIC_SHIFT[2];
+				}
 				_digitizer->AddHit(current);
 			}
 

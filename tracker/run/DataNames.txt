@@ -1,9 +1,1 @@
-#/home/keeganh/scratch/presentation_dir/sim_trees/h10_1mill.root # this one
-#/home/keeganh/scratch/presentation_dir/sim_trees/h2_1e5.root
-#/home/keeganh/scratch/presentation_dir/sim_trees/h2_1mill.root
-#/home/keeganh/projects/rrg-mdiamond/keeganh/presentation_dir/sim_trees/h2_1mill.root
-#/home/keeganh/scratch/presentation_dir/sim_trees/uubar_1e5.root
-#/home/keeganh/scratch/presentation_dir/sim_trees/W_1mill.root
-/home/keeganh/scratch/job_test/W_sample_dir/run3/data/20211210/071446/run0.root
-/home/keeganh/scratch/job_test/W_sample_dir/run3/data/20211210/030753/run0.root
-/home/keeganh/scratch/job_test/W_sample_dir/run3/data/20211210/072033/run0.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/presentation_dir/sim_trees/h2_1mill.root
