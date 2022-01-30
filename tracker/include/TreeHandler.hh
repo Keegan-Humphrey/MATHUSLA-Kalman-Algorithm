@@ -242,11 +242,11 @@ public:
       	OutputTree->Branch("Vertex_chi2PValue", &vertex_chi2_p_value);
         OutputTree->Branch("Vertex_trackIndices", &vertex_track_indices);
 
-        OutputTree->Branch("Vertex_k_t", &vertex_k_t);
-        OutputTree->Branch("Vertex_k_x", &vertex_k_x);
-        OutputTree->Branch("Vertex_k_y", &vertex_k_y);
-        OutputTree->Branch("Vertex_k_z", &vertex_k_z);
-        OutputTree->Branch("Vertex_k_trackIndices", &vertex_track_k_indices);
+//        OutputTree->Branch("Vertex_k_t", &vertex_k_t);
+//        OutputTree->Branch("Vertex_k_x", &vertex_k_x);
+//        OutputTree->Branch("Vertex_k_y", &vertex_k_y);
+//        OutputTree->Branch("Vertex_k_z", &vertex_k_z);
+//        OutputTree->Branch("Vertex_k_trackIndices", &vertex_track_k_indices);
 
 	OutputTree->Branch("Vertex_k_m_t", &vertex_k_m_t);
         OutputTree->Branch("Vertex_k_m_x", &vertex_k_m_x);
@@ -289,11 +289,14 @@ public:
         OutputTree->Branch("Track_hitIndices", &track_hit_indices);
         OutputTree->Branch("track_ipDistance", &track_distance_to_ip);
 
+	OutputTree->Branch("local_chi_f", &chi_f_first);
+        OutputTree->Branch("local_chi_s", &chi_s_first);
 	OutputTree->Branch("Track_k_filterchi", &track_filter_chi);
 	OutputTree->Branch("Track_k_smoothchi", &track_smooth_chi);
 	OutputTree->Branch("Track_k_numHits", &track_k_numHits);
 	OutputTree->Branch("Track_k_chi2PerNdof", &track_k_chi2_per_dof);
 	OutputTree->Branch("Track_k_smooth_chi_sum", &track_k_smooth_chi_sum);
+/*
 	OutputTree->Branch("Track_k_hitIndices", &track_hit_k_indices);
 	OutputTree->Branch("Track_k_velX", &track_k_vx);
 	OutputTree->Branch("Track_k_velY", &track_k_vy);
@@ -304,12 +307,11 @@ public:
 	OutputTree->Branch("Track_k_y0", &track_k_y);
 	OutputTree->Branch("Track_k_z0", &track_k_z);
 	OutputTree->Branch("Track_k_t0", &track_k_t);
-	OutputTree->Branch("local_chi_f", &chi_f_first);
-        OutputTree->Branch("local_chi_s", &chi_s_first);
  	OutputTree->Branch("NumTracks_k", &NumTracks_k);
 	OutputTree->Branch("x_estimates", &x_estimates);
 	OutputTree->Branch("y_estimates", &y_estimates);
 	OutputTree->Branch("z_estimates", &z_estimates);
+*/
 	OutputTree->Branch("x_std_scat_per_m", &x_scat);
 	OutputTree->Branch("z_std_scat_per_m", &z_scat);
 	OutputTree->Branch("track_pdgs", &track_pdgs);
@@ -326,10 +328,10 @@ public:
 	OutputTree->Branch("NumTracks_k_m", &NumTracks_k_m);
 	OutputTree->Branch("Track_k_m_hitIndices", &track_hit_k_m_indices);
 	OutputTree->Branch("Track_k_m_expected_hit_layer", &track_k_m_expected_hit_layer);
-
 	OutputTree->Branch("x_estimates_m", &x_estimates_m);
 	OutputTree->Branch("y_estimates_m", &y_estimates_m);
 	OutputTree->Branch("z_estimates_m", &z_estimates_m);
+/*
 	OutputTree->Branch("vertex_vx_m", &q_s_x_m);
 	OutputTree->Branch("vertex_vy_m", &q_s_y_m);
 	OutputTree->Branch("vertex_vz_m", &q_s_z_m);
@@ -337,7 +339,7 @@ public:
 	OutputTree->Branch("vertex_k_s_beta", &vertex_k_s_beta);
 	OutputTree->Branch("vertex_k_s_beta_err", &vertex_k_s_beta_err);
 	OutputTree->Branch("king_move_inds", &king_move_inds);
-
+*/
 
 
 	}
