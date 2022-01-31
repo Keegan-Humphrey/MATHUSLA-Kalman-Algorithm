@@ -85,7 +85,8 @@ namespace detector{
 
     const double wall_gap = 1.0*units::cm; //gap on each side of wall
     const double wall_height = 2000.0*units::cm;
-    const double wall_start_y = 6000.0*units::cm; //min y value of wall (casing included)
+//    const double wall_start_y = 6000.0*units::cm; //min y value of wall (casing included)
+    const double wall_start_y = y_min - 3*units::cm; //min y value of wall (casing included)
 
     //FOR statistics.hh ONLY - NEW MIN Z WITH WALL
     const double z_min_wall = z_min - wall_gap - scintillator_height;

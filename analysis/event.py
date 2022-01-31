@@ -134,17 +134,21 @@ class Event:
 
 		visEngine_local.writeDirectory = self.writeDirectory
 
-		used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
-		#dump(used_gens_inds,"used_gens_inds.joblib")
-                #used_gens_inds = load("used_gens_inds.joblib")
+		try:
+			used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
+			#dump(used_gens_inds,"used_gens_inds.joblib")
+			#used_gens_inds = load("used_gens_inds.joblib")
+  
+			if len(used_gens_inds) != 0:
+				vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
+          	                      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
+                  	              self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10] # only first since all used
+  
+    	                #truth vertex location
+				visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
 
-		if len(used_gens_inds) != 0:
-			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])] / 10,
-        	                      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
-                	              self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10] # only first since all used
-
-	                #truth vertex location
-			visEngine_local.AddVertex( {'point':[vert_truth[0], vert_truth[1], vert_truth[2]], 'col':'tab:green', 'vert vel':[[],[],[]]} )
+		except exception:
+			pass
 
 		num_truth = 0
 #		list_of_truth_hits = []
@@ -1118,6 +1122,36 @@ class Event:
 		visualization.Histogram(dang_yx, fname="dang_yx.png", Title="x-y plane momentum projection angle", xaxis="angle [rad]")
 		visualization.Histogram(dang_yz, fname="dang_yz.png", Title="z-y plane momentum projection angle", xaxis="angle [rad]")
 
+
+
+	def Compare_sim_and_digi(self):
+
+		self.Tree.SetBranchStatus("Hit_x", 1)
+		self.Tree.SetBranchStatus("Hit_y", 1)
+		self.Tree.SetBranchStatus("Hit_z", 1)
+		self.Tree.SetBranchStatus("Digi_x", 1)
+		self.Tree.SetBranchStatus("Digi_y", 1)
+		self.Tree.SetBranchStatus("Digi_z", 1)
+
+		hit_x, hit_z = [], []
+		digi_x, digi_z = [], []
+
+		for ev in range(self.Tree.GetEntries()): # event
+			self.Tree.GetEntry(ev)
+
+			print("event {}".format(ev)) if ev % 100 == 0 else None
+
+			for hit in range(len(self.Tree.Hit_x)):
+				hit_x.append(self.Tree.Hit_x[hit])
+				hit_z.append(self.Tree.Hit_z[hit]+9900)
+
+			for digi in range(len(self.Tree.Digi_x)):
+				digi_x.append(self.Tree.Digi_x[digi])
+				digi_z.append(self.Tree.Digi_z[digi])
+
+
+		visualization.root_2D_Histogram(hit_x, hit_z, [np.amin(hit_x),np.max(hit_x)], [np.amin(hit_z),np.max(hit_z)], Title='Sim x-z', xbins=100, zbins=100, xlabel='x', zlabel='z', fname='sims.png')
+		visualization.root_2D_Histogram(digi_x, digi_z, [np.amin(digi_x),np.max(digi_x)], [np.amin(hit_z),np.max(hit_z)], Title='Digi x-z', xbins=100, zbins=100, xlabel='x', zlabel='z', fname='digis.png')
 
 
 	def Chi_by_ndof(self):

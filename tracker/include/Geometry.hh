@@ -339,6 +339,7 @@ public:
 			}
 		}
 
+//        if (z < 7000) return GetDetIDWall(x, y, z);
         if (z < detector::z_min) return GetDetIDWall(x, y, z);
 
 		if (layer_number == -1){

@@ -31,14 +31,16 @@ class sample_space():
         self.file = file
         self.det = detector.Detector()
         self.cuts = dict() # information about how to use the cuts
+        self.plotter = Plotter() # to be overwritten by passed plotter
 
     def inside_box(self, x, y, z):
 
         box_lims = self.det.BoxLimits
-        y_floor = self.det.LayerYLims[2][1]
+        #y_floor = self.det.LayerYLims[2][1]
+        self.y_floor = self.det.y_floor
 
         if box_lims[0][0] < x and box_lims[0][1] > x:
-           if y_floor < y and box_lims[1][1] > y: # only accept it if above the floor layers
+           if self.y_floor < y and box_lims[1][1] > y: # only accept it if above the floor layers
                 if box_lims[2][0] < z and box_lims[2][1] > z:
                     return True
 
@@ -94,7 +96,6 @@ class sample_space():
         self.tree.SetBranchStatus("Track_k_m_z0", 1)
         self.tree.SetBranchStatus("Track_k_smooth_chi_sum",1)
 
-
         cut_vectors = []
         
         self.additional_info = np.zeros((int(self.tree.GetEntries()),2)) # Fill me up with info if you want internal 
@@ -107,8 +108,12 @@ class sample_space():
             self.n = 0
 
             self.tree.GetEntry(event_number)
+
             if event_number % 1000 == 0:
                 print("event:", event_number)
+                
+            self.fulltrackindices = util.unzip(self.tree.Vertex_k_m_trackIndices)
+            self.fullhitindices = util.unzip(self.tree.Track_k_m_hitIndices)
 
             #------------- record the event number for reference
             self.current_vector[0] = event_number
@@ -132,7 +137,7 @@ class sample_space():
             self.Floor_hits_before_vertex()
             self.n += 1
 
-            self.Expected_hits_old()
+            self.Track_floor_hits()
             self.n += 1 
             
             self.Opening_angle()
@@ -212,49 +217,66 @@ class sample_space():
                 vertexveto = False
                 vtxx, vtxy, vtxz = self.tree.Vertex_k_m_x[num], self.tree.Vertex_k_m_y[num], self.tree.Vertex_k_m_z[num]
 
-                ''' x-z distance of hit '''
-                dists = []
-                ''' ----------- '''
-
-                for hit in range(len(self.tree.Digi_y)): # loop over the hits
-                    if self.in_layer(self.tree.Digi_y[hit]) <= 2 or self.tree.Digi_z[hit] < self.det.ModuleZLims[0][0]: # check if layer index is a floor layer index or in the wall
-                        if self.tree.Vertex_k_m_t[num] + self.tree.Vertex_k_m_ErrorT[num] > self.tree.Digi_time[hit]: # check if the floor or wall hit happened before the vertex
-                            vertexveto = True
-                            
-                            ''' //----------------------------// '''
-                            expected_x = []
-                            expected_z = []
-            
-                            for ind in self.vertex_trackIndices[num]: # track
-                                    ind = int(ind)
-            
-                                    x = self.tree.Track_k_m_x0[ind]
-                                    y = self.tree.Track_k_m_y0[ind]
-                                    z = self.tree.Track_k_m_z0[ind]
-            
-                                    vx = self.tree.Track_k_m_velX[num]
-                                    vy = self.tree.Track_k_m_velY[num]
-                                    vz = self.tree.Track_k_m_velZ[num]
-            
-                                    del_t = (self.tree.Digi_y[hit] - y) / vy
-            
-                                    expected_x.append(x + vx * del_t)
-                                    expected_z.append(z + vz * del_t)
-                                    
-                            expected_x = np.array(expected_x)
-                            expected_z = np.array(expected_z)
-                
-                            if len(expected_x) != 0:
-                                min_dist = np.amin(np.sqrt((expected_x - self.tree.Digi_x[hit])**2 + (expected_z - self.tree.Digi_z[hit])**2)) # min dist to track for the hit
-                                dists.append(min_dist)
-                
-                if len(dists) != 0:
-                    min_by_verts.append(np.amin(dists)) # min dist between a track and hit in the event that happened before the vertex
-                    
-                ''' //-----------------------------------// '''
-
                 if not self.inside_box(vtxx, vtxy, vtxz): # make sure the vertex is fiducial (above the floor)
-                    vertexveto = True
+                    vertexveto = True # veto the vertex if its outside the detector 
+
+                ''' x-z distance of track '''
+                dists = []
+              
+                expected_x_floor = []
+                expected_z_floor = []
+                expected_x_wall = []
+                expected_y_wall = []
+
+                if not vertexveto:
+                    for ind in self.vertex_trackIndices[num]: # Determine where the tracks in the vertex are expected to hit the wall and floor
+                            ind = int(ind)
+    
+                            x = self.tree.Track_k_m_x0[ind]
+                            y = self.tree.Track_k_m_y0[ind]
+                            z = self.tree.Track_k_m_z0[ind]
+    
+                            vx = self.tree.Track_k_m_velX[ind]
+                            vy = self.tree.Track_k_m_velY[ind]
+                            vz = self.tree.Track_k_m_velZ[ind]
+                            
+                            try:
+                                del_t = (self.y_floor - y) / vy
+                                
+                                expected_x_floor.append(x + vx * del_t)
+                                expected_z_floor.append(z + vz * del_t)
+                                
+                                del_t = (self.det.z_wall - z) / vz
+                                
+                                expected_x_wall.append(x + vx * del_t)
+                                expected_y_wall.append(y + vy * del_t)
+                            
+                            except ZeroDivisionError:
+                                continue
+                            
+                    expected_x_floor = np.array(expected_x_floor)
+                    expected_z_floor = np.array(expected_z_floor)
+                    expected_x_wall = np.array(expected_x_wall)
+                    expected_y_wall = np.array(expected_y_wall)
+                    
+                    for hit in range(len(self.tree.Digi_y)): # loop over the hits
+                        if self.in_layer(self.tree.Digi_y[hit]) <= 2 or self.tree.Digi_z[hit] <= self.det.z_wall: # check if layer index is a floor layer index or in the wall
+                            if self.tree.Vertex_k_m_t[num] + 2 * self.tree.Vertex_k_m_ErrorT[num] > self.tree.Digi_time[hit]: # check if the floor or wall hit happened before the vertex
+                                
+                                if len(self.vertex_trackIndices) != 0: # calculate this for each hit and each expected track position
+                                    min_dist_floor = np.amin(np.sqrt((expected_x_floor - self.tree.Digi_x[hit])**2 + (expected_z_floor - self.tree.Digi_z[hit])**2)) # min dist to a track for the hit
+                                    min_dist_wall = np.amin(np.sqrt((expected_x_wall - self.tree.Digi_x[hit])**2 + (expected_y_wall - self.tree.Digi_y[hit])**2)) # min dist to a track for the hit
+                                    
+                                    #self.plotter.min_dist_floor.append(min_dist_floor)
+                                    #self.plotter.min_dist_wall.append(min_dist_wall) # **** is this why it's so memory intensive?
+                                    
+                                    dists.append(np.amin([min_dist_floor, min_dist_wall])) # says how close the hit is to a track in the vertex
+                    
+                    if len(dists) != 0:
+                        if np.amin(dists) > 300: # [cm] Make sure closest hit to the track is within 3 m to veto 
+                                                 # ******** need to find a slick way to let this value be cut on independently
+                            vertexveto = True
+                        
 
                 if not vertexveto: # There's a vertex in the event that isn't vetoed
                     break
@@ -265,50 +287,28 @@ class sample_space():
 
             self.current_vector[self.n] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] (< 1 is true)
 
-            
-            ''' \\-----------------------------------\\ '''
-            if len(min_by_verts) != 0:
-                self.additional_info[self.event_number][0] = np.amin(min_by_verts)
-                ''' \\-----------------------------------\\ '''
                 
 
-    def Expected_hits_old(self):
-            self.cuts[inspect.stack()[0][3]] = {'index':self.n, 'cut if':'<'}
+    def Track_floor_hits(self):
+            self.cuts[inspect.stack()[0][3]] = {'index':self.n, 'cut if':'True'}
             
-            #---------- Expected Hits (old) - deprecated / doesn't run
-            '''
-            expectedveto = False
-
-            fullhitindices = util.unzip(self.tree.Track_k_m_hitIndices)
-            fullexp_layers = util.unzip(self.tree.Track_k_m_expected_hit_layer)
-
-            for j in range(int(self.tree.NumVertices_k_m)):
-                bottomlayer_exp = []
-                bottomlayer_hits = []
-                trackindices = self.fulltrackindices[j]
-
-                for track in trackindices:
-                    exp_layers = fullexp_layers[int(track)]  # layers the track is expected to hit
-
-                    for hit in exp_layers:
-                        if hit <= 2:
-                            bottomlayer_exp.append(hit) # a floor layer hit is expected, record the layer
-
-                    hitindices = fullhitindices[int(track)]
-
-                    for i in hitindices:
-                        hity = self.tree.Digi_y[i]
-
-                        if self.in_layer(hity) <= 2:
-                                bottomlayer_hits.append(hity) # hit is in a floor layer
-
-                # we get 3 or more expected hits, but no hits, veto
-                if (len(bottomlayer_hits) < 1 and len(bottomlayer_exp) >= 1):
-                    expectedveto = True
+            #---------- Reject tracks with digi hits in the floor
             
-            self.current_vector[self.n] = int(expectedveto) # bottom layer hits
-            '''
-                  
+            track_floor_veto = False
+            
+            for vert in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
+                vertex_veto = False    
+                
+                for trk in self.vertex_trackIndices[vert]: # loop over tracks in the vertex
+                    trk = int(trk)
+                    if self.tree.Track_k_m_y0[trk] <= self.y_floor:
+                        vertex_veto = True
+                
+                if not vertex_veto: # if there is a vertex with without floor hits, don't veto the event
+                    track_floor_veto = True
+                    break
+            
+            self.current_vector[self.n] = track_floor_veto
 
 
     def Opening_angle(self):
@@ -351,8 +351,8 @@ class sample_space():
             #---------------- check if vertices are below track hits within some sigma (Topological Cut)
             topoveto = 0
 
-            self.fulltrackindices = util.unzip(self.tree.Vertex_k_m_trackIndices)
-            self.fullhitindices = util.unzip(self.tree.Track_k_m_hitIndices)
+            #self.fulltrackindices = util.unzip(self.tree.Vertex_k_m_trackIndices)
+            #self.fullhitindices = util.unzip(self.tree.Track_k_m_hitIndices)
 
             pulls = []
 
@@ -446,70 +446,93 @@ class sample_space():
 
             max_centre_dist = 0
 
-            centre = [np.mean(self.det.BoxLimits[0]), np.mean(self.det.BoxLimits[2])]
+            centre_floor = [np.mean(self.det.BoxLimits[0]), np.mean(self.det.BoxLimits[2])] # [x,z] [cm,cm]
+            centre_wall = [centre_floor[0], 6000.0 + 2000.0 / 2.0] # [x,y] [cm,cm] see globals.hh for explanation on y
 
             floor_ys = [np.sum(self.det.LayerYLims[i]) / 2 for i in range(3)]
             floor_y = np.sum(self.det.LayerYLims[2]) / 2
 
-            expected_x = []
-            expected_z = []
-
-#        floor_y = np.sum(Detector.LayerYLims[2]) / 2
-
-            hits_in_floor = False
+            min_dists = []
+              
+            hits_in_floor = False # see if there are any hits in the floor *** need to change this to hits nearby the track
 
             for i in range(3):
-                    
-                if np.any(self.tree.Digi_y == np.sum(self.det.LayerYLims[i]) / 2):
+                if np.any(np.array(self.tree.Digi_y) == np.sum(self.det.LayerYLims[i]) / 2):
                     hits_in_floor = True
                     
-                    #print("floor",np.sum(self.det.LayerYLims[i]) / 2)
-                    #print("y hits ",np.array(self.tree.Digi_y))
-
-            if len(self.vertex_trackIndices) > 0 and not hits_in_floor:
+            hits_in_wall = False # see if there are any hits in the wall
+            
+            if np.any(np.array(self.tree.Digi_z) <= self.det.z_wall):
+                hits_in_wall = True
+                    
+            if len(self.vertex_trackIndices) > 0 and not (hits_in_floor or hits_in_wall): # if we have vertices made but don't find any 
+                                                                                          # hits that would let us reject the event in 
+                                                                                          # the hits before vertex cut, and it's background,
+                                                                                          # we expect incorrect track reconstruction to be the cause
+                                                                                          # ie. tracks will be close to the edge of wall / floor
+                edge_dist_x_floor = []
+                edge_dist_z_floor = []
+                edge_dist_x_wall = []
+                edge_dist_y_wall = []
+                
                 for vert in range(len(self.vertex_trackIndices)): # vertex
                     vert = int(vert)
 
+                    expected_x_floor = [] # calculate expected positions for each track in the vertex
+                    expected_z_floor = []
+                    expected_x_wall = []
+                    expected_y_wall = []
+
                     for ind in self.vertex_trackIndices[vert]: # track
                         ind = int(ind)
-
+                    
                         x = self.tree.Track_k_m_x0[ind]
                         y = self.tree.Track_k_m_y0[ind]
                         z = self.tree.Track_k_m_z0[ind]
-
+                    
                         vx = self.tree.Track_k_m_velX[ind]
                         vy = self.tree.Track_k_m_velY[ind]
                         vz = self.tree.Track_k_m_velZ[ind]
-
-                        del_t = (floor_y - y) / vy
-
-                        expected_x.append(x + vx * del_t)
-                        expected_z.append(z + vz * del_t)
-
-            edge_dist_x = (self.det.BoxLimits[0][1] - self.det.BoxLimits[0][0]) / 2 - np.abs(np.array(expected_x) - centre[0]) # distance from expected hits
-            edge_dist_z = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - np.abs(np.array(expected_z) - centre[1]) # to edge of detector
-
-            #print('dists are')
-            #print(edge_dist_x)
-            #print(edge_dist_z)
-
-            if len(edge_dist_x) != 0:
-                 #min_edge_dist = np.amin(np.amin([edge_dist_x, edge_dist_z], axis=1))
-                 #self.current_vector[self.n] = min_edge_dist
-
-                 # this is choosing the most negative values, no good! we want the least negative values
+                    
+                        try:
+                            del_t = (floor_y - y) / vy
+                    
+                            expected_x_floor.append(x + vx * del_t)
+                            expected_z_floor.append(z + vz * del_t)
+                            
+                            del_t = (self.det.z_wall - z) / vz
+                                
+                            expected_x_wall.append(x + vx * del_t)
+                            expected_y_wall.append(y + vy * del_t)
+                        
+                        except ZeroDivisionError:
+                            continue
+                    
+                    '''
+                    expected_x_floor = np.array(expected_x_floor) 
+                    expected_z_floor = np.array(expected_z_floor)
+                    expected_x_wall = np.array(expected_x_wall)
+                    expected_y_wall = np.array(expected_y_wall)
+                    '''
+                    
+                    edge_dist_x_floor = (self.det.BoxLimits[0][1] - self.det.BoxLimits[0][0]) / 2 - np.abs(np.array(expected_x_floor) - centre_floor[0]) # distance from expected hits
+                    edge_dist_z_floor = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - np.abs(np.array(expected_z_floor) - centre_floor[1]) # to edge of floor for the vertex
+                    edge_dist_x_wall = (self.det.WallLimits[0][1] - self.det.WallLimits[0][0]) / 2 - np.abs(np.array(expected_x_wall) - centre_wall[0]) # distance from expected hits
+                    edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - np.abs(np.array(expected_y_wall) - centre_wall[1]) # to edge of wall for the vertex
+                    
+                    min_dists.append(np.sort(np.max([edge_dist_x_wall, edge_dist_y_wall,edge_dist_x_floor, edge_dist_z_floor],axis=0))[-2]) # take the second closest track to the centre of sensitive layer in any direction
+                                                                                                                                            # if it passes cut, then there are two tracks in the vertex that pass the cut
+                if len(min_dists) != 0:
+                    self.current_vector[self.n] = np.max(min_dists)
                  
-                 #print(min_edge_dist)
-
-                 #self.additional_info_1[self.event_number] = expected_x[:2] #edge_dist_x[:2]
-                 #self.additional_info_2[self.event_number] = expected_z[:2] #edge_dist_z[:2]
-
-                 #max_edge_dist = np.amin(np.max([edge_dist_x, edge_dist_z], axis=1))
-                 #self.current_vector[self.n] = max_edge_dist
+            if (hits_in_floor or hits_in_wall):
+                self.current_vector[self.n] = 5000.0 # [cm] if there's hits in the wall or floor, assign largest possible value (at detector centre) so it doesn't get cut
+            
+                  
+            
                  
-                 average_edge_dist = np.amin(np.mean([edge_dist_x, edge_dist_z],axis=1)) # calculate average position, find distance to the edge
-                 self.current_vector[self.n] = average_edge_dist
-                 #print(max_edge_dist)
+                 
+            
                  
 
     def No_floor_hits(self):
@@ -608,13 +631,17 @@ class scissors():
     def __init__(self,file):
 
         self.file = file
+        self.plotter = Plotter() # to be overwritten by passed plotter
 
     def store_space(self):
 
         space = sample_space(self.file)
+        space.plotter = self.plotter
         
         self.cut_vectors = space.get_states_m()
         self.func_dicts = space.cuts
+        
+        self.plotter = space.plotter # update the plotter to collect information from the parameter space
       
         self.additional_info = space.additional_info
       
@@ -630,10 +657,10 @@ class scissors():
         self.flows = np.zeros(ncuts)
         local_vectors = np.copy(self.cut_vectors)
         self.survivor_inds = []
-
+        
         if local_vectors.size != 0:
             
-            for i in permutation:
+            for i in permutation: # do the cuts in the order specified by permutation
             
                 opt_dict = cut_options[str(i)]
                 func = opt_dict['func_name']
@@ -644,9 +671,13 @@ class scissors():
                 if opt_dict['on?'] == 1: 
                     cut_parameter = opt_dict['cut parameter']
                 
-                    if func_dict['cut if'] == '<': # only < for now, as this is what was used previously
-                                                   # add an elif below to add >, ==, etc options
+                    if func_dict['cut if'] == '<':
                         inds = np.where(local_vectors[:,n] < cut_parameter) 
+                        
+                    elif func_dict['cut if'] == 'True':
+                        inds = np.where(local_vectors[:,n] == True)   
+                        
+                    # add an elif to create a new cut condition
                         
                 else:
                     inds = [] # don't cut any events
@@ -655,135 +686,61 @@ class scissors():
                 local_vectors = np.delete(local_vectors, inds, 0)
 
                 self.flows[i] += np.shape(local_vectors)[0]
+                
                 self.survivor_inds.append(local_vectors[:,0])
 
         self.survivors = self.flows[-1]
         
         
+        
+class Plotter:
 
-class par_func():
-    ''' handle multiple files to cut and create a function that takes cut parameters and returns signal to background ratios'''
+    def __init__(self):
+        ''' Assign to attributes to collect data for plots '''
+        
+        self.min_dist_floor = []
+        self.min_dist_wall = []
+        self.sample = 'sim data' # type of sample being used to make plots
+       
+        
+    def merge_a_plotter(self, pltr):
+        
+        self.min_dist_floor.extend(pltr.min_dist_floor)
+        self.min_dist_wall.extend(pltr.min_dist_wall) # change data handling to dictionary and loop over keys here
+       
+        
+    def plot(self):
+        ''' Generate the plots you want with any of the methods! '''
+    
+        self.plot_min_exp_dist()
+    
+        
+    def plot_min_exp_dist(self):
+    
+        _Title = 'Minimum Distances to Expected Hit of Digi Hit Before Vertex {}'.format(self.sample)
+        _xlabel = 'Minimum Distance to a floor hit [cm]'
+        _zlabel = 'minimum distance to a wall hit [cm]'
+        _fname = 'min_dist_{}.png'.format(self.sample)
 
-    def __init__(self,backgrounds,signals):
+        _data_x = self.min_dist_floor
+        _data_z = self.min_dist_wall
 
-        if type(backgrounds) == list and type(signals) == list:
-            self.b_files = backgrounds
-            self.s_files = signals
-
-        else:
-            self.b_files = [backgrounds]
-            self.s_files = [signals]
-
-    def get_states(self):
-
-        self.drawers = [[],[]]
-
-        i = 0
-
-        for files in [self.s_files, self.b_files]:
-            for fl in files:
-
-                print(fl)
-
-                scissor = scissors(fl)
-
-                scissor.store_space()
-                self.drawers[i].append(scissor)
-
-            i += 1
-
-
-#    def cut(self, p0, p1, p2, p3, p4, p5):
-#    def cut(self, p0, p1, p4):
-    def cut(self, p4):
-        ''' calculate and return signal to background ratio for all handled files'''
-
-        i = 0
-        self.scores = [[],[]]
-
-        for drawer in self.drawers:
-            for scissor in drawer:
-
-#                scissor.cut(p0, p1, p2, p3, p4, p5)
-                scissor.cut(2, 1, 1, 1, -1, p4, 1)
-                self.scores[i].append(scissor.survivors / \
-				      np.shape(scissor.cut_vectors)[0])
-
-            i += 1
-
-        return np.sum(self.scores[0]) if np.sum(self.scores[1]) == 0 \
-                                      else np.sum(self.scores[0]) / np.sum(self.scores[1])
-
-
-#    def get_flows(self, p0, p1, p2, p3, p4, p5):
-#    def get_flows(self, p0, p1, p4):
-    def get_flows(self, p4):
-
-       flows = [[],[]]
-
-       i = 0
-
-       for drawer in self.drawers:
-            for scissor in drawer:
-
-#                scissor.cut(p0, p1, p2, p3, p4, p5)
-#                scissor.cut(p0, p1, 1, 1, 1, p4, 1)
-                scissor.cut(2, 1, 1, 1, -1, p4, 1)
-                flows[i].append(scissor.flows)
-
-            i += 1
-
-       return flows
-
-
-
-def optimize():
-    ''' deprecated code to optimize cut parameters '''
-
-    directory = sys.argv[1]
-    b_files = [filename for filename in glob.iglob(directory+'stat_0_*.root', recursive=True)]
-#    s_files = [filename for filename in glob.iglob(directory+'stat_2_*.root', recursive=True)]
-
-    b_files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/13_10_21/13_20_32/trees/stat_4_0.root']
-    s_files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/13_10_21/08_16_40/trees/stat_0_0.root',
-            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/13_10_21/08_16_40/trees/stat_2_0.root']
-
-    print(b_files)
-    print(s_files)
-
-    for i in range(len(b_files)):
-
-        func = par_func(b_files[i],s_files[i])
-
-        func.get_states()
-
-#       bounds = [(-0.01,5.01),(-0.01,1.01),(-0.01,1.01),(-0.01,1.01),(-1.01,1.01),(-0.01,1.01)]
-        bounds = [(-2,2)]
-
-        opts = ({"minimize_every_iter":True,
-                 "disp":False})
-
-        # need the lambda function since shgo doesn't like methods!
-        x = spo.shgo(lambda X: -func.cut(*X), bounds, iters=10, options=opts)
-
-        print("pars are ",x)
-        print("optimal is ",func.cut(*x['x']))
-
-        flows = func.get_flows(*x['x'])
-        print("signal flows are \n ",flows[0],"\nbackground flows are \n",flows[1])
-        '''
-        flows = func.get_flows(2,1,1)
-        print("optimal is ",func.cut(2,1,1))
-        print("signal flows are \n ",flows[0],"\nbackground flows are \n",flows[1])
-        '''
-
-
-
-
+        det = detector.Detector()
+        _xlims = [np.amin(_data_x),np.max(_data_x)*1.1]
+        _zlims = [np.amin(_data_z),np.max(_data_z)*1.1]
+        _xbins=100
+        _zbins=100
+        
+        visualization.root_Histogram(_data_z, rng=None, ft_rng=None, bins=0, Title=_Title+" (wall)", xaxis=_zlabel, logx=False, logy=False, fname='min_dist_wall_{}.png'.format(self.sample))
+        visualization.root_Histogram(_data_x, rng=None, ft_rng=None, bins=0, Title=_Title+" (floor)", xaxis=_xlabel, logx=False, logy=False, fname='min_dist_floor_{}.png'.format(self.sample))
+        
+        visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
+	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+        
+        
 
 def main():
-
-    
+  
     if len(sys.argv) > 1:
         # default set for job submission with files and write locations passed as arguments
         
@@ -793,7 +750,9 @@ def main():
     
         plot_cut = False
         plot_add_info = False
-        sum_flows = False # True <=> Background
+        plot_obj = False
+        
+        sum_flows = True # True <=> Background
         load = False
         save = True
         TwoD = False
@@ -801,28 +760,44 @@ def main():
         files = [sys.argv[1]]
 
     else:
-        plot_cut = False
+        # plotting booleans (to be deprecated soon!)
+        plot_cut = True
         plot_add_info = False
-        sum_flows = False # True <=> Background
-        load = False
+        plot_obj = False
+        
+        sum_flows = False # True <=> Background ***** need to adress sum_flows or load booleans in below code
+        load = True
         save = False
         TwoD = False # whether additional info is 2D
         
-        if sum_flows: # Background
-            directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
-            #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
+        if load:
+            #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
             
-            files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
-            #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
-    
-        else: # signal
-            files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
-                '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root',
-                '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root'][-1:]
-    #            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
-    
+            #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
+            #files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_*.joblib', recursive=True)]
+            
+            load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+            files = [load_files_dir+'scissor_{}.joblib'.format(sample) for sample in ['h10_0','h2_1','qq_2']]
+            
+        else:
+            if sum_flows: # Background
+                directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
+                #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
+                
+                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
+                #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
+        
+            else: # signal
+                files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root']
+        #            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
+           
+    if len(files) == 0:
+        print("I need at least 1 file to run!")
+        return
 
-    cut = 5 # which cut to plot
+    cut = 9 # which cut to plot (index in cut_options)
     info_cut = 3 # which cut we take additional info from 
     
     sum_values = []
@@ -836,11 +811,12 @@ def main():
     option = ['cut name', 'cut parameter', 'units', 'on?'] # [name, value of the cut, units of what is being cut on, whether the cut is used (1 => yes)]
     func_name = 'func_name'
 
+    # specify cuts and parameters
     cut_options = {'0' :{option[0]:'2 Tracks'                     ,option[1]:2       ,option[2]:'tracks'      ,option[3]:1 , func_name:'Tracks' },
                    '1' :{option[0]:'Vertices'                     ,option[1]:1       ,option[2]:'verts'       ,option[3]:1 , func_name:'Vertices' },
                    '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1       ,option[2]:'bool'        ,option[3]:1 , func_name:'Fiducial_vertex' },
                    '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:1       ,option[2]:'bool'        ,option[3]:1 , func_name:'Floor_hits_before_vertex' },
-                   '4' :{option[0]:'Old Expected Hits'            ,option[1]:-1      ,option[2]:'bool'        ,option[3]:0 , func_name:'Expected_hits_old' },
+                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:True    ,option[2]:'bool'        ,option[3]:0 , func_name:'Track_floor_hits' },
                    '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.02    ,option[2]:'rad'         ,option[3]:1 , func_name:'Opening_angle' },
                    '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2    ,option[2]:'sigma'       ,option[3]:0 , func_name:'Topological' },
                    '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2,option[2]:'1 / beta res',option[3]:1 , func_name:'Vertex_track_beta' },
@@ -860,12 +836,18 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    permutation = [0,1,2,3,9,11,4,5,6,7,8,10,12,13] # order in which the cuts are performed
+    permutation = [0,1,2,4,3,9,11,5,6,7,8,10,12,13] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
-
+                                                    
+    cut = np.where(np.array(permutation) == cut)[0][0] # *** find a slicker way to handle cut plotting -> encorporate into plotter?
+    
     for key in flows.keys():
         flows[key] = flows[key].take(permutation,0) # permute each entry in flows dictionary
+
+
+    if sum_flows and plot_obj:
+        pltr = Plotter() # object to collect and organize information in the cuts to be plotted
  
     total_events = 0
 
@@ -879,11 +861,20 @@ def main():
         else:
             sample = ['h10','h2','qq'][i] # particle type for each sample in files 
 
-        print(file)
-
-        scissor = scissors(file)
 
         if not load:
+            print(file)
+        
+            scissor = scissors(file)
+            
+            if plot_obj:
+                if not sum_flows:
+                    pltr = Plotter()
+                
+                pltr.sample = sample
+                
+                scissor.plotter = pltr
+
             try:
                 scissor.store_space() # read the trees and gather data for cutting from each event
             
@@ -891,6 +882,9 @@ def main():
                 print("Sorry, that tree doesn't have anything in it")
                 i += 1
                 continue
+
+            pltr = scissor.plotter # update the global plotter opject to include info from the current parameter space
+            
             
         if not load and np.shape(scissor.cut_vectors)[0] != 0:
             if len(sys.argv) > 1:
@@ -905,20 +899,36 @@ def main():
                     
                 joblib.dump(scissor,'save_files/scissor_{}_{}.joblib'.format(sample,i)) # save the scissor objects
                                                                                                        # => only need to read data once
+
+        if plot_obj and not sum_flows:
+            pltr.plot() # generate plots for this sample with plotter
             
         if load:
+            if i % 100 == 0:
+                print(i," files processed")
+            
             try:
-                scissor = joblib.load('save_files/scissor_{}_{}.joblib'.format(sample,i)) # load the scissor objects so we don't
+                scissor = joblib.load(file)
+                #scissor = joblib.load('save_files/scissor_{}_{}.joblib'.format(sample,i)) # load the scissor objects so we don't
                                                                                           # need to read and process the data again
-                                                                                          # (just need to cut with chosen parameters)
-            except FileNotFoundError:
-                print("Sorry, I couldn't find that file")
+                                                                                          # (just need to cut with chosen parameters)                                                              
+                if plot_obj:
+                    pltr.sample = sample
+                    
+                    pltr.merge_a_plotter(scissor.plotter)
+                    
+                
+            except (FileNotFoundError, EOFError, OSError) as error:
+                print("Sorry, I encountered an error with that file")
+                #print(error)
                 i += 1
                 continue
                 
         scissor.cut_dict(cut_options, permutation)
         
-        passed_events[file] = scissor.survivor_inds
+        #passed_events[file] = scissor.survivor_inds
+        passed_events[scissor.file] = scissor.survivor_inds
+        
         
         file_flows = scissor.flows.astype(int)
         file_flows = file_flows.take(permutation,0) # permute the flows to the order the cuts were performed
@@ -928,22 +938,22 @@ def main():
                 flows['Flows'] += file_flows
                              
             except:
-                flows['Flows'] += file_flows
+                flows['Flows'] = file_flows
 
             total_events += scissor.events
 
         else:
             flows[sample] = file_flows
             flows[sample+' fraction'] = np.round(file_flows / scissor.events, 4)
-
-
+            
 
         if plot_cut and len(scissor.survivor_inds) != 0:
             #------- Plot the Chosen cut
             inds = np.array(scissor.survivor_inds[cut-1],dtype=int) # surviving indices before cut
 
 #            values = 1/scissor.cut_vectors[inds,cut+1]
-            values = scissor.cut_vectors[inds,cut+1]
+            #values = scissor.cut_vectors[inds,cut+1]
+            values = scissor.cut_vectors[inds,scissor.func_dicts[cut_options[str(permutation[cut])]['func_name']]['index']]
 
             if sum_flows:
                 sum_values.extend(values)
@@ -957,7 +967,8 @@ def main():
               					bins=_bins-int(np.sqrt(len(values))),
               					Title='{} {}'.format(flows['cut name'][cut],sample),
               					xaxis=flows['units'][cut],
-              					fname='distribution_{}_{}.png'.format(cut,sample))
+              					fname='distribution_{}_{}.png'.format(cut,sample),
+						logy=True)
                 
             #-----------
                 
@@ -1009,6 +1020,10 @@ def main():
         
         print("Total Events: ",total_events)
 
+        if plot_obj:
+            pltr.plot() # generate plots for the run with plotter
+
+
         if plot_add_info:
             _xlims = [np.amin(sum_data_x),2000] #np.max(sum_data_x)*1.1]
             _zlims = [det.BoxLimits[2][0]-3000, det.BoxLimits[2][1]+3000]
@@ -1034,15 +1049,19 @@ def main():
             visualization.root_Histogram(sum_values,
           					rng=_rng,
           					bins=_bins-int(np.sqrt(len(values))),
-          					Title='{} {}'.format(cut_name[cut],sample),
-          					xaxis=cut_units[cut],
-          					fname='distribution_{}_{}.png'.format(cut,sample))
+          					Title='{} {}'.format(flows['cut name'][cut],sample),
+          					xaxis=flows['units'][cut],
+          					fname='distribution_{}_{}.png'.format(cut,sample),
+                    logy=True)
+
 
     cutflow = pd.DataFrame(flows)
 
     print(cutflow)
     
-    if len(sys.argv) == 1:
+    joblib.dump(cutflow,'flows.joblib')
+    
+    if len(sys.argv) == 1 and save:
         joblib.dump(passed_events,'passed_events.joblib')
 
 

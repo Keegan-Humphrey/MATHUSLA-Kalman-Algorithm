@@ -10,11 +10,16 @@ import numpy as np
 class Detector:
 
 	BoxLimits = [  [-5000.0, 5000.0],  [6000.0 + 547, 8917.0 + 547],  [7000.0, 17000.0]    ]
+ 
+	WallLimits = [ BoxLimits[0], [BoxLimits[1][0],BoxLimits[1][0] + 2000.0 ] ] # [x,y] [cm,cm]
 
 	LayerYLims = [ [6001., 6004.],  [6104., 6107.], [6207., 6210.], [8001., 8004.], [8104., 8107.], [8501., 8504.], [8604., 8607.], [8707., 8710.], [8810., 8813.], [8913., 8916.]  ]
 	for i, layer in enumerate(LayerYLims):
 		for j, lim in enumerate(layer):
 			LayerYLims[i][j] += 547 + 2
+
+	y_floor = LayerYLims[2][1]
+	z_wall = BoxLimits[2][0]
 
 	ModuleXLims = [ [-4950. + 1000.*n, -4050. + 1000*n] for n in range(10) ]
 	ModuleZLims = [ [7000.  + 1000.*n,  7900. + 1000*n] for n in range(10) ]

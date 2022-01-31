@@ -16,17 +16,90 @@ import joblib
 RUN OPTION
 '''
 
-option = 1
+option = 14
+
 
 print('hello viewer')
 
 def main(opt):
     ''' opt (option) determines what process to run '''
 
-    #ev = event.Event(sys.argv[1], 0)
+    ev = event.Event(sys.argv[1], 0)
+
+    if opt == 0:
+        # plot visualisations for events used in the analysis
+        
+        cut = -1
+        
+        passed_events = joblib.load('passed_events.joblib')
+        
+        event_cap = 50
+
+        if not os.path.exists('vis_plots'):
+            os.makedirs('vis_plots')
+
+        #files_handled = 0
+        
+        events_processed = 0
+        
+        for file in passed_events.keys():
+            
+            #ev = event.Event(file, 0)
+            
+            try:
+                inds = passed_events[file][cut].astype(int)
+                
+                #inds_before = set(passed_events[file][cut-1].astype(int))
+                #inds_after = set(passed_events[file][cut].astype(int))
+                
+                #inds = inds_before - inds_after # show events cut
+
+            except:
+                inds = []
+
+            if len(inds) != 0:
+                #print(files_handled)
+                print(file)
+                #print(inds)
+
+            #files_handled += 1
+            
+            #if file != '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root':
+            #    continue
+        
+            for ind in inds:
+                if events_processed > event_cap:
+                    break
+            
+                print("Events Processed: ",events_processed)
+                events_processed += 1
+    
+                print("Event number: ",ind)
+                
+    #                ev = event.Event(sys.argv[1],ind)
+                ev = event.Event(file,ind)
+                
+                #ev.writeDirectory = str(sys.argv[2])
+                ev.writeDirectory = 'vis_plots/'
+    
+                ev.used = True
+                ev.unused = True
+                ev.vert_vel = True
+                ev.kalman = True
+    
+                ev.ExtractTruthPhysics()
+                ev.Print()
+    
+                ev.RecoVertex()            
+                #ev.RecoLinVertex()
+    
+                
+            if events_processed > event_cap:
+                break
+            
 
     if opt == 1:
-        # plot vertex info
+        # plot vertex info from command line file and selection function
 
         def bool_func(tree, op=0):
             ''' event selection function '''
@@ -51,73 +124,41 @@ def main(opt):
             else:
                 return False
 
-        #ev = event.Event(sys.argv[1], 0)
-
-        #inds = ev.find_with_bool(bool_func, Op=0)
-        #inds = inds[:50]
-
-        #inds = np.arange(50)
         
-        cut = 5
+        file = sys.argv[1]
+    
+        ev = event.Event(file, 0)
+
+        inds = ev.find_with_bool(bool_func, Op=0)
+        inds = inds[:50]
+
+        #inds = np.arange(11)
         
-        passed_events = joblib.load('passed_events.joblib')
         
         if not os.path.exists('vis_plots'):
             os.makedirs('vis_plots')
-
-        events = 0
-        event_cap = 20
-
-        for file in passed_events.keys():
+       
+        for ind in inds:
             
-            #ev = event.Event(file, 0)
+            print("Event number: ",ind)
             
-            try:
-                inds = passed_events[file][cut].astype(int)
-                
-                #inds_before = set(passed_events[file][cut-1].astype(int))
-                #inds_after = set(passed_events[file][cut].astype(int))
-                
-                #inds = inds_before - inds_after # show events cut
-
-            except:
-                inds = []
-
-            if len(inds) != 0:
-                print(file)
-                #print(inds)
-
-            #if file != '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root':
-            #    continue
-        
-
-            for ind in inds:
-                if events > event_cap:
-                    break
+#            ev = event.Event(sys.argv[1],ind)
+            ev = event.Event(file,ind)
             
-                events += 1
-    
-                print("Event number: ",ind)
-                
-#                ev = event.Event(sys.argv[1],ind)
-                ev = event.Event(file,ind)
-                
-                #ev.writeDirectory = str(sys.argv[2])
-                ev.writeDirectory = 'vis_plots/'
-    
-                ev.used = True
-                ev.unused = True
-                ev.vert_vel = True
-                ev.kalman = True
-    
-                ev.ExtractTruthPhysics()
-                ev.Print()
-    
-                ev.RecoVertex()            
-                #ev.RecoLinVertex()
+            #ev.writeDirectory = str(sys.argv[2])
+            ev.writeDirectory = 'vis_plots/'
 
-            if events > event_cap:
-                break
+            ev.used = True
+            ev.unused = True
+            ev.vert_vel = True
+            ev.kalman = True
+
+            ev.ExtractTruthPhysics()
+            ev.Print()
+
+            ev.RecoVertex()            
+            #ev.RecoLinVertex()
+
 
     elif opt == 2:
         ''' find number of truth tracks per event '''
@@ -173,6 +214,9 @@ def main(opt):
         hmu = analyzer.H_mumu_Analyzer('/home/keeganh/scratch/stat_files//27_08_21/09_59_36/trees/')
 
         hmu.Plot()
+
+    elif opt == 14:
+        ev.Compare_sim_and_digi()
 
 
 if __name__ == "__main__":
