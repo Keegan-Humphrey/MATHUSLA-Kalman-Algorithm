@@ -172,7 +172,7 @@ public:
  		OutputTree->Branch("Hit_particlePx", "std::vector<double>", sim_hit_px);
  		OutputTree->Branch("Hit_particlePy", "std::vector<double>", sim_hit_py);
 		OutputTree->Branch("Hit_particlePz", "std::vector<double>", sim_hit_pz);
-		OutputTree->Branch("Hit_weight", "std::vector<double>", sim_hit_weight);
+//		OutputTree->Branch("Hit_weight", "std::vector<double>", sim_hit_weight);
 
       OutputTree->Branch("Digi_numHits", &Digi_numHits);
         OutputTree->Branch("Digi_time", &digi_hit_t);
@@ -185,7 +185,7 @@ public:
         OutputTree->Branch("Digi_pz", &digi_hit_pz);
         OutputTree->Branch("Digi_particle_energy", &digi_particle_energy);
         OutputTree->Branch("Digi_pdg_id", &digi_pdg);
-        OutputTree->Branch("Digi_hitIndices", &digi_hit_indices);
+//        OutputTree->Branch("Digi_hitIndices", &digi_hit_indices);
 
  	//	OutputTree->Branch("NumGenParticles", &sim_NumGenParticles);
  		OutputTree->Branch("GenParticle_index", "std::vector<double>", sim_GenParticle_index);
