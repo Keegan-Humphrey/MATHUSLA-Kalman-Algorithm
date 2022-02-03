@@ -36,15 +36,21 @@ class sample_space():
         self.det = detector.Detector()
         self.y_floor = self.det.y_floor
         self.z_wall = self.det.z_wall
+        
+        self.IP_to_wall_slope = (self.z_wall / self.det.WallLimits[1][1]) # z / y to top of wall from IP
+        
 
     def inside_box(self, x, y, z):
 
         box_lims = self.det.BoxLimits
         #y_floor = self.det.LayerYLims[2][1]
         
+        
         if box_lims[0][0] < x and box_lims[0][1] > x:
            if self.y_floor < y and box_lims[1][1] > y: # only accept it if above the floor layers
-                if box_lims[2][0] < z and box_lims[2][1] > z:
+                #if box_lims[2][0] < z and box_lims[2][1] > z:
+                if self.IP_to_wall_slope * y  < z and box_lims[2][1] > z: # only accept if there's wall
+                                                                         # between vertex and IP
                     return True
 
         return False
@@ -131,10 +137,12 @@ class sample_space():
             self.Vertices()
             self.n += 1
             
-            #------------- Optional Cuts
+            #------------- cut if the vertex is outside the box
             
             self.Fiducial_vertex()
             self.n += 1
+            
+            #------------- Optional Cuts
             
             self.Floor_hits_before_vertex()
             self.n += 1
@@ -295,12 +303,8 @@ class sample_space():
                             global_wall_d.append(np.amin(dist_walls))
                             global_floor_t.append(np.amin(dt_floors))
                             global_wall_t.append(np.amin(dt_walls))
-                        
 
-                    if min_dist < 2000: # [cm] Make sure closest hit to the track is within 3 m to veto
-                                                 # ******** need to find a slick way to let this value be cut on independently
-                            
-		                            # *** look at hit time as well as distance -> pass to plotter
+                    if min_dist < 1500: # [cm] Make sure closest hit to the track is within ____ m to veto
                             vertexveto = True
                         
 
@@ -324,34 +328,7 @@ class sample_space():
     def Track_floor_hits(self):
             self.cuts['Track_floor_hits'] = {'index':self.n, 'cut if':'True'}
             
-            #---------- Reject vertices with digi hits in the floor (by vertex)
-            # tracks are escaping; there is a track in the event that has floor hits 
-            # there is a delta getting sent off and forming a vertex whose tracks point away from
-            # the floor hits, so the event survives. No good! Need to be more aggressive; any track floor
-            # hits we reject the event!
-            '''
-            track_floor_veto = True # if we make it through the loop unscathed, veto the event
-            
-            for vert in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
-                vertex_veto = False    
-                
-                for trk in self.vertex_trackIndices[vert]: # loop over tracks in the vertex 
-                    trk = int(trk)
-                    if self.tree.Track_k_m_y0[trk] <= self.y_floor: # check if the lowest hit is in the floor
-                        vertex_veto = True
-                        break
-                        
-                    elif self.tree.Track_k_m_z0[trk] <= self.z_wall: # check if the lowest hit is in the wall
-                        vertex_veto = True
-                        break
-                 
-                if not vertex_veto: # if there is a vertex with without floor / wall hits, don't veto the event
-                    track_floor_veto = False
-                    break
-            
-            self.current_vector[self.n] = track_floor_veto
-            ''' 
-            #--------- Reject events with digi hits in the floor (by event)
+            #--------- Reject events with track digi hits in the floor (by event)
             
             track_floor_veto = False
             
@@ -503,6 +480,12 @@ class sample_space():
              
             #------------- Expected Hits Cut
             # if there are no hits in the floor / wall, could it be that the particle avoided them?
+            #
+            # if we have vertices made but don't find any
+            # hits that would let us reject the event in
+            # floor_wall_hits_before_vertex, and it's a W background,
+            # we expect incorrect track reconstruction velocity to be the cause
+            # ie. tracks will be close to the edge of wall / floor
 
             centre_floor = [(self.det.BoxLimits[0][0] + self.det.BoxLimits[0][1]) / 2, (self.det.BoxLimits[2][0] + self.det.BoxLimits[2][1]) / 2] # [x,z] [cm,cm]
             centre_wall = [centre_floor[0], 6000.0 + 2000.0 / 2.0] # [x,y] [cm,cm] see globals.hh for explanation on y
@@ -525,11 +508,7 @@ class sample_space():
             max_centre_dist = -1e6
             second_max_centre_dist = -1e6 # large and negative arbitrary value to start us off
                     
-            if len(self.vertex_trackIndices) > 0 and not (hits_in_floor or hits_in_wall): # if we have vertices made but don't find any 
-                                                                                          # hits that would let us reject the event in 
-                                                                                          # the hits before vertex cut, and it's background,
-                                                                                          # we expect incorrect track reconstruction to be the cause
-                                                                                          # ie. tracks will be close to the edge of wall / floor
+            if len(self.vertex_trackIndices) > 0 and not (hits_in_floor or hits_in_wall):
                 for num in range(len(self.tree.Vertex_k_m_x)):
                     for ind in self.vertex_trackIndices[num]: # Determine where the tracks in the vertex are expected to hit the wall and floor
                         ind = int(ind)
@@ -556,37 +535,45 @@ class sample_space():
                         except ZeroDivisionError:
                             continue
                         
-                        edge_dist_x_floor = (self.det.BoxLimits[0][1] - self.det.BoxLimits[0][0]) / 2 - np.abs(expected_x_floor - centre_floor[0]) # distance from expected hits
-                        edge_dist_z_floor = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - np.abs(expected_z_floor - centre_floor[1]) # to edge of floor for the vertex
-                        edge_dist_x_wall = (self.det.WallLimits[0][1] - self.det.WallLimits[0][0]) / 2 - np.abs(expected_x_wall - centre_wall[0]) # distance from expected hits
-                        edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - np.abs(expected_y_wall - centre_wall[1]) # to edge of wall for the vertex
+                        # calculate the distance from the edge of sensitive layers (floor or wall)
+                        # modded out so < 0 => outside the detector in each direction
                         
+                        if expected_y_wall >= self.y_floor: # doesn't go through the floor, we prefer this one!
+                            edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - np.abs(expected_y_wall - centre_wall[1]) # to edge of wall for the vertex
+                            edge_dist_x_wall = (self.det.WallLimits[0][1] - self.det.WallLimits[0][0]) / 2 - np.abs(expected_x_wall - centre_wall[0]) # distance from expected hits
                         
-                        self.plotter.data_dict['Exp Pos x wall'].append(edge_dist_x_wall)
-                        self.plotter.data_dict['Exp Pos y wall'].append(edge_dist_y_wall)
-                        self.plotter.data_dict['Exp Pos x floor'].append(edge_dist_x_floor)
-                        self.plotter.data_dict['Exp Pos z floor'].append(edge_dist_z_floor)
-                        ''''''
-                        # exp floor max will be 1000 -> so anything coming in through the wall will be cut no? 
-                        # is cutting in this way the right way to do it?
+                            self.plotter.data_dict['Exp Pos x wall'].append(edge_dist_x_wall)
+                            self.plotter.data_dict['Exp Pos y wall'].append(edge_dist_y_wall)
                         
-                        max_dist = np.max([np.amin([edge_dist_x_wall, edge_dist_y_wall]),np.amin([edge_dist_x_floor, edge_dist_z_floor])]) # take the second closest track to the centre of sensitive layer in any direction
-                                                                                                                                           # if it passes cut, then there are two tracks in the vertex that pass the cut
-                                                
-                        if max_dist > max_centre_dist:
+                            min_dist = np.amin([edge_dist_x_wall, edge_dist_y_wall])
+                        
+                        else: # doesn't doesn't go through the wall, we prefer this one!
+                            edge_dist_z_floor = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - np.abs(expected_z_floor - centre_floor[1]) # to edge of floor for the vertex
+                            edge_dist_x_floor = (self.det.BoxLimits[0][1] - self.det.BoxLimits[0][0]) / 2 - np.abs(expected_x_floor - centre_floor[0]) # distance from expected hits
+                        
+                            self.plotter.data_dict['Exp Pos x floor'].append(edge_dist_x_floor)
+                            self.plotter.data_dict['Exp Pos z floor'].append(edge_dist_z_floor)
+                        
+                            min_dist = np.amin([edge_dist_z_floor, edge_dist_x_floor])
+                        
+                        # if the distance from the edge is larger (closer to det centre) than other tracks found,
+                        # keep track of it 
+                        if min_dist > max_centre_dist:
                             second_max_centre_dist = max_centre_dist
-                            max_centre_dist = max_dist
+                            max_centre_dist = min_dist
                             
-                        elif max_dist > second_max_centre_dist:
-                            second_max_centre_dist = max_dist
-                        
+                        # keep track of second closest to the centre; we will cut on this to make sure 2 tracks pass
+                        elif min_dist > second_max_centre_dist:
+                            second_max_centre_dist = min_dist
                 
-                self.current_vector[self.n] = max_centre_dist                                         
+                self.current_vector[self.n] = second_max_centre_dist                                        
                 
                  
             if (hits_in_floor or hits_in_wall):
                 self.current_vector[self.n] = 5000.0 # [cm] if there's hits in the wall or floor, assign largest possible value (at detector centre) so it doesn't get cut
             
+                  
+                  
                   
     def No_floor_hits(self):
         self.cuts['No_floor_hits'] = {'index':self.n, 'cut if':'<'}
@@ -887,11 +874,11 @@ def main():
         # plotting booleans (to be deprecated soon!)
         plot_cut = False
         plot_add_info = False
-        plot_obj = True
+        plot_obj = False
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
-        load = True
-        save = False
+        load = False
+        save = True
         TwoD = False # whether additional info is 2D
         
         if load:
@@ -899,7 +886,7 @@ def main():
             #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
             load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
             
-            files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
+            files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)][:50]
             #files = [load_files_dir+'scissor_{}.joblib'.format(sample) for sample in ['h10_0','h2_1','qq_2']]
             
         else:
@@ -944,7 +931,7 @@ def main():
                    '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2    ,option[2]:'sigma'       ,option[3]:0 , func_name:'Topological' },
                    '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2,option[2]:'1 / beta res',option[3]:1 , func_name:'Vertex_track_beta' },
                    '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1 ,option[2]:'1 / hits'    ,option[3]:0 , func_name:'Track_hit_diffs' },
-                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:1000    ,option[2]:'cm'          ,option[3]:1 , func_name:'Exp_hits' },
+                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600     ,option[2]:'cm'          ,option[3]:1 , func_name:'Exp_hits' },
                    '10':{option[0]:'No Floor Hits'                ,option[1]:1       ,option[2]:'bool'        ,option[3]:0 , func_name:'No_floor_hits' },
                    '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6      ,option[2]:'-missed hits',option[3]:1 , func_name:'Missing_hit_sum' },
                    '12':{option[0]:'Chi sum cut 1'                ,option[1]:-20     ,option[2]:'-chi ndof'   ,option[3]:1 , func_name:'Chi_ndof_cut' },
@@ -1093,8 +1080,8 @@ def main():
 
             if not sum_flows and len(values) != 0:
                 _bins = 100
-                _rng = (np.amin(values),np.max(values)*1.1)
-
+                #_rng = (np.amin(values),np.max(values)*1.1)
+                _rng = (-3000,5000)
                 visualization.root_Histogram(values,
               					rng=_rng,
               					bins=_bins-int(np.sqrt(len(values))),
