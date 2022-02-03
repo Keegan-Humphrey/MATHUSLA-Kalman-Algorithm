@@ -29,16 +29,19 @@ class sample_space():
     def __init__(self,file):
 
         self.file = file
-        self.det = detector.Detector()
+        
         self.cuts = dict() # information about how to use the cuts
-        self.plotter = Plotter() # to be overwritten by passed plotter
+        self.plotter = Plotter()
+        
+        self.det = detector.Detector()
+        self.y_floor = self.det.y_floor
+        self.z_wall = self.det.z_wall
 
     def inside_box(self, x, y, z):
 
         box_lims = self.det.BoxLimits
         #y_floor = self.det.LayerYLims[2][1]
-        self.y_floor = self.det.y_floor
-
+        
         if box_lims[0][0] < x and box_lims[0][1] > x:
            if self.y_floor < y and box_lims[1][1] > y: # only accept it if above the floor layers
                 if box_lims[2][0] < z and box_lims[2][1] > z:
@@ -83,13 +86,13 @@ class sample_space():
         self.tree.SetBranchStatus("Vertex_k_m_trackIndices", 1)
         self.tree.SetBranchStatus("NumVertices_k_m", 1)
 
-        self.tree.SetBranchStatus("Track_k_m_x0", 1)
         self.tree.SetBranchStatus("Track_k_m_velX", 1)
         self.tree.SetBranchStatus("Track_k_m_velY", 1)
         self.tree.SetBranchStatus("Track_k_m_velZ", 1)
         self.tree.SetBranchStatus("Track_k_m_hitIndices", 1)
         self.tree.SetBranchStatus("Track_k_m_expected_hit_layer", 1)
 
+        self.tree.SetBranchStatus("Track_k_m_t0", 1)
         self.tree.SetBranchStatus("Track_k_m_x0", 1)
         self.tree.SetBranchStatus("Track_k_m_y0", 1)
         self.tree.SetBranchStatus("Track_k_m_z0", 1)
@@ -213,6 +216,9 @@ class sample_space():
 
             min_by_verts = []
 
+            global_floor_d, global_wall_d = [], []
+            global_floor_t, global_wall_t = [], []
+
             floor_wall_hits = []
 
             for hit in range(len(self.tree.Digi_y)): # loop over the hits
@@ -247,38 +253,53 @@ class sample_space():
                         x = self.tree.Track_k_m_x0[ind]
                         y = self.tree.Track_k_m_y0[ind]
                         z = self.tree.Track_k_m_z0[ind]
+                        t = self.tree.Track_k_m_t0[ind]
     
                         vx = self.tree.Track_k_m_velX[ind]
                         vy = self.tree.Track_k_m_velY[ind]
                         vz = self.tree.Track_k_m_velZ[ind]
                         
                         try:
-                            del_t = (self.y_floor - y) / vy
+                            del_t_floor = (self.y_floor - y) / vy
                             
-                            #expected_x_floor.append(x + vx * del_t)
-                            #expected_z_floor.append(z + vz * del_t)
+                            expected_x_floor = x + vx * del_t_floor
+                            expected_z_floor = z + vz * del_t_floor
                             
-                            expected_x_floor = x + vx * del_t
-                            expected_z_floor = z + vz * del_t
+                            del_t_wall = (self.det.z_wall - z) / vz
                             
-                            del_t = (self.det.z_wall - z) / vz
-                            
-                            expected_x_wall = x + vx * del_t
-                            expected_y_wall = y + vy * del_t
+                            expected_x_wall = x + vx * del_t_wall
+                            expected_y_wall = y + vy * del_t_wall
                         
                         except ZeroDivisionError:
                             continue
 
+                        dist_floors, dist_walls = [], []
+                        dt_floors, dt_walls = [], []
+                        
                         for hit in floor_wall_hits_before_vertex:
-                            min_dist_floor = np.amin(np.sqrt((expected_x_floor - self.tree.Digi_x[hit])**2 + (expected_z_floor - self.tree.Digi_z[hit])**2)) # min dist to a track for the hit in plane of the floor
-                            min_dist_wall = np.amin(np.sqrt((expected_x_wall - self.tree.Digi_x[hit])**2 + (expected_y_wall - self.tree.Digi_y[hit])**2)) # min dist to a track for the hit in plane of the wall
+                            dist_floor = np.sqrt((expected_x_floor - self.tree.Digi_x[hit])**2 + (expected_z_floor - self.tree.Digi_z[hit])**2) # min dist to a track for the hit in plane of the floor
+                            dist_wall = np.sqrt((expected_x_wall - self.tree.Digi_x[hit])**2 + (expected_y_wall - self.tree.Digi_y[hit])**2) # min dist to a track for the hit in plane of the wall
                             
-                            min_dist = np.amin([min_dist, min_dist_floor, min_dist_wall])
+                            dt_floor = abs(self.tree.Digi_time[hit] - (t + del_t_floor))
+                            dt_wall = abs(self.tree.Digi_time[hit] - (t + del_t_wall))
+                            
+                            dist_floors.append(dist_floor)
+                            dist_walls.append(dist_wall)
+                            dt_floors.append(dt_floor)
+                            dt_walls.append(dt_wall)
+                            
+                            min_dist = np.amin([min_dist, dist_floor, dist_wall])
 
+                        if len(floor_wall_hits_before_vertex) != 0:
+                            global_floor_d.append(np.amin(dist_floors))
+                            global_wall_d.append(np.amin(dist_walls))
+                            global_floor_t.append(np.amin(dt_floors))
+                            global_wall_t.append(np.amin(dt_walls))
+                        
 
-                    if min_dist < 1500: # [cm] Make sure closest hit to the track is within 3 m to veto
+                    if min_dist < 2000: # [cm] Make sure closest hit to the track is within 3 m to veto
                                                  # ******** need to find a slick way to let this value be cut on independently
-
+                            
 		                            # *** look at hit time as well as distance -> pass to plotter
                             vertexveto = True
                         
@@ -289,6 +310,12 @@ class sample_space():
             if len(self.tree.Vertex_k_m_x) != 0:
                 if vertexveto:
                     floorveto = True
+                    
+                else:
+                    self.plotter.data_dict['dist floor'].extend(global_floor_d)
+                    self.plotter.data_dict['dist wall'].extend(global_wall_d)
+                    self.plotter.data_dict['dt floor'].extend(global_floor_t)
+                    self.plotter.data_dict['dt wall'].extend(global_wall_t)
 
             self.current_vector[self.n] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] (< 1 is true)
 
@@ -297,8 +324,12 @@ class sample_space():
     def Track_floor_hits(self):
             self.cuts['Track_floor_hits'] = {'index':self.n, 'cut if':'True'}
             
-            #---------- Reject tracks with digi hits in the floor
-            
+            #---------- Reject vertices with digi hits in the floor (by vertex)
+            # tracks are escaping; there is a track in the event that has floor hits 
+            # there is a delta getting sent off and forming a vertex whose tracks point away from
+            # the floor hits, so the event survives. No good! Need to be more aggressive; any track floor
+            # hits we reject the event!
+            '''
             track_floor_veto = True # if we make it through the loop unscathed, veto the event
             
             for vert in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
@@ -310,11 +341,31 @@ class sample_space():
                         vertex_veto = True
                         break
                         
-                        #***** add wall veto as well
-                
-                if not vertex_veto: # if there is a vertex with without floor hits, don't veto the event
+                    elif self.tree.Track_k_m_z0[trk] <= self.z_wall: # check if the lowest hit is in the wall
+                        vertex_veto = True
+                        break
+                 
+                if not vertex_veto: # if there is a vertex with without floor / wall hits, don't veto the event
                     track_floor_veto = False
                     break
+            
+            self.current_vector[self.n] = track_floor_veto
+            ''' 
+            #--------- Reject events with digi hits in the floor (by event)
+            
+            track_floor_veto = False
+            
+            for trk in range(len(self.tree.Track_k_m_y0)): # loop over tracks in the vertex 
+                trk = int(trk)
+                
+                for hit in self.fullhitindices[trk]:
+                    if self.tree.Digi_y[hit] <= self.y_floor: # check if the lowest hit is in the floor
+                        track_floor_veto = True
+                        break
+                        
+                    elif self.tree.Digi_z[hit] <= self.z_wall: # check if the lowest hit is in the wall
+                        track_floor_veto = True
+                        break
             
             self.current_vector[self.n] = track_floor_veto
 
@@ -458,19 +509,7 @@ class sample_space():
 
             floor_ys = [(self.det.LayerYLims[i][0] + self.det.LayerYLims[i][1]) / 2 for i in range(3)]
             floor_y = floor_ys[2]
-  
-            '''
-            hits_in_floor = False # see if there are any hits in the floor *** need to change this to hits nearby the track
-
-            for i in range(3):
-                if np.any(np.array(self.tree.Digi_y) == np.sum(self.det.LayerYLims[i]) / 2):
-                    hits_in_floor = True
-                    
-            hits_in_wall = False # see if there are any hits in the wall
-            
-            if np.any(np.array(self.tree.Digi_z) <= self.det.z_wall):
-                hits_in_wall = True
-            '''       
+   
             hits_in_wall = False # see if there are any hits in the wall
             hits_in_floor = False # see if there are any hits in the floor *** need to change this to hits nearby the track
 
@@ -522,8 +561,17 @@ class sample_space():
                         edge_dist_x_wall = (self.det.WallLimits[0][1] - self.det.WallLimits[0][0]) / 2 - np.abs(expected_x_wall - centre_wall[0]) # distance from expected hits
                         edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - np.abs(expected_y_wall - centre_wall[1]) # to edge of wall for the vertex
                         
-                        max_dist = np.max([edge_dist_x_wall, edge_dist_y_wall,edge_dist_x_floor, edge_dist_z_floor]) # take the second closest track to the centre of sensitive layer in any direction
-                                                                                                                     # if it passes cut, then there are two tracks in the vertex that pass the cut
+                        
+                        self.plotter.data_dict['Exp Pos x wall'].append(edge_dist_x_wall)
+                        self.plotter.data_dict['Exp Pos y wall'].append(edge_dist_y_wall)
+                        self.plotter.data_dict['Exp Pos x floor'].append(edge_dist_x_floor)
+                        self.plotter.data_dict['Exp Pos z floor'].append(edge_dist_z_floor)
+                        ''''''
+                        # exp floor max will be 1000 -> so anything coming in through the wall will be cut no? 
+                        # is cutting in this way the right way to do it?
+                        
+                        max_dist = np.max([np.amin([edge_dist_x_wall, edge_dist_y_wall]),np.amin([edge_dist_x_floor, edge_dist_z_floor])]) # take the second closest track to the centre of sensitive layer in any direction
+                                                                                                                                           # if it passes cut, then there are two tracks in the vertex that pass the cut
                                                 
                         if max_dist > max_centre_dist:
                             second_max_centre_dist = max_centre_dist
@@ -540,7 +588,6 @@ class sample_space():
                 self.current_vector[self.n] = 5000.0 # [cm] if there's hits in the wall or floor, assign largest possible value (at detector centre) so it doesn't get cut
             
                   
-
     def No_floor_hits(self):
         self.cuts['No_floor_hits'] = {'index':self.n, 'cut if':'<'}
              
@@ -563,6 +610,8 @@ class sample_space():
         ''' Veto the event if there are too many missed layers for the tracks making up the vertex => likely fake'''
         
         missed_hits_event = []
+        
+        # *** add condition on number of tracks / vertices to increase quark efficiency
         
         for vert in range(len(self.vertex_trackIndices)): # vertex
             vert = int(vert)
@@ -648,7 +697,8 @@ class scissors():
         self.cut_vectors = space.get_states_m()
         self.func_dicts = space.cuts
         
-        self.plotter = space.plotter # update the plotter to collect information from the parameter space
+        #self.plotter = space.plotter # update the plotter to collect information from the parameter space
+        self.plotter.merge_a_plotter(space.plotter) # merge the plotter in space with current plotter to gather data
       
         self.additional_info = space.additional_info
       
@@ -705,22 +755,35 @@ class Plotter:
     def __init__(self):
         ''' Assign to attributes to collect data for plots '''
         
-        self.min_dist_floor = []
-        self.min_dist_wall = []
+        self.data_dict = {'Exp Pos x wall':[], 'Exp Pos y wall':[],
+                          'Exp Pos x floor':[], 'Exp Pos z floor':[],
+                          'dt wall':[], 'dt floor':[],
+                          'dist wall':[], 'dist floor':[]}
+        
         self.sample = 'sim data' # type of sample being used to make plots
        
-        
+    
     def merge_a_plotter(self, pltr):
-        
-        self.min_dist_floor.extend(pltr.min_dist_floor)
-        self.min_dist_wall.extend(pltr.min_dist_wall) # change data handling to dictionary and loop over keys here
-       
+       try:
+           for key in pltr.data_dict.keys():
+               self.data_dict[key].extend(pltr.data_dict[key])
+            
+       except AttributeError: # empty
+           print('I dont think that object has a plotter in it')
+           return
+           
         
     def plot(self):
-        ''' Generate the plots you want with any of the methods! '''
+        ''' Generate the plots you want with any of the methods! Comment out method calls to ignore the plot '''
     
-        self.plot_min_exp_dist()
-    
+        #self.plot_min_exp_dist()
+        
+        #self.expected_hit_positions('wall')
+        #self.expected_hit_positions('floor')
+        
+        self.expected_time_space('wall')
+        self.expected_time_space('floor')
+        
         
     def plot_min_exp_dist(self):
     
@@ -729,12 +792,13 @@ class Plotter:
         _zlabel = 'minimum distance to a wall hit [cm]'
         _fname = 'min_dist_{}.png'.format(self.sample)
 
-        _data_x = self.min_dist_floor
-        _data_z = self.min_dist_wall
+        _data_x = self.data_dict['dist floor']
+        _data_z = self.data_dict['dist wall']
 
         det = detector.Detector()
         _xlims = [np.amin(_data_x),np.max(_data_x)*1.1]
         _zlims = [np.amin(_data_z),np.max(_data_z)*1.1]
+        
         _xbins=100
         _zbins=100
         
@@ -743,8 +807,61 @@ class Plotter:
         
         visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
 	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+                                                    
         
+    def expected_time_space(self, plane):    
         
+        _Title = 'Distance to hit vs time to hit in {} ({})'.format(plane, self.sample)
+        _xlabel = 'dist [cm]'
+        _zlabel = 'time [ns]'
+        _fname = 'dist_to_hit_{}_{}.png'.format(self.sample, plane)
+
+        if plane == 'wall':
+            _data_x = self.data_dict['dist wall']
+            _data_z = self.data_dict['dt wall']
+            
+        if plane == 'floor':
+            _data_x = self.data_dict['dist floor']
+            _data_z = self.data_dict['dt floor']
+            
+        _xlims = [0,2000]
+        _zlims = [0,300]
+        
+        _xbins=100
+        _zbins=100
+        
+        visualization.root_Histogram(_data_z, rng=_xlims, ft_rng=None, bins=0, Title='Time to hit in {} ({})'.format(plane, self.sample), 
+                        xaxis=_zlabel, logx=False, logy=True, fname='time_to_hit_{}_{}.png'.format(self.sample,plane))
+        
+        visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
+	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+                   
+                              
+    def expected_hit_positions(self, plane):
+        
+        _Title = 'Expected Hit Positions in the {} ({})'.format(plane, self.sample)
+        _xlabel = 'x expected positions [cm]'
+        _zlabel = '{} expected positions [cm]'.format(['y','z'][plane=='floor'])
+        _fname = 'before_dist_{}_{}.png'.format(self.sample, plane)
+        
+        if plane == 'wall':
+            _data_x = self.data_dict['Exp Pos x wall']
+            _data_z = self.data_dict['Exp Pos y wall']
+            
+        if plane == 'floor':
+            _data_x = self.data_dict['Exp Pos x floor']
+            _data_z = self.data_dict['Exp Pos z floor']
+            
+        _xlims = [-3000, 5000]
+        _zlims = [-3000, 5000]
+        _xbins=100
+        _zbins=100
+            
+        visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
+    	        	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+                                                          
+     # **** need to figure out a good way to look at particular surviving events for these    
+            
 
 def main():
   
@@ -770,20 +887,19 @@ def main():
         # plotting booleans (to be deprecated soon!)
         plot_cut = False
         plot_add_info = False
-        plot_obj = False
+        plot_obj = True
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
-        load = False
+        load = True
         save = False
         TwoD = False # whether additional info is 2D
         
         if load:
             #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
+            #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
+            load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
             
-            load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
-            files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_*.joblib', recursive=True)]
-            
-            #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+            files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
             #files = [load_files_dir+'scissor_{}.joblib'.format(sample) for sample in ['h10_0','h2_1','qq_2']]
             
         else:
@@ -796,8 +912,8 @@ def main():
         
             else: # signal
                 files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
-                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root']
-                    #'/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root']
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root']
         #            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
            
     if len(files) == 0:
@@ -880,7 +996,7 @@ def main():
                 
                 pltr.sample = sample
                 
-                scissor.plotter = pltr
+                #scissor.plotter = pltr
 
             try:
                 scissor.store_space() # read the trees and gather data for cutting from each event
@@ -890,8 +1006,9 @@ def main():
                 i += 1
                 continue
 
-            pltr = scissor.plotter # update the global plotter opject to include info from the current parameter space
-            
+            if plot_obj:
+                #pltr = scissor.plotter # update the global plotter opject to include info from the current parameter space
+                pltr.merge_a_plotter(scissor.plotter) # collect data from scissor plotter
             
         if not load and np.shape(scissor.cut_vectors)[0] != 0:
             if len(sys.argv) > 1:
@@ -919,11 +1036,6 @@ def main():
                 #scissor = joblib.load('save_files/scissor_{}_{}.joblib'.format(sample,i)) # load the scissor objects so we don't
                                                                                           # need to read and process the data again
                                                                                           # (just need to cut with chosen parameters)                                                              
-                if plot_obj:
-                    pltr.sample = sample
-                    
-                    pltr.merge_a_plotter(scissor.plotter)
-                    
                 
             except (FileNotFoundError, EOFError, OSError) as error:
                 print("Sorry, I encountered an error with that file")
@@ -934,9 +1046,23 @@ def main():
         scissor.cut_dict(cut_options, permutation)
         
         #passed_events[file] = scissor.survivor_inds
-        passed_events[scissor.file] = scissor.survivor_inds
+        passed_events[scissor.file] = scissor.survivor_inds # in order of permutation (indexed as in flows)
         
-        
+        if load:
+            if plot_obj:
+                pltr.sample = sample
+                '''
+                try:
+                    for key in scissor.plotter.data_dict:
+                        scissor.plotter.data_dict[key] = np.take(scissor.plotter.data_dict[key], 
+                                                              np.array(scissor.survivor_inds[3-1],dtype=int)) # keeping only survivors before vertex timing cut
+                
+                except AttributeError: # file wasn't cut on
+                    i += 1
+                    continue
+                '''
+                pltr.merge_a_plotter(scissor.plotter)
+    
         file_flows = scissor.flows.astype(int)
         file_flows = file_flows.take(permutation,0) # permute the flows to the order the cuts were performed
         

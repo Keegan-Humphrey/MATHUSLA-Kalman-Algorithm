@@ -19,7 +19,7 @@ class Detector:
 			LayerYLims[i][j] += 547 + 2
 
 	y_floor = LayerYLims[2][1]
-	z_wall = BoxLimits[2][0]
+	z_wall = BoxLimits[2][0] + 3 # [cm] add 3 cm to account for wall width
 
 	ModuleXLims = [ [-4950. + 1000.*n, -4050. + 1000*n] for n in range(10) ]
 	ModuleZLims = [ [7000.  + 1000.*n,  7900. + 1000*n] for n in range(10) ]

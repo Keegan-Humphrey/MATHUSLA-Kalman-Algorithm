@@ -16,7 +16,7 @@ import joblib
 RUN OPTION
 '''
 
-option = 14
+option = 0
 
 
 print('hello viewer')
@@ -24,12 +24,17 @@ print('hello viewer')
 def main(opt):
     ''' opt (option) determines what process to run '''
 
-    ev = event.Event(sys.argv[1], 0)
+    try:
+        ev = event.Event(sys.argv[1], 0)
+
+    except IndexError: # no argument passed (some opts don't use one)
+        pass
 
     if opt == 0:
         # plot visualisations for events used in the analysis
+        # to be put in ./vis_plots/
         
-        cut = -1
+        cut = -3 # -1 to look at survivors (indexed by flows)
         
         passed_events = joblib.load('passed_events.joblib')
         
