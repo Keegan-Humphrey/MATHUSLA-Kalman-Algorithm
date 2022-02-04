@@ -38,7 +38,7 @@ def main(opt):
         
         passed_events = joblib.load('passed_events.joblib')
         
-        event_cap = 50
+        event_cap = 30
 
         if not os.path.exists('vis_plots'):
             os.makedirs('vis_plots')

@@ -310,7 +310,7 @@ def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis
 
 
 def root_2D_Histogram(data_x, data_z, xlims, zlims, Title='Plot', xbins=100, zbins=100, xlabel='x', zlabel='z', fname='plot.png'):
-
+    
     if len(data_x) != len(data_z):
         return print("Length of data must be equal")
 

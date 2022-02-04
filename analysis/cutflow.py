@@ -49,8 +49,9 @@ class sample_space():
         if box_lims[0][0] < x and box_lims[0][1] > x:
            if self.y_floor < y and box_lims[1][1] > y: # only accept it if above the floor layers
                 #if box_lims[2][0] < z and box_lims[2][1] > z:
-                if self.IP_to_wall_slope * y  < z and box_lims[2][1] > z: # only accept if there's wall
-                                                                         # between vertex and IP
+                if self.IP_to_wall_slope * y + 100 < z and box_lims[2][1] > z: # only accept if there's wall
+                                                                               # between vertex and IP 
+                                                                               # + 100 cm for vertex reco error
                     return True
 
         return False
@@ -215,7 +216,13 @@ class sample_space():
             self.cuts['Floor_hits_before_vertex'] = {'index':self.n, 'cut if':'<'} 
            
             #------------- Floor hits before vertex
-            # is there a hit that should be part of a track that isn't?
+            # Is there a hit that should be part of a track that isn't?
+            #
+            # keep track of the smallest distance from the expected hit position of a track in a vertex
+            # to a hit in the floor or wall, if this is smaller than the cut value, we think the particle that 
+            # formed the vertex could have been a W and the tracker simply did not include them 
+            #
+            # Essentially we add them back in by hand and veto the event because it has a track with floor hits
             
             floorveto = False
 
@@ -224,8 +231,8 @@ class sample_space():
 
             min_by_verts = []
 
-            global_floor_d, global_wall_d = [], []
-            global_floor_t, global_wall_t = [], []
+            #global_floor_d, global_wall_d = [], []
+            #global_floor_t, global_wall_t = [], []
 
             floor_wall_hits = []
 
@@ -236,19 +243,19 @@ class sample_space():
                 elif self.tree.Digi_z[hit] <= self.det.z_wall: # check if layer index is a floor layer index or in the wall
                     floor_wall_hits.append(hit)
                     
+            min_dist = 1e6 # arbitrary, large value to start us off
+            min_time = 1e6 # also keep track of time for plots
 
             for num in range(len(self.tree.Vertex_k_m_x)): # loop over vertices
                 vertexveto = False
                 vtxx, vtxy, vtxz = self.tree.Vertex_k_m_x[num], self.tree.Vertex_k_m_y[num], self.tree.Vertex_k_m_z[num]
 
-                if not self.inside_box(vtxx, vtxy, vtxz): # make sure the vertex is fiducial (above the floor)
-                    vertexveto = True # veto the vertex if its outside the detector 
-
+                if not self.inside_box(vtxx, vtxy, vtxz): # make sure the vertex is fiducial (covered by wall / floor and in the detector)
+                    continue
                 
                 if not vertexveto:
                     ''' x-z distance of track '''
-                    min_dist = 1e6 # arbitrary, large value to start us off
-              
+                    
                     floor_wall_hits_before_vertex = []
               
                     for hit in floor_wall_hits:
@@ -291,26 +298,28 @@ class sample_space():
                             dt_floor = abs(self.tree.Digi_time[hit] - (t + del_t_floor))
                             dt_wall = abs(self.tree.Digi_time[hit] - (t + del_t_wall))
                             
+                            '''
                             dist_floors.append(dist_floor)
                             dist_walls.append(dist_wall)
                             dt_floors.append(dt_floor)
                             dt_walls.append(dt_wall)
-                            
+                            '''
                             min_dist = np.amin([min_dist, dist_floor, dist_wall])
-
+                            min_time = np.amin([min_time, dt_floor, dt_wall])
+                        '''
                         if len(floor_wall_hits_before_vertex) != 0:
                             global_floor_d.append(np.amin(dist_floors))
                             global_wall_d.append(np.amin(dist_walls))
                             global_floor_t.append(np.amin(dt_floors))
                             global_wall_t.append(np.amin(dt_walls))
-
-                    if min_dist < 1500: # [cm] Make sure closest hit to the track is within ____ m to veto
-                            vertexveto = True
+                        '''
+                    #if min_dist < 1500: # [cm] Make sure closest hit to the track is within ____ m to veto
+                    #        vertexveto = True
                         
 
-                if not vertexveto: # There's a vertex in the event that isn't vetoed
-                    break
-
+                #if not vertexveto: # There's a vertex in the event that isn't vetoed
+                #    break
+            '''
             if len(self.tree.Vertex_k_m_x) != 0:
                 if vertexveto:
                     floorveto = True
@@ -320,15 +329,15 @@ class sample_space():
                     self.plotter.data_dict['dist wall'].extend(global_wall_d)
                     self.plotter.data_dict['dt floor'].extend(global_floor_t)
                     self.plotter.data_dict['dt wall'].extend(global_wall_t)
-
-            self.current_vector[self.n] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] (< 1 is true)
-
+            '''
+            #self.current_vector[self.n] = int(not floorveto) # cut if floorveto == True => 0 == current_vector[4] (< 1 is true)
+            self.current_vector[self.n] = min_dist 
                 
 
     def Track_floor_hits(self):
             self.cuts['Track_floor_hits'] = {'index':self.n, 'cut if':'True'}
-            
-            #--------- Reject events with track digi hits in the floor (by event)
+    
+            #--------- Reject events with digi hits in the floor (by event)
             
             track_floor_veto = False
             
@@ -480,12 +489,6 @@ class sample_space():
              
             #------------- Expected Hits Cut
             # if there are no hits in the floor / wall, could it be that the particle avoided them?
-            #
-            # if we have vertices made but don't find any
-            # hits that would let us reject the event in
-            # floor_wall_hits_before_vertex, and it's a W background,
-            # we expect incorrect track reconstruction velocity to be the cause
-            # ie. tracks will be close to the edge of wall / floor
 
             centre_floor = [(self.det.BoxLimits[0][0] + self.det.BoxLimits[0][1]) / 2, (self.det.BoxLimits[2][0] + self.det.BoxLimits[2][1]) / 2] # [x,z] [cm,cm]
             centre_wall = [centre_floor[0], 6000.0 + 2000.0 / 2.0] # [x,y] [cm,cm] see globals.hh for explanation on y
@@ -508,7 +511,11 @@ class sample_space():
             max_centre_dist = -1e6
             second_max_centre_dist = -1e6 # large and negative arbitrary value to start us off
                     
-            if len(self.vertex_trackIndices) > 0 and not (hits_in_floor or hits_in_wall):
+            if len(self.vertex_trackIndices) > 0 and not (hits_in_floor or hits_in_wall): # if we have vertices made but don't find any 
+                                                                                          # hits that would let us reject the event in 
+                                                                                          # the floor_wall_hits_before_vertx, and it's a W background,
+                                                                                          # we expect incorrect track reconstruction velocity to be the cause
+                                                                                          # ie. tracks will be close to the edge of wall / floor
                 for num in range(len(self.tree.Vertex_k_m_x)):
                     for ind in self.vertex_trackIndices[num]: # Determine where the tracks in the vertex are expected to hit the wall and floor
                         ind = int(ind)
@@ -555,6 +562,7 @@ class sample_space():
                             self.plotter.data_dict['Exp Pos z floor'].append(edge_dist_z_floor)
                         
                             min_dist = np.amin([edge_dist_z_floor, edge_dist_x_floor])
+                        
                         
                         # if the distance from the edge is larger (closer to det centre) than other tracks found,
                         # keep track of it 
@@ -854,6 +862,8 @@ def main():
   
     if len(sys.argv) > 1:
         # default set for job submission with files and write locations passed as arguments
+        #
+        # DO NOT TOUCH!
         
         if len(sys.argv) != 4:
             print('Usage: python cutflow.py <tracker tree> <save directory> <integer identifier>')
@@ -870,6 +880,8 @@ def main():
         
         files = [sys.argv[1]]
 
+        #-------------------------
+
     else:
         # plotting booleans (to be deprecated soon!)
         plot_cut = False
@@ -877,24 +889,30 @@ def main():
         plot_obj = False
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
-        load = False
-        save = True
+        load = True
+        save = False
         TwoD = False # whether additional info is 2D
         
         if load:
             #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
             #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
-            load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+            #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+            load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files_run6/"
             
-            files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)][:50]
-            #files = [load_files_dir+'scissor_{}.joblib'.format(sample) for sample in ['h10_0','h2_1','qq_2']]
+            if sum_flows:
+                files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
+            
+            else:
+                files = [load_files_dir+'scissor_{}.joblib'.format(sample) for sample in ['h10_0','h2_1','qq_2']]
             
         else:
             if sum_flows: # Background
-                directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
+                #directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
                 #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
+                directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
                 
-                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
+                files = [filename for filename in glob.iglob(directory_6+'/**/stat_*.root', recursive=True)]
+                #files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
         
             else: # signal
@@ -907,7 +925,7 @@ def main():
         print("I need at least 1 file to run!")
         return
 
-    cut = 9 # which cut to plot (index in cut_options)
+    cut = 3 # which cut to plot (index in cut_options)
     info_cut = 3 # which cut we take additional info from 
     
     sum_values = []
@@ -925,7 +943,7 @@ def main():
     cut_options = {'0' :{option[0]:'2 Tracks'                     ,option[1]:2       ,option[2]:'tracks'      ,option[3]:1 , func_name:'Tracks' },
                    '1' :{option[0]:'Vertices'                     ,option[1]:1       ,option[2]:'verts'       ,option[3]:1 , func_name:'Vertices' },
                    '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1       ,option[2]:'bool'        ,option[3]:1 , func_name:'Fiducial_vertex' },
-                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:1       ,option[2]:'bool'        ,option[3]:1 , func_name:'Floor_hits_before_vertex' },
+                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:1000    ,option[2]:'cm'          ,option[3]:1 , func_name:'Floor_hits_before_vertex' },
                    '4' :{option[0]:'No track hits in the floor'   ,option[1]:True    ,option[2]:'bool'        ,option[3]:1 , func_name:'Track_floor_hits' },
                    '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.02    ,option[2]:'rad'         ,option[3]:1 , func_name:'Opening_angle' },
                    '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2    ,option[2]:'sigma'       ,option[3]:0 , func_name:'Topological' },
@@ -1005,10 +1023,13 @@ def main():
                 joblib.dump(scissor,save_files_dir+'/scissor_{}_{}.joblib'.format(sample,job_num)) # save the scissor objects
                                                                                                        # => only need to read data once
             elif save:
-                if not os.path.exists('save_files'):
-                    os.makedirs('save_files')
+                write_dir = 'save_files_run6'
+                #write_dir = 'save_files'
+            
+                if not os.path.exists(write_dir):
+                    os.makedirs(write_dir)
                     
-                joblib.dump(scissor,'save_files/scissor_{}_{}.joblib'.format(sample,i)) # save the scissor objects
+                joblib.dump(scissor, write_dir+'/scissor_{}_{}.joblib'.format(sample,i)) # save the scissor objects
                                                                                                        # => only need to read data once
 
         if plot_obj and not sum_flows:
@@ -1163,8 +1184,8 @@ def main():
         
         if plot_cut and len(sum_values) != 0:
             _bins = 100
-            _rng = (np.amin(sum_values),np.max(sum_values)*1.1)
-    
+            #_rng = (np.amin(sum_values),np.max(sum_values)*1.1)
+            _rng = [0,4000]
             visualization.root_Histogram(sum_values,
           					rng=_rng,
           					bins=_bins-int(np.sqrt(len(values))),
@@ -1180,7 +1201,7 @@ def main():
     
     joblib.dump(cutflow,'flows.joblib')
     
-    if len(sys.argv) == 1 and save:
+    if len(sys.argv) == 1:
         joblib.dump(passed_events,'passed_events.joblib')
 
 
