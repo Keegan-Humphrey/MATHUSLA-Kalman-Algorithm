@@ -34,7 +34,7 @@ def main(opt):
         # plot visualisations for events used in the analysis
         # to be put in ./vis_plots/
         
-        cut = -3 # -1 to look at survivors (indexed by flows)
+        cut = -1 # -1 to look at survivors (otherwise indexed as in flows)
         
         passed_events = joblib.load('passed_events.joblib')
         
