@@ -39,6 +39,9 @@ int RunManager::StartTracking()
 	ParHandler hndlr;
 	hndlr.Handle();
 
+	if (hndlr.par_map["branch"] == 1.0) std::cout << "Running in Cosmic Mode" << std::endl;
+	//else std::cout << "Running in Main Mode" << std::endl;
+
 //	std::cout << "Parameters are: " << std::endl;
 //	std::cout << hndlr.par_map["p"] << std::endl;
 
@@ -180,6 +183,8 @@ int RunManager::StartTracking()
 		TH->Write();
 
 		std::cout << "Tracked " << TotalEventsProcessed << " Events" << std::endl;
+
+		//std::cout << "number of null det ids in hits is " << _digitizer->null_num << std::endl;
 	}
 
 	return 0;

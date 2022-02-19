@@ -18,12 +18,18 @@ public:
 
 	int ev_num;
 
+	int null_num = 0;
+
 	std::vector<physics::digi_hit*> Digitize();
 	Geometry* _geometry;
 
 	void AddHit(physics::sim_hit *hit){
 		hit->det_id = (_geometry->GetDetID(hit));
-		hits.push_back(hit);
+		if (!hit->det_id.IsNull()) {
+			hits.push_back(hit);
+		}
+		else null_num++;
+
 	}
 
 	void clear(){

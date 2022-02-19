@@ -1,2 +1,3 @@
 #/home/keeganh/projects/rrg-mdiamond/keeganh/presentation_dir/sim_trees/h2_1mill.root
-/home/keeganh/input_data/Michael_file_22_1_22.root
+#/home/keeganh/input_data/Michael_file_22_1_22.root
+/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/data/20211210/111000/run0.root

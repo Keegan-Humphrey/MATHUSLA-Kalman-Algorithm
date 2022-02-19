@@ -218,7 +218,7 @@ public:
 		layerIndex = _layer_index;
 		xIndex = _x_index;
 		zIndex = _z_index;
-		_null == false;
+		_null = false; // could be ==? used to be, thought it was weird, took it out.
 		isFloorElement = _isFloorElement;
         isWallElement = _isWallElement;
         wall_yIndex = _wall_y_index;
