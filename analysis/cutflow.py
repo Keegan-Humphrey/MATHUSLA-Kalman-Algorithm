@@ -19,7 +19,7 @@ import pandas as pd
 import joblib
 import inspect    
 
-ncuts = 16
+ncuts = 17
 
 
 
@@ -63,7 +63,6 @@ class sample_space():
 
         return 999
 
-    
     def get_states_m(self):
 
         global ncuts
@@ -174,6 +173,9 @@ class sample_space():
             self.n += 1
             
             self.Fiducial_leniency()
+            self.n += 1
+
+            self.Delta_ray_cut()
             self.n += 1
 
             self.Chi_ndof_cut()
@@ -702,8 +704,147 @@ class sample_space():
         self.event_info.data_dict['slope dist'].append(max_dist_to_slope)
         
         self.current_vector[self.n] = max_dist_to_slope
+        
+        
+    def Delta_ray_cut(self):
+        
+        self.cuts['Delta_ray_cut'] = {'index':self.n, 'cut if':'<'}
+        
+        '''
+        do a rough pairwise tracking run 
+        with a hit in the floor / wall before tracking hits and unused hits in tracking layers. We then keep 
+        pairs that would have 0.8 < beta < 1.2 (like the tracker) and use that to compute the closest approach distance with made tracks. 
+        '''
+        closest_approach = 1e6 # start us off large and arbitrary
+        
+        if len(self.fulltrackindices) == 0: # return if there are no vertices
+            self.current_vector[self.n] = closest_approach
+            return
+        
+        # find all hits not involved in a track
+        track_hit_indices = set([hit for track in self.fullhitindices for hit in track])
+        all_hit_indices = set(np.arange(len(self.tree.Digi_y)))
+        
+        not_track_hits = all_hit_indices - track_hit_indices
+        
+        # divide hits into tracking vs floor / wall hits 
+        veto_hits = [] # floor / wall hits (not in a track)
+        tracking_hits = [] # tracking layer hits (not in a track)
+
+        for hit in not_track_hits: # loop over the hits not in a track
+            hit = int(hit)
+            
+            if self.tree.Digi_z[hit] <= self.det.z_wall:
+                veto_hits.append(hit) # its in the wall
     
-       
+            else:
+                if self.in_layer(self.tree.Digi_y[hit]) <= 2:
+                    veto_hits.append(hit) # its in the floor
+                    
+                else:
+                    tracking_hits.append(hit) # its above the floor => tracking layers
+    
+        if len(veto_hits) != 0:
+            # find time of earliest tracking layer hit not in a track
+            min_tracking_t = 1e6 # [ns] time of earliest tracking layer hits
+    
+            for hit in tracking_hits:
+                min_tracking_t = min(min_tracking_t, self.tree.Digi_time[hit])
+           
+            # find all the floor / wall hits before all the tracking layer hits (ie. not backscatters)
+            early_veto_hits = []
+           
+            for hit in veto_hits:
+                if self.tree.Digi_time[hit] < min_tracking_t:
+                    early_veto_hits.append(hit)
+           
+            
+            # find all pairwise combinations of veto / tracking hits that have beta ~ c (0.8 < beta < 1.2 like real tracks)
+            paired_tracks = []
+            
+            for v_hit in early_veto_hits: 
+                for t_hit in tracking_hits:
+                    pair = pair_track(v_hit, t_hit)
+                    
+                    pair.get_st_points(self.tree)
+                    pair.find_beta()
+                    
+                    if 0.8 < pair.beta < 1.2:
+                        paired_tracks.append(pair)
+            
+                # find smallest distance between paired_tracks and tracks in a vertex at any time (closest approach distance, see docs)  
+                    
+                for pair in paired_tracks:
+                    pair.find_velocity()
+                
+                    for vertex in self.fulltrackindices: # loop over lists of vertices
+                        for track in vertex: # loop over tracks in each vertex list
+                            track = int(track)
+                            
+                            pair.find_closest_approach(self.tree, track)
+                            
+                            closest_approach = min(closest_approach, pair.closest_approach)
+                    
+                    
+        self.current_vector[self.n] = closest_approach
+        
+        
+        
+class pair_track:
+    
+    def __init__(self, v_hit, t_hit):
+        self.hits = [v_hit, t_hit] # v_hit happens before t_hit
+        self.xs = [np.zeros(4), np.zeros(4)] # 4 vectors of hits
+    
+        
+    def get_st_points(self, tree):
+        # get points in spacetime for each hit
+    
+        for i, hit in enumerate(self.hits):
+            self.xs[i][0] = tree.Digi_time[hit] # i = 0 < i = 1 in time
+            self.xs[i][1] = tree.Digi_x[hit]
+            self.xs[i][2] = tree.Digi_y[hit]
+            self.xs[i][3] = tree.Digi_z[hit]
+            
+        
+    def find_beta(self):
+        ds = (self.xs[0] - self.xs[1])**2 # interval in mostly plus and euclidean time
+        
+        self.beta = ds[0] / np.sum(ds[1:])
+        
+        return self.beta
+        
+        
+    def find_velocity(self):
+        self.x0 = self.xs[0] # initial hit (in floor or wall)
+        
+        self.v = self.xs[1][1:] - self.x0[1:] # = \Delta \vec{x}
+        self.v /= self.xs[1][0] - self.x0[0] # / \Delta t 
+        
+        
+    def find_closest_approach(self, tree, track):
+        # see /MATHUSLA-Kalman-Algorithm/docs/Closest_Approach_of_Parametric_Vectors.pdf
+        
+        v_tr = np.zeros(3)
+        x_tr = np.zeros(4)
+        
+        x_tr[0] = tree.Track_k_m_t0[track]
+        x_tr[1] = tree.Track_k_m_x0[track]
+        x_tr[2] = tree.Track_k_m_y0[track]
+        x_tr[3] = tree.Track_k_m_z0[track]
+        
+        v_tr[0] = tree.Track_k_m_velX[track]
+        v_tr[1] = tree.Track_k_m_velY[track]
+        v_tr[2] = tree.Track_k_m_velZ[track]
+        
+        del_v = v_tr - self.v
+        del_x = x_tr[1:] - self.x0[1:]
+        
+        t_CA = np.sum(del_x * del_v)
+        t_CA /= np.sum(del_v * del_v)
+    
+        self.closest_approach = abs(np.sum(del_x + del_v * t_CA))
+        
 
 class scissors():
     '''since this is what does the cutting!'''
@@ -1036,8 +1177,8 @@ def main():
         plot_cut = True
         plot_obj = False
         
-        sum_flows = False # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
-        load = False
+        sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
+        load = True
         save = False
         
         #***** find a way to just store all the cut vectors and plot information so we don't need to load scissors every time. 
@@ -1046,8 +1187,8 @@ def main():
             #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
             #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
             #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
-            load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
-            #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+            #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
+            load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
             #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files_run6/"
             
             if sum_flows:
@@ -1076,7 +1217,7 @@ def main():
         print("I need at least 1 file to run!")
         return
 
-    cuts_to_plot = [13, 14] # which cuts to plot (index in cut_options)
+    cuts_to_plot = [15] # [int] which cuts to plot (index in cut_options) # **** need to update this to work for sum_flows = True as well
     
     sum_values = []
     drawers = [] # to hold the scissors
@@ -1102,8 +1243,9 @@ def main():
                    '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6      ,option[2]:'-missed hits'  ,option[3]:1 , func_name:'Missing_hit_sum' },
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20     ,option[2]:'-chi ndof'     ,option[3]:1 , func_name:'Chi_ndof_cut' },
                    '13':{option[0]:'Hits per track in vertex'     ,option[1]:4       ,option[2]:'hits'          ,option[3]:1 , func_name:'Hits_per_track'},
-                   '14':{option[0]:'Fiducial Leniency'            ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'}} 
-                                                                                    
+                   '14':{option[0]:'Fiducial Leniency'            ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
+                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'}} 
+
     for opt in option:
         flows[opt] = np.array([])
 
@@ -1113,7 +1255,7 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    permutation = [0,1,2,4,3,9,11,13,5,6,7,8,10,12,14] # order in which the cuts are performed
+    permutation = [0,1,2,15,3,4,9,13,14,11,5,6,7,8,10,12] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
@@ -1250,7 +1392,7 @@ def main():
                 values = scissor.cut_vectors[inds,scissor.func_dicts[cut_options[str(permutation[cut])]['func_name']]['index']]
     
                 if sum_flows:
-                    sum_values.extend(values)
+                    sum_values.extend(values) # ****** need to change this when we are plotting more than one thing!!! 
     
                 if not sum_flows and len(values) != 0:
                     _bins = 100
@@ -1281,14 +1423,15 @@ def main():
             for cut in cuts_to_plot:
                 _bins = 100
                 _rng = (np.amin(sum_values),np.max(sum_values)*1.1)
-                #_rng = [0,4000]
+                _rng = [0,10000]
                 visualization.root_Histogram(sum_values,
               					rng=_rng,
               					bins=_bins-int(np.sqrt(len(values))),
               					Title='{} {}'.format(flows['cut name'][cut],sample),
               					xaxis=flows['units'][cut],
               					fname='distribution_{}_{}.png'.format(cut,sample),
-                        logy=True)
+                        logy=True,
+                        logx=False)
                     
     cutflow = pd.DataFrame(flows)
 
