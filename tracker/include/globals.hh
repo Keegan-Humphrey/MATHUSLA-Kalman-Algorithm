@@ -54,7 +54,7 @@ namespace detector{
 													{15000.0*cm, 15900.0*cm},
 													{16000.0*cm, 16900.0*cm} };
 
-	const std::vector<double> COSMIC_SHIFT = {0.0, 547*cm, 12000.0*cm}; // shift of sim cosmic -> main coordinates
+	const std::vector<double> COSMIC_SHIFT = {0.0, 547*cm, 11950.0*cm}; // shift of sim cosmic -> main coordinates
 
 	const int n_modules = 100;
 	const double scintillator_length = 450.0*units::cm;
@@ -114,7 +114,7 @@ namespace cuts{
 	const double residual_drop = 12.0; //sigma
 	const double residual_add = 12.0; //sigma
 	const double track_chi2 = 5.0;
-	const int track_nlayers = 3; //4; // used to be 3
+	const int track_nlayers = 4; // used to be 3
 	const int nseed_hits = 4;
 	const double time_difference_drop = 12.0; //sigma
 	const double seed_time_difference = 10.0; //ns
