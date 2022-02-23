@@ -22,7 +22,6 @@ import inspect
 ncuts = 17
 
 
-
 class sample_space():
 
 
@@ -63,6 +62,7 @@ class sample_space():
 
         return 999
 
+    
     def get_states_m(self):
 
         global ncuts
@@ -716,64 +716,69 @@ class sample_space():
         pairs that would have 0.8 < beta < 1.2 (like the tracker) and use that to compute the closest approach distance with made tracks. 
         '''
         closest_approach = 1e6 # start us off large and arbitrary
+        lowest_pair = None
         
-        if len(self.fulltrackindices) == 0: # return if there are no vertices
-            self.current_vector[self.n] = closest_approach
-            return
+        if len(self.fulltrackindices) != 0: # don't compute anything if there are no vertices
+            #self.current_vector[self.n] = closest_approach
+            #return
         
-        # find all hits not involved in a track
-        track_hit_indices = set([hit for track in self.fullhitindices for hit in track])
-        all_hit_indices = set(np.arange(len(self.tree.Digi_y)))
-        
-        not_track_hits = all_hit_indices - track_hit_indices
-        
-        # divide hits into tracking vs floor / wall hits 
-        veto_hits = [] # floor / wall hits (not in a track)
-        tracking_hits = [] # tracking layer hits (not in a track)
-
-        for hit in not_track_hits: # loop over the hits not in a track
-            hit = int(hit)
+            # find all hits not involved in a track
+            track_hit_indices = set([hit for track in self.fullhitindices for hit in track])
+            all_hit_indices = set(np.arange(len(self.tree.Digi_y)))
             
-            if self.tree.Digi_z[hit] <= self.det.z_wall:
-                veto_hits.append(hit) # its in the wall
+            not_track_hits = all_hit_indices - track_hit_indices
+            
+            # divide hits into tracking vs floor / wall hits 
+            veto_hits = [] # floor / wall hits (not in a track)
+            tracking_hits = [] # tracking layer hits (not in a track)
     
-            else:
-                if self.in_layer(self.tree.Digi_y[hit]) <= 2:
-                    veto_hits.append(hit) # its in the floor
-                    
+            for hit in not_track_hits: # loop over the hits not in a track
+                hit = int(hit)
+                
+                if self.tree.Digi_z[hit] <= self.det.z_wall:
+                    veto_hits.append(hit) # its in the wall
+        
                 else:
-                    tracking_hits.append(hit) # its above the floor => tracking layers
-    
-        if len(veto_hits) != 0:
-            # find time of earliest tracking layer hit not in a track
-            min_tracking_t = 1e6 # [ns] time of earliest tracking layer hits
-    
-            for hit in tracking_hits:
-                min_tracking_t = min(min_tracking_t, self.tree.Digi_time[hit])
-           
-            # find all the floor / wall hits before all the tracking layer hits (ie. not backscatters)
-            early_veto_hits = []
-           
-            for hit in veto_hits:
-                if self.tree.Digi_time[hit] < min_tracking_t:
-                    early_veto_hits.append(hit)
-           
-            
-            # find all pairwise combinations of veto / tracking hits that have beta ~ c (0.8 < beta < 1.2 like real tracks)
-            paired_tracks = []
-            
-            for v_hit in early_veto_hits: 
-                for t_hit in tracking_hits:
-                    pair = pair_track(v_hit, t_hit)
-                    
-                    pair.get_st_points(self.tree)
-                    pair.find_beta()
-                    
-                    if 0.8 < pair.beta < 1.2:
-                        paired_tracks.append(pair)
-            
+                    if self.in_layer(self.tree.Digi_y[hit]) <= 2:
+                        veto_hits.append(hit) # its in the floor
+                        
+                    else:
+                        tracking_hits.append(hit) # its above the floor => tracking layers
+        
+            if len(veto_hits) != 0:
+                # find time of earliest tracking layer hit not in a track
+                min_tracking_t = 1e6 # [ns] time of earliest tracking layer hits
+        
+                for vertex in range(len(self.tree.Vertex_k_m_t)): # loop over lists of vertices
+                    min_track_t = min(min_tracking_t, self.tree.Vertex_k_m_t[vertex])
+                
+                '''        
+                for hit in tracking_hits:
+                    min_tracking_t = min(min_tracking_t, self.tree.Digi_time[hit])
+                '''
+                # find all the floor / wall hits before all the tracking layer hits (ie. not backscatters)
+                early_veto_hits = []
+               
+                for hit in veto_hits:
+                    if self.tree.Digi_time[hit] < min_tracking_t:
+                        early_veto_hits.append(hit)
+               
+                
+                # find all pairwise combinations of veto / tracking hits that have beta ~ c (0.8 < beta < 1.2 like real tracks)
+                paired_tracks = []
+                
+                for v_hit in early_veto_hits: 
+                    for t_hit in tracking_hits:
+                        pair = pair_track(v_hit, t_hit)
+                        
+                        pair.get_st_points(self.tree)
+                        pair.find_beta()
+                        
+                        if 0.8 < pair.beta < 1.2:
+                            paired_tracks.append(pair)
+                
                 # find smallest distance between paired_tracks and tracks in a vertex at any time (closest approach distance, see docs)  
-                    
+                
                 for pair in paired_tracks:
                     pair.find_velocity()
                 
@@ -783,9 +788,20 @@ class sample_space():
                             
                             pair.find_closest_approach(self.tree, track)
                             
-                            closest_approach = min(closest_approach, pair.closest_approach)
-                    
-                    
+                            #closest_approach = min(closest_approach, pair.closest_approach)
+                            if pair.closest_approach < closest_approach:
+                                closest_approach = pair.closest_approach
+                                lowest_pair = pair
+                
+        if lowest_pair != None:
+            self.event_info.data_dict['pair reco beta'].append(lowest_pair.beta)
+            self.event_info.data_dict['pair closest approach'].append(lowest_pair.closest_approach)
+            
+        else:
+            self.event_info.data_dict['pair reco beta'].append(1e6)
+            self.event_info.data_dict['pair closest approach'].append(1e6)
+            
+        
         self.current_vector[self.n] = closest_approach
         
         
@@ -828,7 +844,7 @@ class pair_track:
         v_tr = np.zeros(3)
         x_tr = np.zeros(4)
         
-        x_tr[0] = tree.Track_k_m_t0[track]
+        #x_tr[0] = tree.Track_k_m_t0[track]
         x_tr[1] = tree.Track_k_m_x0[track]
         x_tr[2] = tree.Track_k_m_y0[track]
         x_tr[3] = tree.Track_k_m_z0[track]
@@ -858,7 +874,7 @@ class scissors():
     def store_space(self):
 
         space = sample_space(self.file)
-        space.plotter = self.plotter
+        #space.plotter = self.plotter
         
         self.cut_vectors = space.get_states_m()
         self.func_dicts = space.cuts
@@ -867,8 +883,6 @@ class scissors():
         #self.plotter.merge_a_plotter(space.plotter) # merge the plotter in space with current plotter to gather data
         self.plotter.event_infos = space.plotter.event_infos
         
-        self.additional_info = space.additional_info
-      
         self.events = len(self.cut_vectors)
         
         print('number of events is: ',len(self.cut_vectors))
@@ -930,7 +944,9 @@ class event_info:
                               'Exp Pos x floor':[], 'Exp Pos z floor':[],
                               'dt wall':[], 'dt floor':[],
                               'dist wall':[], 'dist floor':[],
-                              'vert pos':[], 'slope dist':[]} # add whatever you want to look at here (and in plotter)!
+                              'vert pos':[], 'slope dist':[],
+                              'pair closest approach':[], 'pair reco beta':[],
+                              'min hits per track':[], 'max hits per track':[]} # add whatever you want to look at here (and in plotter)!
 
 
 
@@ -946,7 +962,8 @@ class Plotter:
                           'Exp Pos x floor':[], 'Exp Pos z floor':[],
                           'dt wall':[], 'dt floor':[],
                           'dist wall':[], 'dist floor':[],
-                          'vert pos':[], 'slope dist':[]}
+                          'vert pos':[], 'slope dist':[],
+                          'pair closest approach':[], 'pair reco beta':[]}
         
         
         self.event_infos = [] # collected info for plotting organized by event
@@ -976,6 +993,7 @@ class Plotter:
         
         # **** might not need to distinguish because of how we merge now?
         
+        #if True:
         try:
             if len(self.lists_of_event_infos) != 0: # passed a whole object (ie. this is a global plotter)
                 if type(cut) == int: 
@@ -987,7 +1005,7 @@ class Plotter:
                         
                 elif cut == 'all':
                     gathered_event_infos =  [item for sublist in self.lists_of_event_infos for item in sublist] 
-                
+            
             else: # this is for one file (ie. local plotter for one file)      
                 if type(cut) == int:
                     event_infos = np.array(self.event_infos, dtype=object)
@@ -1000,8 +1018,10 @@ class Plotter:
                     
                 elif cut == 'all':
                     gathered_event_infos = [item for sublist in self.event_infos for item in sublist] 
-                  
+            
         except IndexError:
+            print(event_infos)
+            print(survivors)
             print('sorry, I dont think those events have info')
           
         for event_info in gathered_event_infos:
@@ -1021,9 +1041,34 @@ class Plotter:
         #self.expected_time_space('wall')
         #self.expected_time_space('floor')
         
-        self.vertex_pos()
+        #self.vertex_pos()
         #self.slope_dist()
     
+        self.beta_vs_approach()
+        
+    
+    def beta_vs_approach(self):
+        
+        _Title = 'Pair Reconstructed Beta vs Closest Approach with Vertex Track {}'.format(self.sample)
+        _xlabel = 'closest approach to vertex track [cm]'
+        _zlabel = 'pair reconstructed beta []'
+        _fname = 'beta_approach_{}.png'.format(self.sample)
+
+        _data_x = np.array(self.gather_info('pair closest approach',2)) #self.data_dict['pair closest approach']
+        _data_z = np.array(self.gather_info('pair reco beta',2)) #self.data_dict['pair reco beta']
+
+        #print(_data_x)
+        #print(_data_z)
+        
+        _xlims = [0,np.max(_data_x)*1.1]
+        _zlims = [0,1.0] # [np.amin(_data_z),np.max(_data_z)*1.1]
+        
+        _xbins=100
+        _zbins=100
+        
+        visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
+	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+                              
     
     def slope_dist(self):    
         
@@ -1174,28 +1219,41 @@ def main():
 
     else:
         # plotting booleans (do you want to make plots?)
-        plot_cut = True
+        plot_cut = False
         plot_obj = False
         
-        sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
+        sum_flows = False # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         load = True
         save = False
         
-        #***** find a way to just store all the cut vectors and plot information so we don't need to load scissors every time. 
+        start_from_cut = False
+        start_cut = -1 # work only with the files with survivors at cut start_cut
         
         if load:
-            #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
-            #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
-            #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
-            #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
-            load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
-            #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files_run6/"
-            
             if sum_flows:
+                #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
+                load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/22_02_22/"
+                
                 files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
             
             else:
+                load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+                #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files_run6/"
+            
                 files = [load_files_dir+'scissor_{}.joblib'.format(sample) for sample in ['h10_0','h2_1','qq_2']]
+         
+         
+        elif start_from_cut:
+            passed_events_prev = joblib.load('passed_events.joblib')
+
+            files = []
+            
+            for file in passed_events_prev.keys():
+                if len(passed_events_prev[file][start_cut]) != 0: # check if it has any surviving events at start_cut
+                    files.append(file)
             
         else:
             if sum_flows: # Background
@@ -1204,20 +1262,26 @@ def main():
                 #directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
                 
                 #files = [filename for filename in glob.iglob(directory_6+'/**/stat_*.root', recursive=True)]
-                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
+                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)][:50]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
         
             else: # signal
-                files = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
+                files_4 = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_0_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_1_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_2_0.root'] # 4 hits per track
+                    
+                files_3 = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_0_0.root',
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root',
-                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root']
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root'] # 3 hits per track
         #            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
+        
+                files = files_4
            
     if len(files) == 0:
         print("I need at least 1 file to run!")
         return
 
-    cuts_to_plot = [15] # [int] which cuts to plot (index in cut_options) # **** need to update this to work for sum_flows = True as well
+    cuts_to_plot = [3] # [int] which cuts to plot (index in cut_options) # **** need to update this to work for sum_flows = True as well
     
     sum_values = []
     drawers = [] # to hold the scissors
@@ -1255,7 +1319,7 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    permutation = [0,1,2,15,3,4,9,13,14,11,5,6,7,8,10,12] # order in which the cuts are performed
+    permutation = [0,1,2,4,9,13,14,3,11,5,6,7,8,10,12,15] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
@@ -1263,7 +1327,6 @@ def main():
     
     for key in flows.keys():
         flows[key] = flows[key].take(permutation,0) # permute each entry in flows dictionary
-
 
     if sum_flows and plot_obj:
         pltr = Plotter() # object to collect and organize information in the cuts to be plotted
@@ -1369,7 +1432,7 @@ def main():
         file_flows = scissor.flows.astype(int)
         file_flows = file_flows.take(permutation,0) # permute the flows to the order the cuts were performed
         
-        if sum_flows and not plot_obj: 
+        if sum_flows: # and not plot_obj:  *** implement a seperate boolean for deciding whether or not to show flows.  (leave off for job default)
             try:
                 flows['Flows'] += file_flows
                              
@@ -1437,7 +1500,7 @@ def main():
 
     print(cutflow)
     
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 1 and not start_from_cut:
         joblib.dump(passed_events,'passed_events.joblib')
 
     if plot_obj:
