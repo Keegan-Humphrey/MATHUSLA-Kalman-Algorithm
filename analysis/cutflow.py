@@ -19,8 +19,10 @@ import pandas as pd
 import joblib
 import inspect    
 
-ncuts = 17
+ncuts = 18
 
+events_passed = 0
+ev_w_veto_hits = 0
 
 class sample_space():
 
@@ -117,6 +119,7 @@ class sample_space():
 
             if event_number % 1000 == 0:
                 print("event:", event_number)
+                pass
                 
             self.fulltrackindices = util.unzip(self.tree.Vertex_k_m_trackIndices)
             self.fullhitindices = util.unzip(self.tree.Track_k_m_hitIndices)
@@ -177,6 +180,9 @@ class sample_space():
 
             self.Delta_ray_cut()
             self.n += 1
+            
+            self.Fiducial_vertex_time()
+            self.n += 1
 
             self.Chi_ndof_cut()
             self.n += 1
@@ -217,7 +223,7 @@ class sample_space():
                 if self.inside_box(vtxx, vtxy, vtxz):
                     inside = True
                     
-                    self.event_info.data_dict['vert pos'].append([vtxx,vtxy,vtxz])
+                    #self.event_info.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add all vertices
                     
             # check if at least one vertex is in the detector
             self.current_vector[3] = int(inside) # fiducial
@@ -718,9 +724,20 @@ class sample_space():
         closest_approach = 1e6 # start us off large and arbitrary
         lowest_pair = None
         
-        if len(self.fulltrackindices) != 0: # don't compute anything if there are no vertices
+        vertices = self.current_vector[self.cuts['Vertices']['index']]
+        fiducial_vertex = bool(self.current_vector[self.cuts['Fiducial_vertex']['index']])
+        #no_fiducial_vertex = False
+        no_track_hits_in_floor = bool(self.current_vector[self.cuts['Track_floor_hits']['index']])
+        
+        if vertices > 0 and fiducial_vertex and not no_track_hits_in_floor: # don't compute anything if there are no vertices
             #self.current_vector[self.n] = closest_approach
             #return
+            
+            '''
+            global events_passed                
+            events_passed += 1
+            print(events_passed,' Events passed vetos ---------')
+            '''
         
             # find all hits not involved in a track
             track_hit_indices = set([hit for track in self.fullhitindices for hit in track])
@@ -745,34 +762,54 @@ class sample_space():
                     else:
                         tracking_hits.append(hit) # its above the floor => tracking layers
         
+            
             if len(veto_hits) != 0:
                 # find time of earliest tracking layer hit not in a track
-                min_tracking_t = 1e6 # [ns] time of earliest tracking layer hits
+
+                '''
+                global ev_w_veto_hits 
+                ev_w_veto_hits += 1
+                print(ev_w_veto_hits, ' have veto hits')
+                print('event ',self.event_number,' I have {} veto hits'.format(len(veto_hits)))
+                '''
+                
+                min_vertex_t = 1e6 # [ns] time of earliest tracking layer hits
         
                 for vertex in range(len(self.tree.Vertex_k_m_t)): # loop over lists of vertices
-                    min_track_t = min(min_tracking_t, self.tree.Vertex_k_m_t[vertex])
+                    min_vertex_t = min(min_vertex_t, self.tree.Vertex_k_m_t[vertex])
+                
+                #print('min vertex t ',min_vertex_t)
                 
                 '''        
                 for hit in tracking_hits:
-                    min_tracking_t = min(min_tracking_t, self.tree.Digi_time[hit])
+                    min_vertex_t = min(min_vertex_t, self.tree.Digi_time[hit])
                 '''
                 # find all the floor / wall hits before all the tracking layer hits (ie. not backscatters)
                 early_veto_hits = []
                
+                #print('looking for veto hits')
+                
                 for hit in veto_hits:
-                    if self.tree.Digi_time[hit] < min_tracking_t:
+                    if self.tree.Digi_time[hit] < min_vertex_t:
+                    
+                        print(self.tree.Digi_time[hit],' early veto hit')
+                        
                         early_veto_hits.append(hit)
                
+                #print(len(early_veto_hits),' early veto hits')
                 
                 # find all pairwise combinations of veto / tracking hits that have beta ~ c (0.8 < beta < 1.2 like real tracks)
                 paired_tracks = []
                 
                 for v_hit in early_veto_hits: 
                     for t_hit in tracking_hits:
+                    
                         pair = pair_track(v_hit, t_hit)
                         
                         pair.get_st_points(self.tree)
                         pair.find_beta()
+                        
+                        #print(t_hit,' beta is ',pair.beta)
                         
                         if 0.8 < pair.beta < 1.2:
                             paired_tracks.append(pair)
@@ -780,13 +817,16 @@ class sample_space():
                 # find smallest distance between paired_tracks and tracks in a vertex at any time (closest approach distance, see docs)  
                 
                 for pair in paired_tracks:
-                    pair.find_velocity()
+                    # no need anymore, done above already
+                    #pair.find_velocity()
                 
                     for vertex in self.fulltrackindices: # loop over lists of vertices
                         for track in vertex: # loop over tracks in each vertex list
                             track = int(track)
                             
                             pair.find_closest_approach(self.tree, track)
+                            
+                            #print('Closest approach ',pair.closest_approach)
                             
                             #closest_approach = min(closest_approach, pair.closest_approach)
                             if pair.closest_approach < closest_approach:
@@ -797,6 +837,8 @@ class sample_space():
             self.event_info.data_dict['pair reco beta'].append(lowest_pair.beta)
             self.event_info.data_dict['pair closest approach'].append(lowest_pair.closest_approach)
             
+            print(lowest_pair.closest_approach)
+            
         else:
             self.event_info.data_dict['pair reco beta'].append(1e6)
             self.event_info.data_dict['pair closest approach'].append(1e6)
@@ -804,6 +846,59 @@ class sample_space():
         
         self.current_vector[self.n] = closest_approach
         
+
+    def Fiducial_vertex_time(self):
+        self.cuts['Fiducial_vertex_time'] = {'index':self.n, 'cut if':'True'}
+    
+        # Remove mis timed vertices, if all vertices happen before all the floor hits
+        # veto the event, it can avoid our cuts and there is no valid physical way signal
+        # can manage this
+        
+        all_hit_indices = np.arange(len(self.tree.Digi_y))
+        
+        max_vertex_t = -1e6 # [ns] time of latest vertex hit
+        
+        for vertex in range(len(self.tree.Vertex_k_m_t)): # loop over vertices
+            max_vertex_t = max(max_vertex_t, self.tree.Vertex_k_m_t[vertex])
+        
+        veto_hits = [] # floor / wall hits
+            
+        for hit in all_hit_indices:
+            hit = int(hit)
+            
+            if self.tree.Digi_z[hit] <= self.det.z_wall:
+                veto_hits.append(hit) # its in the wall
+                
+            elif self.in_layer(self.tree.Digi_y[hit]) <= 2:
+                veto_hits.append(hit) # its in the floor
+        
+        #before_all_hits = True # if all the hits happen after the vertex, veto the event
+        
+        all_hits_in_floor_wall_before_all_vertices = False
+        
+        if len(veto_hits) != 0: # there are hits in the floor or wall, consider for veto
+            #print('I have veto hits ',len(veto_hits))
+            all_hits_in_floor_wall_before_all_vertices = True
+        
+        if max_vertex_t != -1e6: # a vertex was found
+            for hit in veto_hits: # loop over floor and wall hits
+                '''
+                if self.event_number == 4001:
+                    print('vertex time ',max_vertex_t) 
+                    print(self.tree.Digi_time[hit])
+                '''
+                if self.tree.Digi_time[hit] < max_vertex_t:
+                    if self.event_number == 4001:
+                        print('Saved with ',self.tree.Digi_time[hit])
+                    all_hits_in_floor_wall_before_all_vertices = False
+                    break
+                
+                    
+        #self.current_vector[self.n] = before_all_hits
+        self.current_vector[self.n] = all_hits_in_floor_wall_before_all_vertices
+        #self.current_vector[self.n] = 1
+    
+                
         
         
 class pair_track:
@@ -824,9 +919,16 @@ class pair_track:
             
         
     def find_beta(self):
+        
+        '''
+        # we aren't looking for the interval
         ds = (self.xs[0] - self.xs[1])**2 # interval in mostly plus and euclidean time
         
         self.beta = ds[0] / np.sum(ds[1:])
+        '''
+        self.find_velocity()
+        
+        self.beta = np.sqrt(np.sum(self.v**2)) / physics.c
         
         return self.beta
         
@@ -859,7 +961,8 @@ class pair_track:
         t_CA = np.sum(del_x * del_v)
         t_CA /= np.sum(del_v * del_v)
     
-        self.closest_approach = abs(np.sum(del_x + del_v * t_CA))
+        self.closest_approach = np.sqrt(abs(np.sum(del_x + del_v * t_CA))) # square root of the squared distance of closest approach
+        
         
 
 class scissors():
@@ -1212,6 +1315,7 @@ def main():
         sum_flows = True # True <=> Background
         load = False
         save = True
+        start_from_cut = False
         
         files = [sys.argv[1]]
 
@@ -1223,10 +1327,11 @@ def main():
         plot_obj = False
         
         sum_flows = False # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
-        load = True
-        save = False
         
+        load = False # set at most one of these to True
+        save = False
         start_from_cut = False
+        
         start_cut = -1 # work only with the files with survivors at cut start_cut
         
         if load:
@@ -1247,7 +1352,11 @@ def main():
          
          
         elif start_from_cut:
-            passed_events_prev = joblib.load('passed_events.joblib')
+            #passed_events_file = 'passed_events.joblib'
+            #passed_events_file = 'passed_events_run6_4hits_23_2_22.joblib'
+            passed_events_file = 'passed_events_1_left.joblib'
+
+            passed_events_prev = joblib.load(passed_events_file)
 
             files = []
             
@@ -1281,7 +1390,7 @@ def main():
         print("I need at least 1 file to run!")
         return
 
-    cuts_to_plot = [3] # [int] which cuts to plot (index in cut_options) # **** need to update this to work for sum_flows = True as well
+    cuts_to_plot = [15] # [int] which cuts to plot (index in cut_options) # **** need to update for multiple in list to work for sum_flows = True as well
     
     sum_values = []
     drawers = [] # to hold the scissors
@@ -1308,7 +1417,8 @@ def main():
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20     ,option[2]:'-chi ndof'     ,option[3]:1 , func_name:'Chi_ndof_cut' },
                    '13':{option[0]:'Hits per track in vertex'     ,option[1]:4       ,option[2]:'hits'          ,option[3]:1 , func_name:'Hits_per_track'},
                    '14':{option[0]:'Fiducial Leniency'            ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
-                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'}} 
+                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
+                   '16':{option[0]:'All vertices before all hits' ,option[1]:1       ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'}} 
 
     for opt in option:
         flows[opt] = np.array([])
@@ -1319,7 +1429,7 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    permutation = [0,1,2,4,9,13,14,3,11,5,6,7,8,10,12,15] # order in which the cuts are performed
+    permutation = [0,1,2,4,9,13,14,3,11,5,6,7,8,10,12,15,16] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
@@ -1459,8 +1569,8 @@ def main():
     
                 if not sum_flows and len(values) != 0:
                     _bins = 100
-                    _rng = (np.amin(values),np.max(values)*1.1)
-                    #_rng = (-3000,5000)
+                    #_rng = (np.amin(values),np.max(values)*1.1)
+                    _rng = (0,5000)
                     visualization.root_Histogram(values,
                   					rng=_rng,
                   					bins=_bins-int(np.sqrt(len(values))),
@@ -1486,21 +1596,21 @@ def main():
             for cut in cuts_to_plot:
                 _bins = 100
                 _rng = (np.amin(sum_values),np.max(sum_values)*1.1)
-                _rng = [0,10000]
+                _rng = [0,200]
                 visualization.root_Histogram(sum_values,
               					rng=_rng,
               					bins=_bins-int(np.sqrt(len(values))),
               					Title='{} {}'.format(flows['cut name'][cut],sample),
               					xaxis=flows['units'][cut],
               					fname='distribution_{}_{}.png'.format(cut,sample),
-                        logy=True,
+                        logy=False,
                         logx=False)
                     
     cutflow = pd.DataFrame(flows)
 
     print(cutflow)
     
-    if len(sys.argv) == 1 and not start_from_cut:
+    if len(sys.argv) == 1: # and not start_from_cut:
         joblib.dump(passed_events,'passed_events.joblib')
 
     if plot_obj:
