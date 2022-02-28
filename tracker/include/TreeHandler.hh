@@ -256,6 +256,7 @@ public:
       	OutputTree->Branch("Vertex_k_m_ErrorX", &vertex_x_k_m_error);
       	OutputTree->Branch("Vertex_k_m_ErrorY", &vertex_y_k_m_error);
       	OutputTree->Branch("Vertex_k_m_ErrorZ", &vertex_z_k_m_error);
+	OutputTree->Branch("vertex_k_m_chi2", &vertex_k_m_chi2_per_dof);
         OutputTree->Branch("Vertex_k_m_trackIndices", &vertex_track_k_m_indices);
 	OutputTree->Branch("NumVertices_k_m", &numvertices_k_m, "NumVertices/D");
 
@@ -439,6 +440,7 @@ std::vector<double>	vertex_k_m_z;
   	std::vector<double> vertex_x_k_m_error;
   	std::vector<double> vertex_y_k_m_error;
   	std::vector<double> vertex_z_k_m_error;
+	std::vector<double> vertex_k_m_chi2_per_dof;
 std::vector<double>	vertex_track_k_m_indices;
 Double_t numvertices_k_m;
 
@@ -870,6 +872,7 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 	vertex_x_k_m_error.clear();
 	vertex_y_k_m_error.clear();
 	vertex_z_k_m_error.clear();
+	vertex_k_m_chi2_per_dof.clear();
 	numvertices_k_m = vertices.size();
 
 	//std::cout << "export test 1 " << std::endl;
@@ -888,6 +891,8 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 		vertex_y_k_m_error.push_back(sqrt(v->CovMatrix()[1][1]));
 		vertex_z_k_m_error.push_back(sqrt(v->CovMatrix()[2][2]));
 		vertex_t_k_m_error.push_back(sqrt(v->CovMatrix()[3][3]));
+
+		vertex_k_m_chi2_per_dof.push_back(v->merit());
 
 		for (auto q_f : v->q_f) vertex_k_f_beta.push_back(q_f.norm() / constants::c);
 		vertex_k_f_beta.push_back(-1.0);

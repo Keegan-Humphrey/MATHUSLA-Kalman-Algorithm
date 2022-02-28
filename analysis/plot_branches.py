@@ -51,7 +51,7 @@ if __name__ == "__main__":
 		"x_estimates_m:y_estimates_m"]
 
     '''
-    branches = ["Hit_x:Hit_z"] #, \
+#    branches = ["Hit_x:Hit_z"] #, \
 #		"Hit_y:Hit_z", \
 #		"Hit_x:Hit_y"]
     '''
@@ -59,11 +59,15 @@ if __name__ == "__main__":
 		"Track_k_y0:Track_k_z0", \
 		"Track_k_x0:Track_k_y0"]
     '''
-    branches_1 = ["Digi_x:Digi_z"] #, \
+#    branches_1 = ["Digi_x:Digi_z"] #, \
 #                "Digi_y:Digi_z", \
 #                "Digi_x:Digi_y"]
 
-    branches.extend(branches_1)
+#    branches.extend(branches_1)
+
+    branches = ['Hit_x',
+		'Hit_y',
+		'Hit_z']
 
     plt = Plot()
 

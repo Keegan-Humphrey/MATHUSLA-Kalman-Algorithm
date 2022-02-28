@@ -426,15 +426,15 @@ class Event:
 		self.Tree.SetBranchStatus("Vertex_k_m_z",1)
 		self.Tree.SetBranchStatus("Vertex_k_m_trackIndices",1)
 
-		self.Tree.SetBranchStatus("king_move_inds", 1)
+		#self.Tree.SetBranchStatus("king_move_inds", 1)
 		self.Tree.SetBranchStatus("x_estimates_m", 1)
 		self.Tree.SetBranchStatus("y_estimates_m", 1)
 		self.Tree.SetBranchStatus("z_estimates_m", 1)
 		self.Tree.SetBranchStatus("NumTracks_k_m", 1)
 
-		self.Tree.SetBranchStatus("vertex_vx_m", 1)
-		self.Tree.SetBranchStatus("vertex_vy_m", 1)
-		self.Tree.SetBranchStatus("vertex_vz_m", 1)
+		#self.Tree.SetBranchStatus("vertex_vx_m", 1)
+		#self.Tree.SetBranchStatus("vertex_vy_m", 1)
+		#self.Tree.SetBranchStatus("vertex_vz_m", 1)
 
 		self.Tree.SetBranchStatus("Digi_numHits", 1)
 		self.Tree.SetBranchStatus("Digi_x", 1)
@@ -460,9 +460,9 @@ class Event:
 		z_s = util.unzip(self.Tree.z_estimates_m)
 
 		# velocity best estimates at the vertex
-		vxv = util.unzip(self.Tree.vertex_vx_m)
-		vyv = util.unzip(self.Tree.vertex_vy_m)
-		vzv = util.unzip(self.Tree.vertex_vz_m)
+		#vxv = util.unzip(self.Tree.vertex_vx_m)
+		#vyv = util.unzip(self.Tree.vertex_vy_m)
+		#vzv = util.unzip(self.Tree.vertex_vz_m)
 
 		# get truth vertex info (decay location of parent particle used in the event)
 		used_gens_inds = np.where(np.array(self.Tree.GenParticle_G4index) != -1)[0]
@@ -492,10 +492,11 @@ class Event:
 			zv = self.Tree.Vertex_k_m_z[n]
 
 			# made vertex passed to visualiser
-			if len(vxv) != 0:
-				visEngine_local.AddVertex( {'point':[xv, yv, zv], 'col':colors[c], 'vert vel':[vxv[n], vyv[n], vzv[n]]} )
+			#if len(vxv) != 0:
+			#	visEngine_local.AddVertex( {'point':[xv, yv, zv], 'col':colors[c], 'vert vel':[vxv[n], vyv[n], vzv[n]]} )
 
-			else:
+			#else:
+			if True:
 				visEngine_local.AddVertex( {'point':[xv, yv, zv], 'col':colors[c], 'vert vel':[[]*3]} )
 
 			# loop over tracks in the current vertex
@@ -539,18 +540,19 @@ class Event:
 						z = self.Tree.Digi_z[ind]
 						visEngine_local.AddPoint( [[x, y, z], 'tab:gray'] )
 
-			king_move_inds = util.unzip(self.Tree.king_move_inds)
+			#king_move_inds = util.unzip(self.Tree.king_move_inds)
 
 			#print('king move indices are ',king_move_inds)
 
 			# show hits dropped from the hit pool (via king moves algorithm)
+			'''
 			for inds in king_move_inds:
 				for ind in inds:
 					x = self.Tree.Digi_x[ind]
 					y = self.Tree.Digi_y[ind]
 					z = self.Tree.Digi_z[ind]
 					visEngine_local.AddPoint( [[x, y, z], 'm'] )
-
+			'''
 		# draw the plot and save (show) it
 		visEngine_local.Draw(self.Tree_nm.split('/')[-1].split('.')[0]+'_{}_{}.pdf'.format(self.EventNumber,'merged')) #_linear'))
 

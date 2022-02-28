@@ -37,27 +37,39 @@ def main(opt):
         cut = -1 # -1 to look at survivors (otherwise indexed as in flows)
         
         passed_events = joblib.load('passed_events.joblib')
+#        passed_events = joblib.load('passed_events_run6_4hits_23_2_22.joblib')
         
-        event_cap = 30
+
+        total_event_cap = 50
+        file_event_cap = 20
+
+        survivors = True # False => look at events cut at cut, True => look at survivors
 
         if not os.path.exists('vis_plots'):
             os.makedirs('vis_plots')
 
         #files_handled = 0
         
-        events_processed = 0
-        
+        total_events_processed = 0
+
         for file in passed_events.keys():
-            
+        #file = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_2_0.root'
+
+        #if True:
+
+
+            events_processed = 0
             #ev = event.Event(file, 0)
-            
             try:
-                inds = passed_events[file][cut].astype(int)
+
+                if survivors:
+                    inds = passed_events[file][cut].astype(int)
+
+                else:
+                    inds_before = set(passed_events[file][cut-1].astype(int))
+                    inds_after = set(passed_events[file][cut].astype(int))
                 
-                #inds_before = set(passed_events[file][cut-1].astype(int))
-                #inds_after = set(passed_events[file][cut].astype(int))
-                
-                #inds = inds_before - inds_after # show events cut
+                    inds = inds_before - inds_after # show events cut
 
             except:
                 inds = []
@@ -73,11 +85,12 @@ def main(opt):
             #    continue
         
             for ind in inds:
-                if events_processed > event_cap:
+                if events_processed > file_event_cap:
                     break
             
-                print("Events Processed: ",events_processed)
+                print("Events Processed: ",total_events_processed)
                 events_processed += 1
+                total_events_processed += 1
     
                 print("Event number: ",ind)
                 
@@ -99,7 +112,7 @@ def main(opt):
                 #ev.RecoLinVertex()
     
                 
-            if events_processed > event_cap:
+            if total_events_processed > total_event_cap:
                 break
             
 
