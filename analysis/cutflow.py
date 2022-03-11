@@ -516,12 +516,12 @@ class sample_space():
                         try:
                             del_t = (self.y_floor - y) / vy
                             
-                            expected_x_floor = x + vx * del_t
+                            #expected_x_floor = x + vx * del_t
                             expected_z_floor = z + vz * del_t
                             
                             del_t = (self.det.z_wall - z) / vz
                             
-                            expected_x_wall = x + vx * del_t
+                            #expected_x_wall = x + vx * del_t
                             expected_y_wall = y + vy * del_t
                         
                         except ZeroDivisionError:
@@ -531,24 +531,28 @@ class sample_space():
                         # symmetries modded out so < 0 => outside the detector in each direction
                         
                         if expected_y_wall >= self.y_floor: # doesn't go through the floor, we prefer this one!
-                            edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - np.abs(expected_y_wall - centre_wall[1]) # to edge of wall for the vertex
-                            edge_dist_x_wall = (self.det.WallLimits[0][1] - self.det.WallLimits[0][0]) / 2 - np.abs(expected_x_wall - centre_wall[0]) # distance from expected hits
+                            #edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - np.abs(expected_y_wall - centre_wall[1]) # to edge of wall for the vertex
+                            edge_dist_y_wall = (self.det.WallLimits[1][1] - self.det.WallLimits[1][0]) / 2 - (centre_wall[1] - expected_y_wall) # to edge of wall for the vertex
+                            #edge_dist_x_wall = (self.det.WallLimits[0][1] - self.det.WallLimits[0][0]) / 2 - np.abs(expected_x_wall - centre_wall[0]) # distance from expected hits
                         
                             #self.plotter.data_dict['Exp Pos x wall'].append(edge_dist_x_wall)
                             #self.plotter.data_dict['Exp Pos y wall'].append(edge_dist_y_wall)
                         
-                            min_dist = np.amin([edge_dist_x_wall, edge_dist_y_wall])
+                            #min_dist = np.amin([edge_dist_x_wall, edge_dist_y_wall])
+                            min_dist = edge_dist_y_wall # remove x and positive edge cuts -> just corner between wall and floor
                         
                         else: # doesn't doesn't go through the wall, we prefer this one!
-                            edge_dist_z_floor = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - np.abs(expected_z_floor - centre_floor[1]) # to edge of floor for the vertex
-                            edge_dist_x_floor = (self.det.BoxLimits[0][1] - self.det.BoxLimits[0][0]) / 2 - np.abs(expected_x_floor - centre_floor[0]) # distance from expected hits
+                            #edge_dist_z_floor = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - np.abs(expected_z_floor - centre_floor[1]) # to edge of floor for the vertex
+                            edge_dist_z_floor = (self.det.BoxLimits[2][1] - self.det.BoxLimits[2][0]) / 2 - (centre_floor[1] - expected_z_floor) # to edge of floor for the vertex
+                            #edge_dist_x_floor = (self.det.BoxLimits[0][1] - self.det.BoxLimits[0][0]) / 2 - np.abs(expected_x_floor - centre_floor[0]) # distance from expected hits
                         
                             #self.plotter.data_dict['Exp Pos x floor'].append(edge_dist_x_floor)
                             #self.plotter.data_dict['Exp Pos z floor'].append(edge_dist_z_floor)
                         
-                            min_dist = np.amin([edge_dist_z_floor, edge_dist_x_floor]) # **** these are from either edge, we should really have distance from corner of wall and floor
+                            #min_dist = np.amin([edge_dist_z_floor, edge_dist_x_floor]) # **** these are from either edge, we should really have distance from corner of wall and floor
                                                                                         # ie. only look at + z and + y directions
-                        
+                            min_dist = edge_dist_z_floor # remove x and positive edge cuts -> just corner between wall and floor
+                          
                         # if the distance from the edge is larger (closer to det centre) than other tracks found,
                         # keep track of it 
                         if min_dist > max_centre_dist:
@@ -1337,24 +1341,25 @@ def main():
 
     else:
         # plotting booleans (do you want to make plots?)
-        plot_cut = False
+        plot_cut = True
         plot_obj = False
         
-        sum_flows = False # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
+        sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         
         load = False # set at most one of these to True
         save = False
         
         start_from_cut = False
         
-        start_cut = 5 # work only with the files with survivors at cut start_cut (indexed as in flows)
+        start_cut = -1 # work only with the files with survivors at cut start_cut (indexed as in flows)
         # it would be good to have it run without cutting, just to gather passed_event joblibs into a single file
         # add boolean for that so we can start after the relevant cut. 
         
         if start_from_cut:
             #passed_events_file = 'passed_events.joblib'
+            passed_events_file = 'passed_events_1_left_28_2_22.joblib'
             #passed_events_file = 'passed_events_run6_4hits_23_2_22.joblib'
-            passed_events_file = 'passed_events_0_left_27_2_22.joblib'
+            #passed_events_file = 'passed_events_0_left_27_2_22.joblib'
             #passed_events_file = 'passed_events_1_left.joblib'
 
             passed_events_prev = joblib.load(passed_events_file)
@@ -1424,7 +1429,7 @@ def main():
         print("I need at least 1 file to run!")
         return
 
-    cuts_to_plot = [3,9] # [int] which cuts to plot (index in cut_options) # **** need to update for multiple in list to work for sum_flows = True as well
+    cuts_to_plot = [9,14] # [int] which cuts to plot (index in cut_options) # **** need to update for multiple in list to work for sum_flows = True as well
     
     sum_values = [[] for i in range(ncuts)] # a list to add values to plot for every cut
     drawers = [] # to hold the scissors
@@ -1446,7 +1451,7 @@ def main():
                    '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2    ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological' },
                    '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta' },
                    '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1 ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs' },
-                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600     ,option[2]:'cm'            ,option[3]:0 , func_name:'Exp_hits' },
+                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600     ,option[2]:'cm'            ,option[3]:1 , func_name:'Exp_hits' },
                    '10':{option[0]:'No Floor Hits'                ,option[1]:1       ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
                    '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6      ,option[2]:'-missed hits'  ,option[3]:0 , func_name:'Missing_hit_sum' },
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20     ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
@@ -1464,7 +1469,7 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    permutation = [0,1,2,4,14,3,15,9,13,11,5,6,7,8,10,12,16] # order in which the cuts are performed
+    permutation = [0,1,2,4,3,15,14,9,13,11,5,6,7,8,10,12,16] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
