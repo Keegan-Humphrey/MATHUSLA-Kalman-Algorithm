@@ -16,7 +16,9 @@ Once anaconda is installed, the enviornment can be created using the .yml file a
 $ conda env create -f env/environment.yml
 $ conda activate tracker
 ```
-You will also need to install the Eigen Library for c++ and the joblib package to python.
+You will also need the Eigen Library for c++ and to install the joblib package to python.
+
+Note: joblib can be installed through anaconda, Eigen does not require installation. You can downlowd the tar ball from here https://eigen.tuxfamily.org/dox/index.html , then unzip it. If cmake cannot find the directory automatically, you will need to point it to the unzipped eigen directory by setting the EIGEN3_INCLUDE_DIR variable in /tracker/CMakeLists.txt and commenting out the corresponding include_directories command. 
 
 Now, the project can be built using cmake:
 

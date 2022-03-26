@@ -16,7 +16,7 @@ import joblib
 RUN OPTION
 '''
 
-option = 0
+option = 15
 
 
 print('hello viewer')
@@ -235,6 +235,14 @@ def main(opt):
 
     elif opt == 14:
         ev.Compare_sim_and_digi()
+
+    elif opt == 15:
+        passed_events = joblib.load('passed_events.joblib')
+
+        for file in passed_events.keys():
+            ev = event.Event(file, 0)
+
+            ev.Signal_Evaluation_Plots()
 
 
 if __name__ == "__main__":

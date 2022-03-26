@@ -27,6 +27,10 @@ class Editor:
 
         def alter(self):
 
+		# add the name of a parameter to handle here
+		# and in par_card / Parameters.txt to make it available
+		# to the tracker
+
                 pars_to_handle = ['branch',
 				'debug',
 				'seed',
@@ -37,6 +41,7 @@ class Editor:
 				'kalman_pval_add',
 				'kalman_pval_track',
 				'p',
+				'scint_efficiency',
 				'merge_cos_theta',
 				'merge_distance',
 				'seed_closest_approach',

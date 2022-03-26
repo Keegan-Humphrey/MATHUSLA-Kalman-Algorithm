@@ -1333,10 +1333,30 @@ class Event:
 
 
 
+	def Signal_Evaluation_Plots(self):
 
+		passed_events = load('passed_events.joblib')
 
+		self.Tree.SetBranchStatus("vertex_k_m_chi2",1)
+		#self.Tree.SetBranchStatus("Track_k_m_chi2PerNdof",1)
+		self.Tree.SetBranchStatus("Track_k_chi2PerNdof",1)
+		self.Tree.SetBranchStatus("Track_k_smooth_chi_sum",1)
+		vertex_chis, track_chis = [], []
 
+		print(self.Tree_nm)
 
+		for ev in passed_events[self.Tree_nm][-1]: # look at survivors
+			ev = int(ev)
+			self.Tree.GetEntry(ev)
 
+			for vchi in self.Tree.vertex_k_m_chi2:
+				vertex_chis.append(vchi)
 
+#			for tchi in self.Tree.Track_k_chi2PerNdof:
+			for tchi in self.Tree.Track_k_smooth_chi_sum:
+				track_chis.append(tchi)
 
+		visualization.root_Histogram(track_chis, fname="track_chis_{}.png".format(self.Tree_nm.split("_")[-2]),
+			Title="Signal Track Chi's", xaxis="Track Chi per Ndof []")
+		visualization.root_Histogram(vertex_chis, fname="vertex_chis_{}.png".format(self.Tree_nm.split("_")[-2]),
+			Title="Signal Vertex Chi's", xaxis="Vertex Chi per Ndof []")

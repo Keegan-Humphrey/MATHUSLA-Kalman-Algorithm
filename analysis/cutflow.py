@@ -223,7 +223,7 @@ class sample_space():
                 if self.inside_box(vtxx, vtxy, vtxz):
                     inside = True
                     
-                    #self.event_info.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add all vertices
+                    self.event_info.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add all vertices
                     
             # check if at least one vertex is in the detector
             self.current_vector[3] = int(inside) # fiducial
@@ -711,7 +711,7 @@ class sample_space():
                 vtx_dist_to_slope = ( vtxz - vtxy * self.IP_to_wall_slope ) / ( 1 + self.IP_to_wall_slope**2 )
                 max_dist_to_slope = max(max_dist_to_slope, vtx_dist_to_slope)
         
-        self.event_info.data_dict['slope dist'].append(max_dist_to_slope)
+        #self.event_info.data_dict['slope dist'].append(max_dist_to_slope)
         
         self.current_vector[self.n] = max_dist_to_slope
         
@@ -850,7 +850,8 @@ class sample_space():
                             if pair.closest_approach < closest_approach:
                                 closest_approach = pair.closest_approach
                                 lowest_pair = pair
-                
+        
+        '''      
         if lowest_pair != None:
             self.event_info.data_dict['pair reco beta'].append(lowest_pair.beta)
             self.event_info.data_dict['pair closest approach'].append(lowest_pair.closest_approach)
@@ -861,7 +862,7 @@ class sample_space():
         else:
             self.event_info.data_dict['pair reco beta'].append(1e6)
             self.event_info.data_dict['pair closest approach'].append(1e6)
-            
+        '''  
         self.current_vector[self.n] = closest_approach
         
 
@@ -1099,7 +1100,10 @@ class Plotter:
        #try:
        #for key in pltr.data_dict.keys():
        #    self.data_dict[key].extend(pltr.data_dict[key])
-           
+       
+       #print(pltr.event_infos)
+       #print(pltr.survivors)
+       
        self.lists_of_event_infos.append(pltr.event_infos) # add the event infos as lists with survivors so they can be referenced easily
        self.survivors.append(pltr.survivors)
            
@@ -1118,6 +1122,7 @@ class Plotter:
         try:
             if len(self.lists_of_event_infos) != 0: # passed a whole object (ie. this is a global plotter)
                 if type(cut) == int: 
+                    #print("I'm here!")
                     for i, event_infos in enumerate(self.lists_of_event_infos):
                         event_infos = np.array(event_infos, dtype=object)
                         survivors = np.array(self.survivors[i][cut], dtype=int)
@@ -1125,7 +1130,7 @@ class Plotter:
                         gathered_event_infos.extend(list(event_infos[survivors]))
                         
                 elif cut == 'all':
-                    gathered_event_infos =  [item for sublist in self.lists_of_event_infos for item in sublist] 
+                    gathered_event_infos = [item for sublist in self.lists_of_event_infos for item in sublist] 
             
             else: # this is for one file (ie. local plotter for one file)      
                 if type(cut) == int:
@@ -1141,13 +1146,23 @@ class Plotter:
                     gathered_event_infos = [item for sublist in self.event_infos for item in sublist] 
             
         except IndexError:
+            print(self.lists_of_event_infos)
+            print(gathered_event_infos)
             print(event_infos)
             print(survivors)
             print('sorry, I dont think those events have info')
           
+        
+        #for ev_info in gathered_event_infos[:10]:
+            #for key in ev_info.data_dict.keys():
+            #    print(key)
+            #print(ev_info.data_dict[key])   
+        
         for event_info in gathered_event_infos:
             gathered_info.extend(event_info.data_dict[key])
             
+        #print(gathered_info)
+
         return gathered_info
     
         
@@ -1162,10 +1177,10 @@ class Plotter:
         #self.expected_time_space('wall')
         #self.expected_time_space('floor')
         
-        #self.vertex_pos()
+        self.vertex_pos()
         #self.slope_dist()
     
-        self.beta_vs_approach()
+        #self.beta_vs_approach()
         
     
     def beta_vs_approach(self):
@@ -1285,15 +1300,15 @@ class Plotter:
     def vertex_pos(self):
      
         _Title = 'Fiducial Vertex Positions {}'.format(self.sample)
-        _xlabel = 'z position [cm]'
-        _zlabel = 'y position [cm]'
-        _fname = 'vert_pos_{}.png'.format(self.sample)
+        _xlabel = '{} position [cm]'
+        _zlabel = '{} position [cm]'
+        _fname = 'vert_pos_{}'.format(self.sample)
 
         if len(self.data_dict['vert pos']) != 0:
             vertex_pos = np.array(self.data_dict['vert pos'])
         
         else:
-            vertex_pos = np.array(self.gather_info('vert pos',1))
+            vertex_pos = np.array(self.gather_info('vert pos',2))
         
         joblib.dump(vertex_pos,'vert_pos_array.joblib')
 
@@ -1301,18 +1316,26 @@ class Plotter:
             print('no surviving vertices found to plot!')
             return
 
-        _data_x = vertex_pos[:,2]
-        _data_z = vertex_pos[:,1]
+        _data_x = vertex_pos[:,0]
+        _data_y = vertex_pos[:,1]
+        _data_z = vertex_pos[:,2]
 
         det = detector.Detector()
-        _xlims = det.BoxLimits[2]
-        _zlims = det.BoxLimits[1]
+        _xlims = det.BoxLimits[0]
+        _ylims = det.BoxLimits[1]
+        _zlims = det.BoxLimits[2]
         
         _xbins=100
         _zbins=100
         
+        visualization.root_2D_Histogram(_data_x, _data_y, Title=_Title, xbins=_xbins, zbins=_zbins,
+	      	              xlims=_xlims, zlims=_ylims, xlabel=_xlabel.format("x"), zlabel=_zlabel.format("y"), fname=_fname+"_x_y.png")
+        
         visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
-	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel.format("x"), zlabel=_zlabel.format("z"), fname=_fname+"_x_z.png")
+        
+        visualization.root_2D_Histogram(_data_z, _data_y, Title=_Title, xbins=_xbins, zbins=_zbins,
+	      	              xlims=_zlims, zlims=_ylims, xlabel=_xlabel.format("z"), zlabel=_zlabel.format("y"), fname=_fname+"_z_y.png")
             
             
 
@@ -1341,12 +1364,12 @@ def main():
 
     else:
         # plotting booleans (do you want to make plots?)
-        plot_cut = True
-        plot_obj = False
+        plot_cut = False
+        plot_obj = True
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         
-        load = False # set at most one of these to True
+        load = True # set at most one of these to True
         save = False
         
         start_from_cut = False
@@ -1364,13 +1387,6 @@ def main():
 
             passed_events_prev = joblib.load(passed_events_file)
             
-            
-            # **** could save the scissors after cutting and just update when loaded and cut again
-            # **** could also point to the joblib with passed events
-            # **** 
-            
-            # *** use file converter to convert between root and joblib file to start from cut on a load run
-
             files = []
             
             if load:
@@ -1388,12 +1404,15 @@ def main():
                         
         elif load:
             if sum_flows:
+                load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+                
                 #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/22_02_22/"
-                load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/"
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/"
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_03_22/"
 
                 files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
             
@@ -1410,7 +1429,7 @@ def main():
                 #directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
                 
                 #files = [filename for filename in glob.iglob(directory_6+'/**/stat_*.root', recursive=True)]
-                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)][:50]
+                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
         
             else: # signal
@@ -1423,7 +1442,12 @@ def main():
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root'] # 3 hits per track
         #            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
         
-                files = files_4
+        
+                files_4_w_vert_chi = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_0_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_1_0.root',
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_2_0.root'] 
+        
+                files = files_4_w_vert_chi
            
     if len(files) == 0:
         print("I need at least 1 file to run!")
@@ -1451,7 +1475,7 @@ def main():
                    '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2    ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological' },
                    '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta' },
                    '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1 ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs' },
-                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600     ,option[2]:'cm'            ,option[3]:1 , func_name:'Exp_hits' },
+                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600     ,option[2]:'cm'            ,option[3]:0 , func_name:'Exp_hits' },
                    '10':{option[0]:'No Floor Hits'                ,option[1]:1       ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
                    '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6      ,option[2]:'-missed hits'  ,option[3]:0 , func_name:'Missing_hit_sum' },
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20     ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
@@ -1662,10 +1686,9 @@ def main():
     if load:
         joblib.dump(file_converter,'file_converter.joblib')
 
-    if plot_obj:
-        joblib.dump(pltr,'global_plotter.joblib')
+    #if plot_obj:
+        #joblib.dump(pltr,'global_plotter.joblib')
 
-    
     
 if __name__ == '__main__':
 
