@@ -89,7 +89,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 				current_hits = unused_hits;
 			}  else { current_hits.erase(current_hits.begin());}
 
-		}
+		} // while (current_hits.size() > 0)
 
 		//resetting all the sorting vectors, and assigning the next remianing hits to the next iteration for current remaining
 		current_remaining_hits.clear();
@@ -97,7 +97,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 		next_remaining_hits.clear();
 		current_hits.clear();
 
-	}
+	} // while (current_remaining_hits.size() > 0)
 
 	//at this point, all of the digi_hits in the digi_vector have the hits which will make them up. However, they don't have any of their energy, position, or timing information added.
 	//Below, we compute the energy, time, and position of all of the digi hits
@@ -138,17 +138,20 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	TRandom drop_generator;
 	drop_generator.SetSeed( rand()*rand()*rand() % rand() );
 
+	/*
 	for (auto digi : digis) {
 		// Rndm() uniformly samples (0,1) so 1 time in every scint_efficiency samples we don't satisfy this condition
 		if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
 			digis_not_dropped.push_back(digi);
 		}
-		else std::cout << "dropped a hit" << std::endl;
+		//else std::cout << "dropped a hit" << std::endl;
+		// add a counter and push it to tree at some point???
 	}
 
 	digis.clear();
 	digis = digis_not_dropped;
 	digis_not_dropped.clear();
+	*/
 
 	// now manage hits in the floor and wall
 	for (auto digi : digis){
@@ -160,12 +163,30 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 		auto long_direction_index = layer->long_direction_index;
 		auto uncertainty = layer->uncertainty();
 
+		bool drop_me = false;
+
 		if (current_id.isFloorElement){
 			//if (current_id.isFloorElement) std::cout << digi->hits.size() << std::endl;
 			uncertainty = _geometry->_floor.uncertainty(current_id.layerIndex);
-        } else if (current_id.isWallElement){
-            uncertainty = _geometry->_wall.uncertainty();
-		} else {
+
+			//if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
+			if (drop_generator.Rndm() < 1.0 / par_handler->par_map["scint_efficiency"]) {
+				//digis_not_dropped.push_back(digi);
+				drop_me = true;
+				std::cout << "dropped a hit" << std::endl;
+			}
+		}
+		else if (current_id.isWallElement){
+            		uncertainty = _geometry->_wall.uncertainty();
+
+			//if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
+			if (drop_generator.Rndm() < 1.0 / par_handler->par_map["scint_efficiency"]) {
+				//digis_not_dropped.push_back(digi); // be careful, won't this add the pointer that goes away at the end of the loop?
+				drop_me = true;
+				std::cout << "dropped a hit" << std::endl;
+			}
+		}
+		else {
 			layer = _geometry->layer_list[current_id.layerIndex];
 			long_direction_index = layer->long_direction_index;
 			uncertainty = layer->uncertainty();
@@ -186,16 +207,6 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 			}
 		}
 
-		//std::cout << "getting energy weighting" << std::endl;
-
-	//	std::cout << "uncertainty:" << std::endl;
-	//	for (int count = 0; count < uncertainty.size(); count++){
-	//		std::cout << "count: " << count << "  element: " << uncertainty[count] << std::endl;
-	//	}
-	//	std::cout << "center:" << std::endl;
-	//	for (int count = 0; count < center.size(); count++){
-	//		std::cout << "count: " << count << "  element: " << center[count] << std::endl;
-	//	}
 		digi->e = e_sum;
 		digi->t = t_sum/e_sum;
 		digi->y = center[1];
@@ -203,14 +214,12 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 		digi->ex = uncertainty[0];
 		digi->ez = uncertainty[2];
 
-	//	std::cout << "done" << std::endl;
-
 		//note: et is the same for all of them and is set in the digi class defintion
 		if (current_id.isFloorElement || current_id.isWallElement){
 			digi->x = center[0];
 			digi->z = center[2];
-        } else {
-	    	if (long_direction_index == 0){
+	        } else {
+		    	if (long_direction_index == 0){
 				digi->x = long_direction_sum/e_sum;
 				digi->z = center[2];
 			} else {
@@ -227,10 +236,13 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 		digi->t += generator.Gaus(0.0, digi->et);
 
 		if (current_id.isFloorElement || current_id.isWallElement) {
-
+			if (!drop_me) { // it's a floor / wall hit
+				digis_not_dropped.push_back(digi);
+			}
 			continue;
 		}
 
+		// it's a tracking / trigger layer hit
 		if (long_direction_index == 0) {
 			double smeared_x = digi->x + generator.Gaus(0.0, digi->ex);
 			if (!(_geometry->GetDetID(smeared_x, digi->y, digi->z) == current_id) ){
@@ -253,7 +265,13 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 			std::cout << "Warning!!! Smearing function error--digi was smeared to be outside of known detector element!!" << std::endl;
 		}
 
+		//if (!drop_me) {
+		digis_not_dropped.push_back(digi); // it's a tracking / trigger layer hit, so it will never be dropped
+		//}
+		//else std::cout << "dropped a hit" << std::endl;
 	}
+
+	digis = digis_not_dropped; // only keep hits not dropped by inefficiency in the floor or wall
 
 	//setting digi indices
 	int k = 0;

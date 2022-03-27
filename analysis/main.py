@@ -16,7 +16,7 @@ import joblib
 RUN OPTION
 '''
 
-option = 15
+option = 0
 
 
 print('hello viewer')
@@ -34,12 +34,11 @@ def main(opt):
         # plot visualisations for events used in the analysis
         # to be put in ./vis_plots/
         
-        cut = 4 # -1 to look at survivors (otherwise indexed as in flows)
+        cut = -1 # -1 to look at survivors (otherwise indexed as in flows)
         
         passed_events = joblib.load('passed_events.joblib')
 #        passed_events = joblib.load('passed_events_run6_4hits_23_2_22.joblib')
         
-
         total_event_cap = 50
         file_event_cap = 20
 
@@ -235,14 +234,6 @@ def main(opt):
 
     elif opt == 14:
         ev.Compare_sim_and_digi()
-
-    elif opt == 15:
-        passed_events = joblib.load('passed_events.joblib')
-
-        for file in passed_events.keys():
-            ev = event.Event(file, 0)
-
-            ev.Signal_Evaluation_Plots()
 
 
 if __name__ == "__main__":

@@ -784,10 +784,10 @@ class sample_space():
                 
                 for vertex in range(len(self.tree.Vertex_k_m_t)): # loop over lists of vertices
                     min_vertex_t = min(min_vertex_t, self.tree.Vertex_k_m_t[vertex])
-                ''''''
+                '''
                 
                 # **** switch back to the version below (tracking layer hits instead of vertices for min time)
-                '''    '''    
+                '''
                 for hit in tracking_hits:
                     min_tracking_t = min(min_tracking_t, self.tree.Digi_time[hit])
                 
@@ -1079,14 +1079,17 @@ class Plotter:
 
     def __init__(self):
         ''' Assign to attributes to collect data for plots '''
-        
+
+        evif = event_info(-1)
+        self.data_dict = evif.data_dict
+        '''
         self.data_dict = {'Exp Pos x wall':[], 'Exp Pos y wall':[],
                           'Exp Pos x floor':[], 'Exp Pos z floor':[],
                           'dt wall':[], 'dt floor':[],
                           'dist wall':[], 'dist floor':[],
                           'vert pos':[], 'slope dist':[],
                           'pair closest approach':[], 'pair reco beta':[]}
-        
+        '''
         
         self.event_infos = [] # collected info for plotting organized by event
         self.lists_of_event_infos = [] # list of event_infos lists above (one for each file)
@@ -1119,39 +1122,43 @@ class Plotter:
         # **** might not need to distinguish because of how we merge now?
         
         #if True:
-        try:
-            if len(self.lists_of_event_infos) != 0: # passed a whole object (ie. this is a global plotter)
-                if type(cut) == int: 
-                    #print("I'm here!")
-                    for i, event_infos in enumerate(self.lists_of_event_infos):
+        #try:
+        if len(self.lists_of_event_infos) != 0: # passed a whole object (ie. this is a global plotter)
+            if type(cut) == int: 
+                #print("I'm here!")
+                for i, event_infos in enumerate(self.lists_of_event_infos):
+                    try:
                         event_infos = np.array(event_infos, dtype=object)
                         survivors = np.array(self.survivors[i][cut], dtype=int)
-                          
+                      
                         gathered_event_infos.extend(list(event_infos[survivors]))
-                        
-                elif cut == 'all':
-                    gathered_event_infos = [item for sublist in self.lists_of_event_infos for item in sublist] 
-            
-            else: # this is for one file (ie. local plotter for one file)      
-                if type(cut) == int:
-                    event_infos = np.array(self.event_infos, dtype=object)
                     
-                    print(self.survivors)
+                    except IndexError:
+                        pass
                     
-                    survivors = np.array(self.survivors[cut], dtype=int)
-                     
-                    gathered_event_infos.extend(list(event_infos[survivors]))
-                    
-                elif cut == 'all':
-                    gathered_event_infos = [item for sublist in self.event_infos for item in sublist] 
-            
+            elif cut == 'all':
+                gathered_event_infos = [item for sublist in self.lists_of_event_infos for item in sublist] 
+        
+        else: # this is for one file (ie. local plotter for one file)      
+            if type(cut) == int:
+                event_infos = np.array(self.event_infos, dtype=object)
+                
+                print(self.survivors)
+                
+                survivors = np.array(self.survivors[cut], dtype=int)
+                 
+                gathered_event_infos.extend(list(event_infos[survivors]))
+                
+            elif cut == 'all':
+                gathered_event_infos = [item for sublist in self.event_infos for item in sublist] 
+        '''    
         except IndexError:
-            print(self.lists_of_event_infos)
-            print(gathered_event_infos)
-            print(event_infos)
-            print(survivors)
+            print(np.shape(self.lists_of_event_infos))
+            print(np.shape(gathered_event_infos))
+            print(np.shape(event_infos))
+            print(np.shape(survivors))
             print('sorry, I dont think those events have info')
-          
+        '''  
         
         #for ev_info in gathered_event_infos[:10]:
             #for key in ev_info.data_dict.keys():
@@ -1310,7 +1317,7 @@ class Plotter:
         else:
             vertex_pos = np.array(self.gather_info('vert pos',2))
         
-        joblib.dump(vertex_pos,'vert_pos_array.joblib')
+        #joblib.dump(vertex_pos,'vert_pos_array.joblib')
 
         if vertex_pos.size == 0:
             print('no surviving vertices found to plot!')
@@ -1365,7 +1372,7 @@ def main():
     else:
         # plotting booleans (do you want to make plots?)
         plot_cut = False
-        plot_obj = True
+        plot_obj = False
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         
@@ -1424,12 +1431,13 @@ def main():
          
         else:
             if sum_flows: # Background
-                directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
+                #directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
+                directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/26_03_22/'
                 #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
                 #directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
                 
-                #files = [filename for filename in glob.iglob(directory_6+'/**/stat_*.root', recursive=True)]
-                files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
+                files = [filename for filename in glob.iglob(directory_3+'/**/stat_*.root', recursive=True)]
+                #files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
         
             else: # signal
@@ -1493,7 +1501,7 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    permutation = [0,1,2,4,3,15,14,9,13,11,5,6,7,8,10,12,16] # order in which the cuts are performed
+    permutation = [0,1,2,4,14,3,15,9,13,11,5,6,7,8,10,12,16] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
