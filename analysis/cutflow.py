@@ -105,6 +105,9 @@ class sample_space():
         cut_vectors = []
         
         self.additional_info = np.zeros((int(self.tree.GetEntries()),2)) # Fill me up with info if you want internal 
+
+        # count the number of digis
+        self.num_digis = 0
                                                                          # access to the cuts to plot something new
         for event_number in range(int(self.tree.GetEntries())):
 
@@ -116,6 +119,9 @@ class sample_space():
             self.n = 0
 
             self.tree.GetEntry(event_number)
+
+            # collect digis for this event
+            self.num_digis += len(self.tree.Digi_x)
 
             if event_number % 1000 == 0:
                 print("event:", event_number)
@@ -1000,6 +1006,8 @@ class scissors():
         
         self.cut_vectors = space.get_states_m()
         self.func_dicts = space.cuts
+
+        self.num_digis = space.num_digis
         
         #self.plotter = space.plotter # update the plotter to collect information from the parameter space
         #self.plotter.merge_a_plotter(space.plotter) # merge the plotter in space with current plotter to gather data
@@ -1315,7 +1323,7 @@ class Plotter:
             vertex_pos = np.array(self.data_dict['vert pos'])
         
         else:
-            vertex_pos = np.array(self.gather_info('vert pos',2))
+            vertex_pos = np.array(self.gather_info('vert pos',-1))
         
         #joblib.dump(vertex_pos,'vert_pos_array.joblib')
 
@@ -1372,14 +1380,14 @@ def main():
     else:
         # plotting booleans (do you want to make plots?)
         plot_cut = False
-        plot_obj = False
+        plot_obj = True
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         
         load = True # set at most one of these to True
         save = False
         
-        start_from_cut = False
+        start_from_cut = True
         
         start_cut = -1 # work only with the files with survivors at cut start_cut (indexed as in flows)
         # it would be good to have it run without cutting, just to gather passed_event joblibs into a single file
@@ -1387,7 +1395,8 @@ def main():
         
         if start_from_cut:
             #passed_events_file = 'passed_events.joblib'
-            passed_events_file = 'passed_events_1_left_28_2_22.joblib'
+            passed_events_file = 'passed_events_1e3_29_3_22.joblib'
+            #passed_events_file = 'passed_events_1_left_28_2_22.joblib'
             #passed_events_file = 'passed_events_run6_4hits_23_2_22.joblib'
             #passed_events_file = 'passed_events_0_left_27_2_22.joblib'
             #passed_events_file = 'passed_events_1_left.joblib'
@@ -1397,7 +1406,8 @@ def main():
             files = []
             
             if load:
-                file_converter_file = 'file_converter_W_27_2_22.joblib'
+                #file_converter_file = 'file_converter_W_27_2_22.joblib'
+                file_converter_file = 'file_converter_W_1e3_29_3_22.joblib'
                 
                 file_converter = joblib.load(file_converter_file) # converts root file to joblib file
             
@@ -1413,6 +1423,7 @@ def main():
             if sum_flows:
                 load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
                 
+                load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/"
                 #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
@@ -1432,7 +1443,8 @@ def main():
         else:
             if sum_flows: # Background
                 #directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
-                directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/26_03_22/'
+                #directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/26_03_22/' # 1e3 scint efficiency run
+                directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/22_02_22/'
                 #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
                 #directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
                 
@@ -1514,6 +1526,7 @@ def main():
         pltr = Plotter() # object to collect and organize information in the cuts to be plotted
  
     total_events = 0
+    total_digis = 0
 
     i = 0
 
@@ -1579,7 +1592,10 @@ def main():
                 continue
                 
         scissor.cut_dict(cut_options, permutation)
-        
+
+        # update total digis count
+        total_digis += scissor.num_digis
+
         if not plot_obj: # to save memory (for large runs we run out of memory keeping track of both plot info and survivors)
             passed_events[scissor.file] = scissor.survivor_inds # in order of permutation (indexed as in flows)
             
@@ -1684,6 +1700,8 @@ def main():
                         logy=False,
                         logx=False)
                     
+    print("found {} digi hit".format(total_digis))
+
     cutflow = pd.DataFrame(flows)
 
     print(cutflow)
