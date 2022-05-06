@@ -170,7 +170,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 			uncertainty = _geometry->_floor.uncertainty(current_id.layerIndex);
 
 			//if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
-			if (drop_generator.Rndm() < 1.0 / par_handler->par_map["scint_efficiency"]) {
+			if (drop_generator.Rndm() < par_handler->par_map["scint_efficiency"]) {
 				//digis_not_dropped.push_back(digi);
 				drop_me = true;
 				std::cout << "dropped a hit" << std::endl;
@@ -180,7 +180,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
             		uncertainty = _geometry->_wall.uncertainty();
 
 			//if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
-			if (drop_generator.Rndm() < 1.0 / par_handler->par_map["scint_efficiency"]) {
+			if (drop_generator.Rndm() < par_handler->par_map["scint_efficiency"]) {
 				//digis_not_dropped.push_back(digi); // be careful, won't this add the pointer that goes away at the end of the loop?
 				drop_me = true;
 				std::cout << "dropped a hit" << std::endl;

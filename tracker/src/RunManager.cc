@@ -40,11 +40,7 @@ int RunManager::StartTracking()
 	hndlr.Handle();
 
 	if (hndlr.par_map["branch"] == 1.0) std::cout << "Running in Cosmic Mode" << std::endl;
-	//else std::cout << "Running in Main Mode" << std::endl;
-
-//	std::cout << "Parameters are: " << std::endl;
-//	std::cout << hndlr.par_map["p"] << std::endl;
-
+	
 	_digitizer->par_handler = &hndlr;
 	_tracker->par_handler = &hndlr;
 	_vertexer->par_handler = &hndlr;
@@ -116,13 +112,13 @@ int RunManager::StartTracking()
 			made_its_k += _tracker->tracks_k_m.size();
 
 			TH->ExportTracks(_tracker->tracks);
-			TH->ExportTracks_k(_tracker->tracks_k);
+			//TH->ExportTracks_k(_tracker->tracks_k);
 			TH->ExportTracks_k_m(_tracker->tracks_k_m);
-			TH->Export_kalman_info(_tracker->local_chi_f, _tracker->local_chi_s);
+			//TH->Export_kalman_info(_tracker->local_chi_f, _tracker->local_chi_s);
 
 
 			// check for negative covariance matrices in made tracks
-			for (auto track : _tracker->tracks_k_m)
+			/*for (auto track : _tracker->tracks_k_m)
 			{
 				Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(track->P_s);
 
@@ -139,7 +135,7 @@ int RunManager::StartTracking()
 
 				if (neg_def)
 					neg_covs++;
-			}
+			}*/ // Not necessary anymore -> forced positive definite covariance
 
 			_vertexer->tracks = _tracker->tracks;
 			_vertexer->tracks_k = _tracker->tracks_k;
@@ -158,7 +154,7 @@ int RunManager::StartTracking()
 			verts_k_m += _vertexer->vertices_k_m.size();
 
 			TH->ExportVertices(_vertexer->vertices);
-			TH->ExportVertices_k(_vertexer->vertices_k);
+			//TH->ExportVertices_k(_vertexer->vertices_k);
 			TH->ExportVertices_k_m(_vertexer->vertices_k_m);
 
 			TH->Fill();
@@ -184,7 +180,6 @@ int RunManager::StartTracking()
 
 		std::cout << "Tracked " << TotalEventsProcessed << " Events" << std::endl;
 
-		//std::cout << "number of null det ids in hits is " << _digitizer->null_num << std::endl;
 	}
 
 	return 0;
