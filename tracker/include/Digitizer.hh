@@ -17,7 +17,9 @@ public:
 	ParHandler* par_handler;
 
 	int ev_num;
-
+ 
+  long long int seed;
+ 
 	int null_num = 0;
 
 	std::vector<physics::digi_hit*> Digitize();

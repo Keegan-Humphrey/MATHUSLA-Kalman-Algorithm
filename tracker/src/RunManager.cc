@@ -16,7 +16,7 @@ int RunManager::StartTracking()
 	if (_handler.IsNull()) {
 		std::cout << "Sorry, I couldn't open that file" << std::endl;
 		return 0;
-	}
+	} 
 
 	TH = &_handler;
 	int events_handled = 0;
@@ -48,11 +48,11 @@ int RunManager::StartTracking()
 	while (TH->Next() >= 0)
 	{
 
-		if (events_handled > hndlr.par_map["end_ev"]) //cuts::end_ev)
+		if (events_handled >= hndlr.par_map["end_ev"]) //cuts::end_ev)
 		{
 			break;
 		}
-		if (events_handled > hndlr.par_map["start_ev"]) //cuts::start_ev)
+		if (events_handled >= hndlr.par_map["start_ev"]) //cuts::start_ev)
 		{
 
 			if ((events_handled - 1) % 1000 == 0 || hndlr.par_map["debug"] == 1)
@@ -79,9 +79,10 @@ int RunManager::StartTracking()
 			}
 
 			_digitizer->ev_num = events_handled; // used to vary the seed, otherwise for events < 1 s seperatred in run time will have the same seed
+                                            // ^^ not true anymore, can likely be removed?
 			std::vector<physics::digi_hit *> digi_list = _digitizer->Digitize();
 
-			TH->ExportDigis(digi_list);
+			TH->ExportDigis(digi_list, _digitizer->seed);
 
 			// digis now finished and stored in tree!!!
 			// now, we begin the seeding algorithm
@@ -116,33 +117,12 @@ int RunManager::StartTracking()
 			TH->ExportTracks_k_m(_tracker->tracks_k_m);
 			//TH->Export_kalman_info(_tracker->local_chi_f, _tracker->local_chi_s);
 
-
-			// check for negative covariance matrices in made tracks
-			/*for (auto track : _tracker->tracks_k_m)
-			{
-				Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(track->P_s);
-
-				Eigen::VectorXd eigs = es.eigenvalues();
-
-				bool neg_def = false;
-
-				for (int i = 0; i < eigs.size(); i++)
-				{
-					if (eigs[i] < 0)
-						neg_def = true;
-					break;
-				}
-
-				if (neg_def)
-					neg_covs++;
-			}*/ // Not necessary anymore -> forced positive definite covariance
-
 			_vertexer->tracks = _tracker->tracks;
 			_vertexer->tracks_k = _tracker->tracks_k;
 			_vertexer->tracks_k_m = _tracker->tracks_k_m;
 
 			_vertexer->Seed();
-			_vertexer->Seed_k();
+			//_vertexer->Seed_k();
 			_vertexer->Seed_k_m();
 			_vertexer->FindVertices();
 			_vertexer->FindVertices_k_m_hybrid();
@@ -150,7 +130,7 @@ int RunManager::StartTracking()
 			//_vertexer->FindVertices_k();
 
 			verts += _vertexer->vertices.size();
-			verts_k += _vertexer->vertices_k.size();
+			//verts_k += _vertexer->vertices_k.size();
 			verts_k_m += _vertexer->vertices_k_m.size();
 
 			TH->ExportVertices(_vertexer->vertices);

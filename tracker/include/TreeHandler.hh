@@ -47,7 +47,7 @@ public:
   //void Export_kalman_info(std::vector<double>, std::vector<double>);
 
   template<class digi_hit>
-  void ExportDigis(std::vector<digi_hit*>);
+  void ExportDigis(std::vector<digi_hit*>, long long int digi_seed);
 
   //template<class track>
   //void ExportTracks_k(std::vector<track*>);
@@ -174,7 +174,7 @@ public:
  		OutputTree->Branch("Hit_particlePy", "std::vector<double>", sim_hit_py);
 		OutputTree->Branch("Hit_particlePz", "std::vector<double>", sim_hit_pz);
 //		OutputTree->Branch("Hit_weight", "std::vector<double>", sim_hit_weight);
-
+ 
       OutputTree->Branch("Digi_numHits", &Digi_numHits);
         OutputTree->Branch("Digi_time", &digi_hit_t);
         OutputTree->Branch("Digi_x", &digi_hit_x);
@@ -186,6 +186,7 @@ public:
         OutputTree->Branch("Digi_pz", &digi_hit_pz);
         OutputTree->Branch("Digi_particle_energy", &digi_particle_energy);
         OutputTree->Branch("Digi_pdg_id", &digi_pdg);
+        OutputTree->Branch("Digi_seed", &digi_seed);
 //        OutputTree->Branch("Digi_hitIndices", &digi_hit_indices);
 
  	//	OutputTree->Branch("NumGenParticles", &sim_NumGenParticles);
@@ -559,11 +560,12 @@ Double_t numvertices_k_m;
     std::vector<int> digi_pdg;
   	std::vector<int> digi_hit_indices;
   	std::vector<int> Digi_numHits;
+    long long int digi_seed;
 
 }; //class TreeHandler
 
 template<class digi_hit>
-void TreeHandler::ExportDigis(std::vector<digi_hit*> digi_list){
+void TreeHandler::ExportDigis(std::vector<digi_hit*> digi_list, long long int seed){
       digi_hit_indices.clear();
       digi_hit_t.clear();
       digi_hit_x.clear();
@@ -576,6 +578,8 @@ void TreeHandler::ExportDigis(std::vector<digi_hit*> digi_list){
       Digi_numHits.clear();
       digi_particle_energy.clear();
       digi_pdg.clear();
+      
+      digi_seed = seed;
 
       for (auto digi : digi_list){
         Digi_numHits.push_back(digi->hits.size());

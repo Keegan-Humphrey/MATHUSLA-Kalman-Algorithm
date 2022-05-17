@@ -120,7 +120,8 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 //	int seed = -182399494; // good eff seed
 //	int seed = rand()*rand()*rand() % rand();
 
-        int seed = par_handler->par_map["seed"];
+//        int seed = par_handler->par_map["seed"];
+        seed = par_handler->par_map["seed"];
         seed = seed == -1 ? rand()*rand()*rand() % rand() : seed;
 
         if (par_handler->par_map["debug"] == 1) {

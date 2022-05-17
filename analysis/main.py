@@ -15,7 +15,7 @@ import joblib
 '''
 RUN OPTION
 '''
-
+ 
 option = 0
 
 
@@ -37,10 +37,12 @@ def main(opt):
         cut = -1 # -1 to look at survivors (otherwise indexed as in flows)
         
         passed_events = joblib.load('passed_events.joblib')
+        #passed_events = joblib.load('passed_events_1e5_8_5_22.joblib')
+
 #        passed_events = joblib.load('passed_events_run6_4hits_23_2_22.joblib')
         
-        total_event_cap = 50
-        file_event_cap = 20
+        total_event_cap = 45
+        file_event_cap = 15
 
         survivors = True # False => look at events cut at cut, True => look at survivors
 
@@ -162,8 +164,8 @@ def main(opt):
 #            ev = event.Event(sys.argv[1],ind)
             ev = event.Event(file,ind)
             
-            #ev.writeDirectory = str(sys.argv[2])
-            ev.writeDirectory = 'vis_plots/'
+            ev.writeDirectory = str(sys.argv[2])
+            #ev.writeDirectory = 'vis_plots/'
 
             ev.used = True
             ev.unused = True
