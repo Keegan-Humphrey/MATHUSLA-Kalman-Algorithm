@@ -64,10 +64,9 @@ class sample_space():
 
         return 999
 
-    
     def get_states_m(self):
 
-        global ncuts
+        global ncuts 
 
         tracking_file = root.TFile.Open(self.file)
         self.tree = tracking_file.Get("integral_tree")
@@ -193,8 +192,12 @@ class sample_space():
             self.Fiducial_vertex_time()
             self.n += 1
             
-            self.Vertex_chi()
-            self.n += 1
+            try:
+                self.Vertex_chi()
+                self.n += 1
+                
+            except Exception:
+                pass
             
             self.IP_consistency()
             self.n += 1
@@ -870,7 +873,7 @@ class sample_space():
                                 closest_approach = pair.closest_approach
                                 lowest_pair = pair
         
-        '''      
+              
         if lowest_pair != None:
             self.event_info.data_dict['pair reco beta'].append(lowest_pair.beta)
             self.event_info.data_dict['pair closest approach'].append(lowest_pair.closest_approach)
@@ -881,7 +884,7 @@ class sample_space():
         else:
             self.event_info.data_dict['pair reco beta'].append(1e6)
             self.event_info.data_dict['pair closest approach'].append(1e6)
-        '''  
+         
         self.current_vector[self.n] = closest_approach
         
 
@@ -1063,8 +1066,8 @@ class sample_space():
                                                                                      # alpha: angular deviation of vIP from being || to the plane 
                                                                                      # beta: angle between the tracks
             ''' ------------------------------- '''
-            #if theta < -0.05 and alpha < 0.03: # 1e-3 values ## **** still need to switch to 2 parameter cut setup
-            if theta < -0.01 and alpha < 0.06: # 1e-5 values
+            if theta < -0.05 and alpha < 0.03: # 1e-3 values ## **** still need to switch to 2 parameter cut setup
+            #if theta < -0.01 and alpha < 0.06: # 1e-5 values
                 made_it = True
                 
             else:
@@ -1106,10 +1109,13 @@ class sample_space():
                         those tracks passed through that point
                     ==> hence that won't be helpful. Just need to compute closest approach with pairwise tracks
             
-            What we could do is find all track pairwise closest approach positions (within some CA distance threshold??? ***), find the minimum
-            y value of all these CA positions and compare to the minimum y value in the vertex.
+        brief summary:
+            * What we could do is find all track pairwise closest approach positions (within some CA distance threshold??? ***), find the minimum
+              y value of all these CA positions and compare to the minimum y value in the vertex.
                 --- could only consider tracks above a sigma from tracker beta cut???   
-                
+            * then we find the minmum value of y across vertices and cut on it
+                --- so if there is a valid vertex configuration in the event we keep it
+            
         '''
         
         
@@ -1133,6 +1139,8 @@ class sample_space():
                 x_tr1[1] = self.tree.Track_k_m_y0[track1]
                 x_tr1[2] = self.tree.Track_k_m_z0[track1]
                 
+                t_tr1 = self.tree.Track_k_m_t0[track1]
+                
                 v_tr1[0] = self.tree.Track_k_m_velX[track1]
                 v_tr1[1] = self.tree.Track_k_m_velY[track1]
                 v_tr1[2] = self.tree.Track_k_m_velZ[track1]
@@ -1153,6 +1161,8 @@ class sample_space():
                     x_tr2[1] = self.tree.Track_k_m_y0[track2]
                     x_tr2[2] = self.tree.Track_k_m_z0[track2]
                     
+                    t_tr2 = self.tree.Track_k_m_t0[track2]
+                    
                     v_tr2[0] = self.tree.Track_k_m_velX[track2]
                     v_tr2[1] = self.tree.Track_k_m_velY[track2]
                     v_tr2[2] = self.tree.Track_k_m_velZ[track2]
@@ -1160,8 +1170,11 @@ class sample_space():
                     del_v = v_tr2 - v_tr1
                     del_x = x_tr2 - x_tr1
                     
-                    t_CA = np.sum(del_x * del_v) # Time of the closest approach of the tracks
-                    t_CA /= np.sum(del_v * del_v) # (see docs for details)
+                    initial_x_cont = v_tr1 * t_tr1 - v_tr2 * t_tr2 # contribution from backpropagating to position
+                                                                   # of tracks at t = 0
+                    
+                    t_CA = np.sum((del_x + initial_x_cont)* del_v) # Time of the closest approach of the tracks
+                    t_CA /= np.sum(del_v * del_v) # (see docs for details, here initial time is t = 0)
                     
                     closest_approach_midpoint = ((x_tr1 + v_tr1 * t_CA) + (x_tr2 + v_tr2 * t_CA)) / 2
     
@@ -1225,7 +1238,7 @@ class pair_track:
         v_tr = np.zeros(3)
         x_tr = np.zeros(4)
         
-        #x_tr[0] = tree.Track_k_m_t0[track]
+        x_tr[0] = tree.Track_k_m_t0[track]
         x_tr[1] = tree.Track_k_m_x0[track]
         x_tr[2] = tree.Track_k_m_y0[track]
         x_tr[3] = tree.Track_k_m_z0[track]
@@ -1237,7 +1250,9 @@ class pair_track:
         del_v = v_tr - self.v
         del_x = x_tr[1:] - self.x0[1:]
         
-        t_CA = np.sum(del_x * del_v)
+        initial_x_cont = self.v * self.x0[0] - v_tr * x_tr[0] # contribution from backpropagating to position
+                                                                   # of tracks at t = 0
+        t_CA = np.sum((del_x + initial_x_cont)* del_v)
         t_CA /= np.sum(del_v * del_v)
     
         self.closest_approach = np.sqrt(np.sum((del_x + del_v * t_CA)**2)) # square root of the squared distance of closest approach
@@ -1283,37 +1298,43 @@ class scissors():
         if local_vectors.size != 0:
             
             for i in permutation: # do the cuts in the order specified by permutation
-            
-                opt_dict = cut_options[str(i)]
-                func = opt_dict['func_name']
-                func_dict = self.func_dicts[func]
                 
-                n = func_dict['index'] # cut vector index for this cut
-                
-                if opt_dict['on?'] == 1: 
-                    cut_parameter = opt_dict['cut parameter']
-                
-                    if func_dict['cut if'] == '<':
-                        inds = np.where(local_vectors[:,n] < cut_parameter) 
+                try:
+                    opt_dict = cut_options[str(i)]
+                    func = opt_dict['func_name']
+                    func_dict = self.func_dicts[func]
                     
-                    elif func_dict['cut if'] == '>':
-                        inds = np.where(local_vectors[:,n] > cut_parameter) 
-                     
-                    elif func_dict['cut if'] == 'True':
-                        inds = np.where(local_vectors[:,n] == True) 
-                        
-                    elif func_dict['cut if'] == 'False':
-                        inds = np.where(local_vectors[:,n] == False) 
+                    n = func_dict['index'] # cut vector index for this cut
                     
-                    elif func_dict['cut if'] == 'and gt':
-                        inds = np.where((local_vectors[:,n] > cut_parameter[0]) *
-                                        (local_vectors[:,n+1] > cut_parameter[1]))
+                    if opt_dict['on?'] == 1: 
+                        cut_parameter = opt_dict['cut parameter']
+                    
+                        if func_dict['cut if'] == '<':
+                            inds = np.where(local_vectors[:,n] < cut_parameter) 
                         
-                    # add an elif to create a new cut condition
+                        elif func_dict['cut if'] == '>':
+                            inds = np.where(local_vectors[:,n] > cut_parameter) 
+                         
+                        elif func_dict['cut if'] == 'True':
+                            inds = np.where(local_vectors[:,n] == True) 
+                            
+                        elif func_dict['cut if'] == 'False':
+                            inds = np.where(local_vectors[:,n] == False) 
                         
-                else:
-                    inds = [] # don't cut any events
-                     
+                        #elif func_dict['cut if'] == 'and gt':
+                        #    inds = np.where((local_vectors[:,n] > cut_parameter[0]) *
+                        #                    (local_vectors[:,n+1] > cut_parameter[1])) # indexing like this doesn't work
+                            
+                        # add an elif to create a new cut condition
+                            
+                    else:
+                        inds = [] # don't cut any events
+                        
+                except KeyError:
+                    print('{} cut failed'.format(func))
+                        
+                    inds = []
+                         
                      
                 local_vectors = np.delete(local_vectors, inds, 0)
 
@@ -1452,7 +1473,7 @@ class Plotter:
         #self.vertex_pos()
         #self.slope_dist()
     
-        #self.beta_vs_approach()   
+        self.beta_vs_approach()   
         
         self.IP_consistency_angles()
         
@@ -1683,29 +1704,32 @@ def main():
 
     else: 
         # plotting booleans (do you want to make plots?)
-        plot_cut = True
+        plot_cut = False
         plot_obj = False 
         
-        sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
+        sum_flows = False # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         
         load = False # set at most one of these to True
         save = False
         
-        start_from_cut = True
+        start_from_cut = False
         
-        start_cut = -1 # work only with the files with survivors at cut start_cut (indexed as in flows)
+        start_cut = 5 # work only with the files with survivors at cut start_cut (indexed as in flows)
         # it would be good to have it run without cutting, just to gather passed_event joblibs into a single file
         # add boolean for that so we can start after the relevant cut. 
         
         if start_from_cut:
             #passed_events_file = 'passed_events.joblib'
-            passed_events_file = 'passed_events_1e5_8_5_22.joblib'
+            #passed_events_file = 'passed_events_1e5_8_5_22.joblib'
             #passed_events_file = 'passed_events_1e3_29_3_22.joblib'
             #passed_events_file = 'passed_events_1_left_28_2_22.joblib'
             #passed_events_file = 'passed_events_run6_4hits_23_2_22.joblib'
             #passed_events_file = 'passed_events_0_left_27_2_22.joblib'
             #passed_events_file = 'passed_events_1_left.joblib'
-
+            #passed_events_file = 'joblibs_for_pres/passed_events_1e5_W.joblib'
+            #passed_events_file = 'joblibs_for_pres/passed_events_1e3_W.joblib'
+            passed_events_file = 'joblibs_for_pres/passed_events_full_eff.joblib'
+            
             passed_events_prev = joblib.load(passed_events_file)
             
             files = []
@@ -1713,8 +1737,11 @@ def main():
             if load:
                 #file_converter_file = 'file_converter_W_27_2_22.joblib'
                 #file_converter_file = 'file_converter_W_1e3_29_3_22.joblib'
-                file_converter_file = 'file_converter_1e5_8_5_22.joblib'
+                #file_converter_file = 'file_converter_1e5_8_5_22.joblib'
                 #file_converter_file = 'file_converter.joblib'
+                #file_converter_file = 'joblibs_for_pres/file_converter_1e5_W.joblib'
+                #file_converter_file = 'joblibs_for_pres/file_converter_1e3_W.joblib'
+                file_converter_file = 'joblibs_for_pres/file_converter_full_eff.joblib'
                 
                 file_converter = joblib.load(file_converter_file) # converts root file to joblib file
             
@@ -1731,8 +1758,9 @@ def main():
             
         elif load:
             if sum_flows:
-                load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+                #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
                 
+                #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run8/21_05_22/14_05_20/trees/' # air support structure study 
                 #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/08_05_22/' # 1e-5 run
                 #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/' # 1e-3 large run
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/31_03_22/" # empty 
@@ -1742,7 +1770,7 @@ def main():
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/22_02_22/"
-                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/"
+                load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/" ## Full Efficiency run
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_03_22/"
                 
 
@@ -1757,16 +1785,18 @@ def main():
         else:
             if sum_flows: # Background
                 #directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
-                directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/26_03_22/' # 1e3 scint efficiency run
+                #directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/26_03_22/' # 1e3 scint efficiency run
                 #directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/22_02_22/'
                 #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
                 #directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
-                directory_7 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/27_03_22/' # 1e3 efficiency big run
-                directory_7 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/31_03_22/' # 1e4 efficiency big run (trees are empty)
-                directory_7 = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/tracker//07_05_22/15_04_24/trees/' # 1e5 efficiency small files
+                #directory_7 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/27_03_22/' # 1e3 efficiency big run
+                #directory_7 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/31_03_22/' # 1e4 efficiency big run (trees are empty)
+                #directory_7 = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/tracker//07_05_22/15_04_24/trees/' # 1e5 efficiency small files
+                
+                directory_8 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/air_iron_study/21_05_22/14_05_20/trees/' # air support structure study 
                 
                 #files = [filename for filename in glob.iglob(directory_7+'/**/stat_*.root', recursive=True)]
-                files = [filename for filename in glob.iglob(directory_7+'stat_*.root', recursive=True)]
+                files = [filename for filename in glob.iglob(directory_8+'stat_*.root', recursive=True)]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
         
             else: # signal
@@ -1782,20 +1812,32 @@ def main():
         
                 files_4_w_vert_chi = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_0_0.root',
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_1_0.root',
-                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_2_0.root'] 
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_2_0.root']  
                     
-                files_4_tree_updated = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_0_0.root',
+                files_1e5 = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_0_0.root',
                     '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_1_0.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_2_0.root']
+                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_2_0.root'] # 1e-5 inefficiency
+                
+                files_1e3 = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_0_0.root',
+                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_1_0.root',
+                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_2_0.root'] # 1e-3 inefficiency
         
-                files = files_4_tree_updated
+                files_full_eff = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_0_1.root',
+                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_1_1.root',
+                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_2_1.root'] # full efficiency
+        
+                files_p_study_10GeV = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_0_2.root',
+                                        '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_1_2.root',
+                                        '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_2_2.root']
+        
+                files = files_full_eff
                 
         
     if len(files) == 0:
         print("I need at least 1 file to run!")
         return
 
-    cuts_to_plot = [15,19] # [int] which cuts to plot (index in cut_options) 
+    cuts_to_plot = [15, 19] # [int] which cuts to plot (index in cut_options) 
                         # **** need to update for multiple in list to work for sum_flows = True as well
                         # **** doesn't work for "and" cuts that require plotting of 2D parameter space (use plot obj instead)
     
@@ -1825,11 +1867,11 @@ def main():
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20          ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
                    '13':{option[0]:'Hits per track in vertex'     ,option[1]:4            ,option[2]:'hits'          ,option[3]:0 , func_name:'Hits_per_track'},
                    '14':{option[0]:'Fiducial Leniency'            ,option[1]:750          ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
-                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:750          ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
+                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
                    '16':{option[0]:'All vertices before all hits' ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'},
                    '17':{option[0]:'Vertex chi per ndof'          ,option[1]:20           ,option[2]:'chi ndof'      ,option[3]:0 , func_name:'Vertex_chi'},
                    '18':{option[0]:'Velocities Consistent with IP',option[1]:True         ,option[2]:'bool'          ,option[3]:1 , func_name:'IP_consistency'},
-                   '19':{option[0]:'Closest Approach Topological' ,option[1]:50           ,option[2]:'cm'            ,option[3]:1 , func_name:'Close_approach_topology'}} 
+                   '19':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:0 , func_name:'Close_approach_topology'}} 
 
 
     # ---------------- copy cutting details into display dictionary
@@ -2036,9 +2078,11 @@ def main():
                 _rng = (np.amin(sum_values[cut]),np.max(sum_values[cut])*1.1)
                 if cut == 4:
                     _rng = (-3000,5000)
-                #elif cut == 7:
-                #    _rng = (0,3000)
-                    
+                elif cut == 7:
+                    _rng = (0,50000)
+                       
+                #print(sum_values[cut])
+                
                 visualization.root_Histogram(sum_values[cut],
               					rng=_rng,
               					bins=_bins-int(np.sqrt(len(values))),
@@ -2066,6 +2110,7 @@ def main():
 
     #if plot_obj:
         #joblib.dump(pltr,'global_plotter.joblib')
+
 
     
 if __name__ == '__main__':

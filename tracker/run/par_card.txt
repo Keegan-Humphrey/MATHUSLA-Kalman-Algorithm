@@ -8,7 +8,7 @@ kalman_pval_drop 1.0
 kalman_pval_add 0.99999999
 kalman_pval_track 0.95
 p 500.0
-scint_efficiency 1e-05
+scint_efficiency 0.0
 merge_cos_theta 0.998
 merge_distance 25.0
 seed_closest_approach 100.0
@@ -21,4 +21,4 @@ kalman_v_add[1] 1.2
 kalman_v_drop[0] 0.8
 kalman_v_drop[1] 1.2
 start_ev 0.0
-end_ev 10000.0
+end_ev 100000.0

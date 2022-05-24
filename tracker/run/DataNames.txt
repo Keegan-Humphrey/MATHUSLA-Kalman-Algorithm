@@ -7,3 +7,4 @@
 #/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/eff_job_dir/data/20211025/000018/run0.root
 #/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/data/20220111/200329/run0.root
 #/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/data/20220112/153039/run0.root
+#/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/data/20220111/105506/run0.root

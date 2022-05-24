@@ -186,7 +186,7 @@ public:
         OutputTree->Branch("Digi_pz", &digi_hit_pz);
         OutputTree->Branch("Digi_particle_energy", &digi_particle_energy);
         OutputTree->Branch("Digi_pdg_id", &digi_pdg);
-        OutputTree->Branch("Digi_seed", &digi_seed);
+        OutputTree->Branch("Digi_seed", &digi_seed, "Digi_seed/L");
 //        OutputTree->Branch("Digi_hitIndices", &digi_hit_indices);
 
  	//	OutputTree->Branch("NumGenParticles", &sim_NumGenParticles);

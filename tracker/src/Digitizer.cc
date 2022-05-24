@@ -121,8 +121,11 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 //	int seed = rand()*rand()*rand() % rand();
 
 //        int seed = par_handler->par_map["seed"];
+
+	int seed_size = static_cast<int>(1e9);
+
         seed = par_handler->par_map["seed"];
-        seed = seed == -1 ? rand()*rand()*rand() % rand() : seed;
+        seed = seed == -1 ? rand()*rand()*rand() % seed_size : seed;
 
         if (par_handler->par_map["debug"] == 1) {
                 std::cout << "Digi seed is: " << seed << std::endl;
