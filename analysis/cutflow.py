@@ -19,7 +19,7 @@ import pandas as pd
 import joblib
 import inspect    
 
-ncuts = 20
+ncuts = 18
 
 events_passed = 0
 ev_w_veto_hits = 0
@@ -40,7 +40,7 @@ class sample_space():
         
         self.IP_to_wall_slope = (self.z_wall / self.det.WallLimits[1][1]) # z / y to top of wall from IP
         
-
+       
     def inside_box(self, x, y, z):
 
         box_lims = self.det.BoxLimits
@@ -64,9 +64,10 @@ class sample_space():
 
         return 999
 
+    
     def get_states_m(self):
 
-        global ncuts 
+        global ncuts
 
         tracking_file = root.TFile.Open(self.file)
         self.tree = tracking_file.Get("integral_tree")
@@ -87,7 +88,6 @@ class sample_space():
         self.tree.SetBranchStatus("Vertex_k_m_ErrorY", 1)
         self.tree.SetBranchStatus("Vertex_k_m_ErrorZ", 1)
         self.tree.SetBranchStatus("Vertex_k_m_trackIndices", 1)
-        self.tree.SetBranchStatus("vertex_k_m_chi2", 1)
         self.tree.SetBranchStatus("NumVertices_k_m", 1)
 
         self.tree.SetBranchStatus("Track_k_m_velX", 1)
@@ -100,16 +100,14 @@ class sample_space():
         self.tree.SetBranchStatus("Track_k_m_x0", 1)
         self.tree.SetBranchStatus("Track_k_m_y0", 1)
         self.tree.SetBranchStatus("Track_k_m_z0", 1)
-
         self.tree.SetBranchStatus("Track_k_smooth_chi_sum",1)
-        #self.tree.SetBranchStatus("Track_k_m_smooth_chi_sum",1)
 
         cut_vectors = []
         
         self.additional_info = np.zeros((int(self.tree.GetEntries()),2)) # Fill me up with info if you want internal 
 
         # count the number of digis
-        #self.num_digis = 0
+        self.num_digis = 0
                                                                          # access to the cuts to plot something new
         for event_number in range(int(self.tree.GetEntries())):
 
@@ -123,7 +121,7 @@ class sample_space():
             self.tree.GetEntry(event_number)
 
             # collect digis for this event
-            #self.num_digis += len(self.tree.Digi_x)
+            self.num_digis += len(self.tree.Digi_x)
 
             if event_number % 1000 == 0:
                 print("event:", event_number)
@@ -191,19 +189,6 @@ class sample_space():
             
             self.Fiducial_vertex_time()
             self.n += 1
-            
-            try:
-                self.Vertex_chi()
-                self.n += 1
-                
-            except Exception:
-                pass
-            
-            self.IP_consistency()
-            self.n += 1
-
-            self.Close_approach_topology()
-            self.n += 1
 
             self.Chi_ndof_cut()
             self.n += 1
@@ -249,7 +234,7 @@ class sample_space():
             # check if at least one vertex is in the detector
             self.current_vector[3] = int(inside) # fiducial
             
-            self.plotter.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add one representative vertex or 0s if none
+            #self.plotter.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add one representative vertex or 0s if none
 
      
     def Floor_hits_before_vertex(self):
@@ -670,7 +655,6 @@ class sample_space():
                 trk = int(trk)
                 
                 vert_chi.append(self.tree.Track_k_smooth_chi_sum[trk])
-                #vert_chi.append(self.tree.Track_k_m_smooth_chi_sum[trk])
                 
             vert_chi.sort(reverse=False)
             
@@ -873,7 +857,7 @@ class sample_space():
                                 closest_approach = pair.closest_approach
                                 lowest_pair = pair
         
-              
+        '''      
         if lowest_pair != None:
             self.event_info.data_dict['pair reco beta'].append(lowest_pair.beta)
             self.event_info.data_dict['pair closest approach'].append(lowest_pair.closest_approach)
@@ -884,7 +868,7 @@ class sample_space():
         else:
             self.event_info.data_dict['pair reco beta'].append(1e6)
             self.event_info.data_dict['pair closest approach'].append(1e6)
-         
+        '''  
         self.current_vector[self.n] = closest_approach
         
 
@@ -940,259 +924,8 @@ class sample_space():
         #self.current_vector[self.n] = 1
     
                 
-    def Vertex_chi(self):
-        self.cuts['Vertex_chi'] = {'index':self.n, 'cut if':'>'}
-        
-        lowest_chi = 1e6
-        
-        for chi in self.tree.vertex_k_m_chi2:
-            if chi < lowest_chi:
-                lowest_chi = chi
-        
-        self.current_vector[self.n] = lowest_chi
-    
-    
-    def IP_consistency(self):
-        #self.cuts['IP_consistency'] = {'index':self.n, 'cut if':'and gt'} # for 2 parameter cut setup
-        self.cuts['IP_consistency'] = {'index':self.n, 'cut if':'False'}
-        
-        '''
-        Only for two track events
-        
-        variables:
-            2 track velocities
-            vertex position 
-            IP position - ez its at \vec{0} in CMS coordinates
-        
-       
-        Psuedo-code: #### ****** this description is no longer entirely valid. Part have been 
-                                  changed
-            Assume vertex is in the plane (or distance is negligible compared to errors)
-                ensures that we don't have to account for positions of tracks
-            
-            Check that there are exactly two tracks and a vertex in the event ****
-            
-            Calculate cross product between tracks (defines a normal to the plane they span)
-            calculate vector pointing from IP to vertex (vIP)
-            
-            project vIP onto normal to plane
-                subtracting off the normal projection it is in the plane
-                then calculate the angles between tracks and the vIP
-                if angle between vIP and tracks is less than between the tracks 
-                    it passes first consistency check
-                else
-                    return
-                    
-            now calculate angle between normal and (unsubtracted) vIP
-                if vIP is in the plane it will be \pi / 2 
-                cut if the angle deviates significantly from this value
-        '''
-        
-        def angle(v1, v2):
-            ''' absolute value of angle between vectors '''
-            ang = np.dot(v1, v2)
-            ang /= np.sqrt(np.dot(v1, v1) * np.dot(v2, v2))
-            ang = np.arccos(ang)
-            return np.abs(ang)
-            
-        
-        #alpha = -1 # won't get cut
-        #theta = -1 # for 2 parameter cut setup
-        
-        made_it = True
-        
-        if self.tree.NumVertices_k_m == 1: ## do we want to only check numvertices and then check 
-                                                                  ## only that there are two tracks participating in vertex?        
-                                                                  ##                                                             
-                                ### do we want to remove this criteria and just check if there is a vertex with two tracks in it?
-                                
-            V = [] # aren't actually lists. We will convert type as needed
-            Normal = []
-            vIP = []
-                        
-            for num in range(len(self.tree.Vertex_k_m_x)): # we loop, even though there's only one vertex 
-                if len(self.vertex_trackIndices[num]) == 2: # check that there are exactly 2 tracks contributing to vertex
-                    alpha = np.pi # large unphysical angle that will get cut if first criteria isn't met
-                
-                    for ind in self.vertex_trackIndices[num]: # get velocities
-                        ind = int(ind)
-    
-                        vx = self.tree.Track_k_m_velX[ind]
-                        vy = self.tree.Track_k_m_velY[ind]
-                        vz = self.tree.Track_k_m_velZ[ind]
-                        
-                        V.append(np.array([vx,vy,vz])) # list of track vectors
-                        
-                else: 
-                    #self.current_vector[self.n] = alpha # for 2 parameter cut setup
-                    
-                    #self.n += 1
-                    
-                    #self.current_vector[self.n] = theta
-                    
-                    self.current_vector[self.n] = True 
-                    
-                    self.event_info.data_dict['2 track angles with vIP'].append([-1,-1,-1])
-                    
-                    return None
-                
-                Normal = np.cross(V[0], V[1]) # normal to plane spanned by velocities
-                
-                vert_x = self.tree.Vertex_k_m_x[num]
-                vert_y = self.tree.Vertex_k_m_y[num]
-                vert_z = self.tree.Vertex_k_m_z[num]
-                
-                vIP = np.array([vert_x, vert_y, vert_z]) - np.zeros(3) # vector pointing from IP to vertex
-                                                                       # (vIP: very Important Point)
-            
-            vIP_normal = Normal * np.dot(Normal, vIP)  # projection of vIP onto Normal 
-            vIP_normal /= np.dot(Normal, Normal)
-            
-            vIP_plane = vIP - vIP_normal # projection of vIP into plane spanned by the Vs
-            
-            alpha = abs(angle(vIP, Normal) - np.pi / 2) # angular deviation of vIP from being || to the plane
-            
-            beta = angle(V[0],V[1])
-                    
-            if angle(vIP_plane,V[0]) < beta and angle(vIP_plane,V[1]) < beta: # True => vIP_plane is between track vectors in the plane
-                theta = - min(angle(vIP_plane,V[0]), angle(vIP_plane,V[1])) # theta: minimum angle to a track
-                                                                            # (negative so we know its between the tracks) 
-            else:
-                theta = min(angle(vIP_plane,V[0]), angle(vIP_plane,V[1])) # theta: minimum angle to a track
-        
-            ''' save angular info for plotting '''
-            self.event_info.data_dict['2 track angles with vIP'].append([theta, alpha, beta]) 
-                                                                                     # theta: minimum angle to a track
-                                                                                     # alpha: angular deviation of vIP from being || to the plane 
-                                                                                     # beta: angle between the tracks
-            ''' ------------------------------- '''
-            #if theta < -0.05 and alpha < 0.03: # 1e-3 values ## **** still need to switch to 2 parameter cut setup
-            if theta < -0.01 and alpha < 0.06: # 1e-5 values
-                made_it = True
-                
-            else:
-                made_it = False
-        
-        else: # Has too many vertices, write as unphysical value for plotting
-            self.event_info.data_dict['2 track angles with vIP'].append([-1,-1,-1])
-          
-        self.current_vector[self.n] = made_it
-                       
-        #self.current_vector[self.n] = theta # for 2 parameter cut setup
-        
-        #self.n += 1
-
-        #self.current_vector[self.n] = alpha
         
         
-    def Close_approach_topology(self):
-        self.cuts['Close_approach_topology'] = {'index':self.n, 'cut if':'>'}
-        
-        
-        '''
-        Variables
-            2 track positions
-            2 track velocities
-            
-        for tracks in a vertex
-            compute closest approach position
-                *** consider beta error or covariance?
-            compute difference in y between lowest hit (in either) and CA
-                if above lowest by ____ cut the event it's topologically unfeasible
-                
-        Notes and questions
-            do we have to restrict to two track vertices?
-                check how we do the mutliple track fits in the tracker code
-                    --- the way it's done is to find tracks that have a close to approach to the 
-                        seed closest approach position of two tracks.
-                        then those tracks are fit to a position by finding the minimum log likelihood that 
-                        those tracks passed through that point
-                    ==> hence that won't be helpful. Just need to compute closest approach with pairwise tracks
-            
-        brief summary:
-            * What we could do is find all track pairwise closest approach positions (within some CA distance threshold??? ***), find the minimum
-              y value of all these CA positions and compare to the minimum y value in the vertex.
-                --- could only consider tracks above a sigma from tracker beta cut???   
-            * then we find the minmum value of y across vertices and cut on it
-                --- so if there is a valid vertex configuration in the event we keep it
-            
-        '''
-        
-        
-        del_y = 1e6 # CA_y - min_track_y 
-        
-        if self.tree.NumVertices_k_m == 0: # *** don't need to do this since any events without 
-                                           #     vertices will already be cut by the time we get here. 
-            del_y = - del_y # won't get cut (also won't be overwritten by real computed values)
-        
-        for vertex in range(len(self.tree.Vertex_k_m_x)): # loop through vertices in the event 
-            closest_approaches_y = []
-            lowest_hits_y = 1e6
-        
-            for track1 in self.vertex_trackIndices[vertex]: # loop through pairs of tracks in the vertex
-                v_tr1 = np.zeros(3)
-                x_tr1 = np.zeros(3)
-                
-                track1 = int(track1)
-                
-                x_tr1[0] = self.tree.Track_k_m_x0[track1]
-                x_tr1[1] = self.tree.Track_k_m_y0[track1]
-                x_tr1[2] = self.tree.Track_k_m_z0[track1]
-                
-                t_tr1 = self.tree.Track_k_m_t0[track1]
-                
-                v_tr1[0] = self.tree.Track_k_m_velX[track1]
-                v_tr1[1] = self.tree.Track_k_m_velY[track1]
-                v_tr1[2] = self.tree.Track_k_m_velZ[track1]
-                
-                if x_tr1[1] < lowest_hits_y: # check if position is lowest y position in the vertex so far
-                    lowest_hits_y = x_tr1[1]
-                    
-                for track2 in self.vertex_trackIndices[vertex]: # second track looped over
-                    track2 = int(track2)
-                    
-                    if track2 <= track1: # don't do more work than you have to
-                        continue
-            
-                    v_tr2 = np.zeros(3)
-                    x_tr2 = np.zeros(3)
-                    
-                    x_tr2[0] = self.tree.Track_k_m_x0[track2]
-                    x_tr2[1] = self.tree.Track_k_m_y0[track2]
-                    x_tr2[2] = self.tree.Track_k_m_z0[track2]
-                    
-                    t_tr2 = self.tree.Track_k_m_t0[track2]
-                    
-                    v_tr2[0] = self.tree.Track_k_m_velX[track2]
-                    v_tr2[1] = self.tree.Track_k_m_velY[track2]
-                    v_tr2[2] = self.tree.Track_k_m_velZ[track2]
-            
-                    del_v = v_tr2 - v_tr1
-                    del_x = x_tr2 - x_tr1
-                    
-                    initial_x_cont = v_tr1 * t_tr1 - v_tr2 * t_tr2 # contribution from backpropagating to position
-                                                                   # of tracks at t = 0
-                    
-                    t_CA = np.sum((del_x + initial_x_cont)* del_v) # Time of the closest approach of the tracks
-                    t_CA /= np.sum(del_v * del_v) # (see docs for details, here initial time is t = 0)
-                    
-                    closest_approach_midpoint = ((x_tr1 + v_tr1 * t_CA) + (x_tr2 + v_tr2 * t_CA)) / 2
-    
-                    closest_approaches_y.append(closest_approach_midpoint[1])
-                    
-                    if x_tr2[1] < lowest_hits_y: # check if position is lowest y position in the vertex so far
-                        lowest_hits_y = x_tr2[1]
-                 
-                    
-            vert_del_y = (np.amin(closest_approaches_y) - lowest_hits_y)
-            
-            if vert_del_y < del_y:
-                del_y = vert_del_y
-                
-        self.current_vector[self.n] = del_y
-        
-            
-    
 class pair_track:
     
     def __init__(self, v_hit, t_hit):
@@ -1238,7 +971,7 @@ class pair_track:
         v_tr = np.zeros(3)
         x_tr = np.zeros(4)
         
-        x_tr[0] = tree.Track_k_m_t0[track]
+        #x_tr[0] = tree.Track_k_m_t0[track]
         x_tr[1] = tree.Track_k_m_x0[track]
         x_tr[2] = tree.Track_k_m_y0[track]
         x_tr[3] = tree.Track_k_m_z0[track]
@@ -1250,12 +983,10 @@ class pair_track:
         del_v = v_tr - self.v
         del_x = x_tr[1:] - self.x0[1:]
         
-        initial_x_cont = self.v * self.x0[0] - v_tr * x_tr[0] # contribution from backpropagating to position
-                                                                   # of tracks at t = 0
-        t_CA = np.sum((del_x + initial_x_cont)* del_v)
+        t_CA = np.sum(del_x * del_v)
         t_CA /= np.sum(del_v * del_v)
     
-        self.closest_approach = np.sqrt(np.sum((del_x + del_v * t_CA)**2)) # square root of the squared distance of closest approach
+        self.closest_approach = np.sqrt(abs(np.sum(del_x + del_v * t_CA))) # square root of the squared distance of closest approach
         
         
 
@@ -1276,7 +1007,7 @@ class scissors():
         self.cut_vectors = space.get_states_m()
         self.func_dicts = space.cuts
 
-        #self.num_digis = space.num_digis
+        self.num_digis = space.num_digis
         
         #self.plotter = space.plotter # update the plotter to collect information from the parameter space
         #self.plotter.merge_a_plotter(space.plotter) # merge the plotter in space with current plotter to gather data
@@ -1298,43 +1029,27 @@ class scissors():
         if local_vectors.size != 0:
             
             for i in permutation: # do the cuts in the order specified by permutation
+            
+                opt_dict = cut_options[str(i)]
+                func = opt_dict['func_name']
+                func_dict = self.func_dicts[func]
                 
-                try:
-                    opt_dict = cut_options[str(i)]
-                    func = opt_dict['func_name']
-                    func_dict = self.func_dicts[func]
-                    
-                    n = func_dict['index'] # cut vector index for this cut
-                    
-                    if opt_dict['on?'] == 1: 
-                        cut_parameter = opt_dict['cut parameter']
-                    
-                        if func_dict['cut if'] == '<':
-                            inds = np.where(local_vectors[:,n] < cut_parameter) 
+                n = func_dict['index'] # cut vector index for this cut
+                
+                if opt_dict['on?'] == 1: 
+                    cut_parameter = opt_dict['cut parameter']
+                
+                    if func_dict['cut if'] == '<':
+                        inds = np.where(local_vectors[:,n] < cut_parameter) 
                         
-                        elif func_dict['cut if'] == '>':
-                            inds = np.where(local_vectors[:,n] > cut_parameter) 
-                         
-                        elif func_dict['cut if'] == 'True':
-                            inds = np.where(local_vectors[:,n] == True) 
-                            
-                        elif func_dict['cut if'] == 'False':
-                            inds = np.where(local_vectors[:,n] == False) 
+                    elif func_dict['cut if'] == 'True':
+                        inds = np.where(local_vectors[:,n] == True)   
                         
-                        #elif func_dict['cut if'] == 'and gt':
-                        #    inds = np.where((local_vectors[:,n] > cut_parameter[0]) *
-                        #                    (local_vectors[:,n+1] > cut_parameter[1])) # indexing like this doesn't work
-                            
-                        # add an elif to create a new cut condition
-                            
-                    else:
-                        inds = [] # don't cut any events
+                    # add an elif to create a new cut condition
                         
-                except KeyError:
-                #    print('{} cut failed'.format(func))
-                        
-                    inds = []
-                         
+                else:
+                    inds = [] # don't cut any events
+                     
                      
                 local_vectors = np.delete(local_vectors, inds, 0)
 
@@ -1361,8 +1076,7 @@ class event_info:
                               'dist wall':[], 'dist floor':[],
                               'vert pos':[], 'slope dist':[],
                               'pair closest approach':[], 'pair reco beta':[],
-                              'min hits per track':[], 'max hits per track':[],
-                              '2 track angles with vIP':[]} # add whatever data internal to analysis you want to look at here!
+                              'min hits per track':[], 'max hits per track':[]} # add whatever you want to look at here (and in plotter)!
 
 
 
@@ -1376,6 +1090,14 @@ class Plotter:
 
         evif = event_info(-1)
         self.data_dict = evif.data_dict
+        '''
+        self.data_dict = {'Exp Pos x wall':[], 'Exp Pos y wall':[],
+                          'Exp Pos x floor':[], 'Exp Pos z floor':[],
+                          'dt wall':[], 'dt floor':[],
+                          'dist wall':[], 'dist floor':[],
+                          'vert pos':[], 'slope dist':[],
+                          'pair closest approach':[], 'pair reco beta':[]}
+        '''
         
         self.event_infos = [] # collected info for plotting organized by event
         self.lists_of_event_infos = [] # list of event_infos lists above (one for each file)
@@ -1436,7 +1158,7 @@ class Plotter:
                 gathered_event_infos.extend(list(event_infos[survivors]))
                 
             elif cut == 'all':
-                gathered_event_infos = [item for sublist in self.event_infos for item in sublist]
+                gathered_event_infos = [item for sublist in self.event_infos for item in sublist] 
         '''    
         except IndexError:
             print(np.shape(self.lists_of_event_infos))
@@ -1470,56 +1192,11 @@ class Plotter:
         #self.expected_time_space('wall')
         #self.expected_time_space('floor')
         
-        #self.vertex_pos()
+        self.vertex_pos()
         #self.slope_dist()
     
-        #self.beta_vs_approach()   
+        #self.beta_vs_approach()
         
-        self.IP_consistency_angles()
-        
-        
-    def IP_consistency_angles(self):
-        
-        _Title = 'Angular details of IP consistency {}'.format(self.sample)
-        #_xlabel = 'angle between tracks and vIP projection [rad]'
-        #_zlabel = 'angle between plane of tracks and vIP [rad]'
-        _xlabel = '{} [rad]'
-        _zlabel = '{} [rad]'
-        _fname = 'IP_consistency_angles_{}'.format(self.sample)
-        
-        _xbins=100
-        _zbins=100
-        
-        angles = np.array(self.gather_info('2 track angles with vIP',6))
-
-        theta = angles[:,0]
-        alpha = angles[:,1]
-        beta = angles[:,2]
-        
-        print("Lowest alpha is ",np.amin(alpha))
-        
-        _data_x = theta
-        _data_y = beta
-        _data_z = alpha
-        
-        _xlims = [-0.3,0.3]
-        _ylims = [0,0.6]
-        _zlims = [0,0.3]
-        
-        #visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
-	      #	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
-        
-        
-        #visualization.root_2D_Histogram(_data_x, _data_y, Title=_Title, xbins=_xbins, zbins=_zbins,
-	      #	              xlims=_xlims, zlims=_ylims, xlabel=_xlabel.format("theta"), zlabel=_zlabel.format("beta"), fname=_fname+"_theta_beta.png")
-        
-        visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
-	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel.format("theta"), zlabel=_zlabel.format("alpha"), fname=_fname+"_theta_alpha.png")
-        
-        #visualization.root_2D_Histogram(_data_z, _data_y, Title=_Title, xbins=_xbins, zbins=_zbins,
-	      #	              xlims=_zlims, zlims=_ylims, xlabel=_xlabel.format("alpha"), zlabel=_zlabel.format("beta"), fname=_fname+"_alpha_beta.png")
-        
-
     
     def beta_vs_approach(self):
         
@@ -1646,7 +1323,7 @@ class Plotter:
             vertex_pos = np.array(self.data_dict['vert pos'])
         
         else:
-            vertex_pos = np.array(self.gather_info('vert pos',2))
+            vertex_pos = np.array(self.gather_info('vert pos',-1))
         
         #joblib.dump(vertex_pos,'vert_pos_array.joblib')
 
@@ -1666,7 +1343,6 @@ class Plotter:
         _xbins=100
         _zbins=100
         
-        
         visualization.root_2D_Histogram(_data_x, _data_y, Title=_Title, xbins=_xbins, zbins=_zbins,
 	      	              xlims=_xlims, zlims=_ylims, xlabel=_xlabel.format("x"), zlabel=_zlabel.format("y"), fname=_fname+"_x_y.png")
         
@@ -1675,11 +1351,8 @@ class Plotter:
         
         visualization.root_2D_Histogram(_data_z, _data_y, Title=_Title, xbins=_xbins, zbins=_zbins,
 	      	              xlims=_zlims, zlims=_ylims, xlabel=_xlabel.format("z"), zlabel=_zlabel.format("y"), fname=_fname+"_z_y.png")
-        '''
-        
-        visualization.root_Histogram(_data_y, rng=_ylims, ft_rng=None, bins=_xbins, Title=_Title, 
-                        xaxis=_xlabel.format("y"), logx=False, logy=False, fname=_fname+"_y.png")
-        '''        
+            
+            
 
 def main():
   
@@ -1704,14 +1377,14 @@ def main():
 
         #-------------------------
 
-    else: 
+    else:
         # plotting booleans (do you want to make plots?)
         plot_cut = False
-        plot_obj = True 
+        plot_obj = True
         
         sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
         
-        load = False # set at most one of these to True
+        load = True # set at most one of these to True
         save = False
         
         start_from_cut = True
@@ -1722,28 +1395,19 @@ def main():
         
         if start_from_cut:
             #passed_events_file = 'passed_events.joblib'
-            #passed_events_file = 'passed_events_1e5_8_5_22.joblib'
-            #passed_events_file = 'passed_events_1e3_29_3_22.joblib'
+            passed_events_file = 'passed_events_1e3_29_3_22.joblib'
             #passed_events_file = 'passed_events_1_left_28_2_22.joblib'
             #passed_events_file = 'passed_events_run6_4hits_23_2_22.joblib'
             #passed_events_file = 'passed_events_0_left_27_2_22.joblib'
             #passed_events_file = 'passed_events_1_left.joblib'
-            #passed_events_file = 'joblibs_for_pres/passed_events_1e5_W.joblib'
-            #passed_events_file = 'joblibs_for_pres/passed_events_1e3_W.joblib'
-            passed_events_file = 'joblibs_for_pres/passed_events_full_eff.joblib'
-            
+
             passed_events_prev = joblib.load(passed_events_file)
             
             files = []
-             
+            
             if load:
                 #file_converter_file = 'file_converter_W_27_2_22.joblib'
-                #file_converter_file = 'file_converter_W_1e3_29_3_22.joblib'
-                #file_converter_file = 'file_converter_1e5_8_5_22.joblib'
-                #file_converter_file = 'file_converter.joblib'
-                #file_converter_file = 'joblibs_for_pres/file_converter_1e5_W.joblib'
-                #file_converter_file = 'joblibs_for_pres/file_converter_1e3_W.joblib'
-                file_converter_file = 'joblibs_for_pres/file_converter_full_eff.joblib'
+                file_converter_file = 'file_converter_W_1e3_29_3_22.joblib'
                 
                 file_converter = joblib.load(file_converter_file) # converts root file to joblib file
             
@@ -1757,21 +1421,16 @@ def main():
                         
         elif load:
             if sum_flows:
-                #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+                load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
                 
-                #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run8/21_05_22/14_05_20/trees/' # air support structure study 
-                #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/08_05_22/' # 1e-5 run
-                load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/' # 1e-3 large run
-                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/31_03_22/" # empty 
-                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/"
+                load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/"
                 #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/analysis_data/30_01_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/06_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/22_02_22/"
-                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/" ## Full Efficiency run
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/"
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_03_22/"
-                #load_files_dir = "/home/keeganh/scratch/26_05_22/05_50_07/trees/" # air scintillator casings and support structures
 
                 files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
             
@@ -1785,23 +1444,13 @@ def main():
             if sum_flows: # Background
                 #directory_3 = '/home/keeganh/scratch/job_test/W_sample_dir/run3/18_12_21/11_24_04/trees/'
                 #directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/26_03_22/' # 1e3 scint efficiency run
-                #directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/22_02_22/'
+                directory_3 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run3/tracker_data/22_02_22/'
                 #directory_4 = '/home/keeganh/scratch/job_test/W_sample_dir/run4/09_01_22/09_11_57/trees/'
                 #directory_6 = '/home/keeganh/scratch/job_test/W_sample_dir/run6/tracker_data/'
-                #directory_7 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/27_03_22/' # 1e3 efficiency big run
-                #directory_7 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/31_03_22/' # 1e4 efficiency big run (trees are empty)
-                #directory_7 = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/tracker//07_05_22/15_04_24/trees/' # 1e5 efficiency small files
                 
-                #directory_8 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/air_iron_study/21_05_22/14_05_20/trees/' # air support structure aluminum study 
-                #directory_8 = "/home/keeganh/scratch/26_05_22/05_50_07/trees/" # air scintillator casings and support structures
-                #directory_8 =  '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/tracker_data/07_05_22/' # 1e-5
-                #directory_8 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/air_iron_study/06_06_22/07_26_06/trees/' # air supports and casings
-                directory_8 = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/air_iron_study/data/20220607/07_06_22/08_23_38/trees/' # air supports, casings, and rock
-                
-                #files = [filename for filename in glob.iglob(directory_8+'/**/stat_*.root', recursive=True)]
-                files = [filename for filename in glob.iglob(directory_8+'stat_*.root', recursive=True)]
+                files = [filename for filename in glob.iglob(directory_3+'/**/stat_*.root', recursive=True)]
+                #files = [filename for filename in glob.iglob(directory_3+'stat_*.root', recursive=True)]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
-            
         
             else: # signal
                 files_4 = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_0_0.root',
@@ -1816,42 +1465,15 @@ def main():
         
                 files_4_w_vert_chi = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_0_0.root',
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_1_0.root',
-                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_2_0.root']  
-                    
-                files_1e5 = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_0_0.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_1_0.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/10_05_22/05_53_06/trees/stat_2_0.root'] # 1e-5 inefficiency
-                
-                files_1e3 = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_0_0.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_1_0.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_2_0.root'] # 1e-3 inefficiency
+                    '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_2_0.root'] 
         
-                files_full_eff = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_0_1.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_1_1.root',
-                    '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/22_05_22/20_40_20/trees/stat_2_1.root'] # full efficiency
-        
-                files_p_study_10GeV = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_0_2.root',
-                                        '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_1_2.root',
-                                        '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_2_2.root']
-        
-                files = files_full_eff
-                
-        
-    if save: # where should I write the save files to?
-        #write_dir = 'save_files' 
-        write_dir = directory_8
-    
-        
+                files = files_4_w_vert_chi
+           
     if len(files) == 0:
         print("I need at least 1 file to run!")
         return
-    
-    else:
-        print("Running on {} files".format(len(files)))
 
-    cuts_to_plot = [3,5] # [int] which cuts to plot (index in cut_options) 
-                        # **** need to update for multiple in list to work for sum_flows = True as well
-                        # **** doesn't work for "and" cuts that require plotting of 2D parameter space (use plot obj instead)
+    cuts_to_plot = [9,14] # [int] which cuts to plot (index in cut_options) # **** need to update for multiple in list to work for sum_flows = True as well
     
     sum_values = [[] for i in range(ncuts)] # a list to add values to plot for every cut
     drawers = [] # to hold the scissors
@@ -1864,31 +1486,24 @@ def main():
     func_name = 'func_name' # func_name is the corresponding data collection function in get_states_m
 
     # specify cuts and parameters
-    cut_options = {'0' :{option[0]:'2 Tracks'                     ,option[1]:2            ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks' },
-                   '1' :{option[0]:'Vertices'                     ,option[1]:1            ,option[2]:'verts'         ,option[3]:1 , func_name:'Vertices' },
-                   '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1            ,option[2]:'bool'          ,option[3]:1 , func_name:'Fiducial_vertex' },
-                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2000         ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex' },
-                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:True         ,option[2]:'bool'          ,option[3]:1 , func_name:'Track_floor_hits' },
-                   '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.4          ,option[2]:'rad'           ,option[3]:0 , func_name:'Opening_angle' },
-                   '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2         ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological' },
-                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2     ,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta' },
-                   '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1      ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs' },
-                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600          ,option[2]:'cm'            ,option[3]:0 , func_name:'Exp_hits' },
-                   '10':{option[0]:'No Floor Hits'                ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
-                   '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6           ,option[2]:'-missed hits'  ,option[3]:0 , func_name:'Missing_hit_sum' },
-                   '12':{option[0]:'Chi sum cut'                  ,option[1]:-20          ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
-                   '13':{option[0]:'Hits per track in vertex'     ,option[1]:4            ,option[2]:'hits'          ,option[3]:0 , func_name:'Hits_per_track'},
-                   '14':{option[0]:'Fiducial Leniency'            ,option[1]:750          ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
-                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
-                   '16':{option[0]:'All vertices before all hits' ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'},
-                   '17':{option[0]:'Vertex chi per ndof'          ,option[1]:20           ,option[2]:'chi ndof'      ,option[3]:0 , func_name:'Vertex_chi'},
-                   '18':{option[0]:'Velocities Consistent with IP',option[1]:True         ,option[2]:'bool'          ,option[3]:1 , func_name:'IP_consistency'},
-                   '19':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:0 , func_name:'Close_approach_topology'}} 
+    cut_options = {'0' :{option[0]:'2 Tracks'                     ,option[1]:2       ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks' },
+                   '1' :{option[0]:'Vertices'                     ,option[1]:1       ,option[2]:'verts'         ,option[3]:1 , func_name:'Vertices' },
+                   '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1       ,option[2]:'bool'          ,option[3]:1 , func_name:'Fiducial_vertex' },
+                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2000    ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex' },
+                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:True    ,option[2]:'bool'          ,option[3]:1 , func_name:'Track_floor_hits' },
+                   '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.02    ,option[2]:'rad'           ,option[3]:0 , func_name:'Opening_angle' },
+                   '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2    ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological' },
+                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta' },
+                   '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1 ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs' },
+                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600     ,option[2]:'cm'            ,option[3]:0 , func_name:'Exp_hits' },
+                   '10':{option[0]:'No Floor Hits'                ,option[1]:1       ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
+                   '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6      ,option[2]:'-missed hits'  ,option[3]:0 , func_name:'Missing_hit_sum' },
+                   '12':{option[0]:'Chi sum cut'                  ,option[1]:-20     ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
+                   '13':{option[0]:'Hits per track in vertex'     ,option[1]:4       ,option[2]:'hits'          ,option[3]:0 , func_name:'Hits_per_track'},
+                   '14':{option[0]:'Fiducial Leniency'            ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
+                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:750     ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
+                   '16':{option[0]:'All vertices before all hits' ,option[1]:1       ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'}} 
 
-    # **** can retune fiducial leniency cut to get back some signal
-
-    # ---------------- copy cutting details into display dictionary
-    
     for opt in option:
         flows[opt] = np.array([])
 
@@ -1898,13 +1513,11 @@ def main():
             
     flows[option[3]] = flows[option[3]].astype(int)
 
-    # ----------------
-
-    permutation = [0,1,2,4,14,3,15,18,19,5,9,13,11,6,7,8,10,12,16,17] # order in which the cuts are performed
+    permutation = [0,1,2,4,14,3,15,9,13,11,5,6,7,8,10,12,16] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
-    cuts_to_plot_perm = [np.where(np.array(permutation) == cut)[0][0] for cut in cuts_to_plot] # *** find a slicker way to handle cut plotting -> encorporate into plotter?
+    cuts_to_plot = [np.where(np.array(permutation) == cut)[0][0] for cut in cuts_to_plot] # *** find a slicker way to handle cut plotting -> encorporate into plotter?
     
     for key in flows.keys():
         flows[key] = flows[key].take(permutation,0) # permute each entry in flows dictionary
@@ -1918,7 +1531,6 @@ def main():
     i = 0
 
     for file in files:
-        # -------------- START OF FILE LOOP
 
         if sum_flows or len(sys.argv) > 1:
             sample = 'W'
@@ -1958,6 +1570,9 @@ def main():
                 joblib.dump(scissor,save_files_dir+'/scissor_{}_{}.joblib'.format(sample,job_num)) # save the scissor objects
                                                                                                        # => only need to read data once
             elif save:
+                write_dir = 'save_files'
+                #write_dir = 'save_files'
+            
                 if not os.path.exists(write_dir):
                     os.makedirs(write_dir)
                     
@@ -1976,16 +1591,10 @@ def main():
                 i += 1
                 continue
                 
-                
-                
-        #--------------------- THIS IS THE CALL THAT DOES THE CUTTING ------  
-        
         scissor.cut_dict(cut_options, permutation)
 
-        #-------------------------------------------------------------------
-        
         # update total digis count
-        #total_digis += scissor.num_digis
+        total_digis += scissor.num_digis
 
         if not plot_obj: # to save memory (for large runs we run out of memory keeping track of both plot info and survivors)
             passed_events[scissor.file] = scissor.survivor_inds # in order of permutation (indexed as in flows)
@@ -2037,34 +1646,22 @@ def main():
             flows[sample+' fraction'] = np.round(file_flows / scissor.events, 4)
         
         total_events += scissor.events
-
-        
-        #------- Plot the Chosen cuts -----------------------------------
+ 
 
         if plot_cut and len(scissor.survivor_inds) != 0:
-            for p, cut in enumerate(cuts_to_plot_perm):
+            #------- Plot the Chosen cuts
+            for cut in cuts_to_plot:
                 inds = np.array(scissor.survivor_inds[cut-1],dtype=int) # surviving indices before cut
                 
                 values = scissor.cut_vectors[inds,scissor.func_dicts[cut_options[str(permutation[cut])]['func_name']]['index']]
-    
-                #if cut = 7:
-                #values = 1 / np.array(values)
-                #values = lint(values) 
     
                 if sum_flows:
                     sum_values[cut].extend(values) # ****** need to change this when we are plotting more than one thing!!! 
     
                 if not sum_flows and len(values) != 0:
                     _bins = 100
-                    
-                    #_rng = (0,5000)
-                    
-                    if cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
-                        _rng = (0,3000)
-                    
-                    else:                
-                        _rng = (np.amin(values),np.max(values)*1.1)
-                    
+                    #_rng = (np.amin(values),np.max(values)*1.1)
+                    _rng = (0,5000)
                     visualization.root_Histogram(values,
                   					rng=_rng,
                   					bins=_bins-int(np.sqrt(len(values))),
@@ -2072,13 +1669,11 @@ def main():
                   					xaxis=flows['units'][cut],
                   					fname='distribution_{}_{}.png'.format(cut,sample))
                     
+            #-----------
                 
         i += 1
-        
-        # -------- END OF FILE LOOP
 
     if sum_flows:
-        # if plotting across files (eg. for large Background Samples) we do it after the file loop
         
         if not plot_obj: # to save memory
             flows['Flows fraction'] = np.round(flows['Flows'] / total_events, 8)
@@ -2089,29 +1684,23 @@ def main():
             pltr.plot() # generate plots for the run with plotter
         
         if plot_cut and len(sum_values) != 0:
-            for p, cut in enumerate(cuts_to_plot_perm):
+            for cut in cuts_to_plot:
                 _bins = 100
-                
-                if cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
+                _rng = (np.amin(sum_values[cut]),np.max(sum_values[cut])*1.1)
+                if cut == 4:
+                    _rng = (-3000,5000)
+                elif cut == 7:
                     _rng = (0,3000)
-                    
-                else:
-                    _rng = (np.amin(sum_values[cut]),np.max(sum_values[cut])*1.1)
-                
                 visualization.root_Histogram(sum_values[cut],
               					rng=_rng,
               					bins=_bins-int(np.sqrt(len(values))),
               					Title='{} {}'.format(flows['cut name'][cut],sample),
               					xaxis=flows['units'][cut],
-              					fname='distribution_{}_{}.png'.format(cuts_to_plot[p],sample),
+              					fname='distribution_{}_{}.png'.format(cut,sample),
                         logy=False,
                         logx=False)
-    
-    #-------------------------------------------------------------------------------
-        
-    
-         
-    #print("found {} digi hit".format(total_digis))
+                    
+    print("found {} digi hit".format(total_digis))
 
     cutflow = pd.DataFrame(flows)
 
@@ -2125,7 +1714,6 @@ def main():
 
     #if plot_obj:
         #joblib.dump(pltr,'global_plotter.joblib')
-
 
     
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ import joblib
 '''
 RUN OPTION
 '''
- 
+
 option = 0
 
 
@@ -34,19 +34,15 @@ def main(opt):
         # plot visualisations for events used in the analysis
         # to be put in ./vis_plots/
         
-        cut = 5 # -1 to look at survivors (otherwise indexed as in flows)
+        cut = -1 # -1 to look at survivors (otherwise indexed as in flows)
         
-        #passed_events = joblib.load('passed_events.joblib')
-        passed_events = joblib.load('passed_events_hits_before_full_eff_29_5_22.joblib')
-        #passed_events = joblib.load('joblibs_for_pres/passed_events_1e3.joblib')
-        #passed_events = joblib.load('passed_events_1e5_8_5_22.joblib')
-
+        passed_events = joblib.load('passed_events.joblib')
 #        passed_events = joblib.load('passed_events_run6_4hits_23_2_22.joblib')
         
-        total_event_cap = 45
-        file_event_cap = 15
+        total_event_cap = 50
+        file_event_cap = 20
 
-        survivors = False # False => look at events cut at cut, True => look at survivors
+        survivors = True # False => look at events cut at cut, True => look at survivors
 
         if not os.path.exists('vis_plots'):
             os.makedirs('vis_plots')
@@ -54,8 +50,6 @@ def main(opt):
         #files_handled = 0
         
         total_events_processed = 0
-
-        #print(passed_events)
 
         for file in passed_events.keys():
         #file = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_2_0.root'
@@ -65,22 +59,19 @@ def main(opt):
 
             events_processed = 0
             #ev = event.Event(file, 0)
-            
-            #try:
+            try:
 
-            if survivors:
-                inds = passed_events[file][cut].astype(int)
+                if survivors:
+                    inds = passed_events[file][cut].astype(int)
 
-            else:
-                inds_before = set(passed_events[file][cut-1].astype(int))
-                inds_after = set(passed_events[file][cut].astype(int))
-            
-                inds = inds_before - inds_after # show events cut
+                else:
+                    inds_before = set(passed_events[file][cut-1].astype(int))
+                    inds_after = set(passed_events[file][cut].astype(int))
                 
-                #print(inds) 
+                    inds = inds_before - inds_after # show events cut
 
-            #except:
-            #    inds = []
+            except:
+                inds = []
 
             if len(inds) != 0:
                 #print(files_handled)
@@ -171,8 +162,8 @@ def main(opt):
 #            ev = event.Event(sys.argv[1],ind)
             ev = event.Event(file,ind)
             
-            ev.writeDirectory = str(sys.argv[2])
-            #ev.writeDirectory = 'vis_plots/'
+            #ev.writeDirectory = str(sys.argv[2])
+            ev.writeDirectory = 'vis_plots/'
 
             ev.used = True
             ev.unused = True

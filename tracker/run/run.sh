@@ -53,14 +53,14 @@ n=0
 
 while IFS= read -r line
 do
+	echo "current dataset: $line"
+
 	c=0
 
 	if [ -f "$line" ]
 	then
 		while [ ! -f "./run/done.txt" ]
 		do
-			echo "current dataset: $line"
-
 			#modify run parameters
 			cd ./run
 			python mod_globs.py "$c" "$n"
@@ -77,7 +77,7 @@ do
 #			mv ./build/print.txt "$1/$day/$time/prints/print_${n}_${c}.txt"
 
             		# run cutflow script on output tree
-#			python "$script_dir/../../analysis/cutflow.py" "$1/$day/$time/trees/stat_${n}_${c}.root" "$1/$day/$time/trees/" "${n}_${c}"
+#			python "$script_dir/../../analysis/cutflow.py" "$1/$day/$time/trees/stat_${n}_${c}.root"
 
 			((c++))
 		done
