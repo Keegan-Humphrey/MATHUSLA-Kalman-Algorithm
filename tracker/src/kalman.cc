@@ -397,6 +397,8 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
   //double sigma_ms = par_handler->par_map["sigma_ms_p"] / par_handler->par_map["p"]; // [rad]
 
   double L_Al = detector::scintillator_height - detector::scintillator_thickness; // [cm] Aluminum
+  //double L_Al = 0; // set aluminum to 0 for material interaction studies
+
   double L_Sc = detector::scintillator_thickness; // [cm] Scintillator
 
   double L_r_Sc = 43; // [cm] Radiation length Scintillator (Saint-Gobain paper)

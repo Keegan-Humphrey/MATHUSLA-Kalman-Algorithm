@@ -120,8 +120,12 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 //	int seed = -182399494; // good eff seed
 //	int seed = rand()*rand()*rand() % rand();
 
-        int seed = par_handler->par_map["seed"];
-        seed = seed == -1 ? rand()*rand()*rand() % rand() : seed;
+//        int seed = par_handler->par_map["seed"];
+
+	int seed_size = static_cast<int>(1e9);
+
+        seed = par_handler->par_map["seed"];
+        seed = seed == -1 ? rand()*rand()*rand() % seed_size : seed;
 
         if (par_handler->par_map["debug"] == 1) {
                 std::cout << "Digi seed is: " << seed << std::endl;
@@ -170,7 +174,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 			uncertainty = _geometry->_floor.uncertainty(current_id.layerIndex);
 
 			//if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
-			if (drop_generator.Rndm() < 1.0 / par_handler->par_map["scint_efficiency"]) {
+			if (drop_generator.Rndm() < par_handler->par_map["scint_efficiency"]) {
 				//digis_not_dropped.push_back(digi);
 				drop_me = true;
 				std::cout << "dropped a hit" << std::endl;
@@ -180,7 +184,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
             		uncertainty = _geometry->_wall.uncertainty();
 
 			//if (drop_generator.Rndm() > 1.0 / par_handler->par_map["scint_efficiency"]) {
-			if (drop_generator.Rndm() < 1.0 / par_handler->par_map["scint_efficiency"]) {
+			if (drop_generator.Rndm() < par_handler->par_map["scint_efficiency"]) {
 				//digis_not_dropped.push_back(digi); // be careful, won't this add the pointer that goes away at the end of the loop?
 				drop_me = true;
 				std::cout << "dropped a hit" << std::endl;

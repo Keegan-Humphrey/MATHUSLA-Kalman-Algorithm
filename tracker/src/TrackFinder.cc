@@ -471,8 +471,12 @@ void TrackFinder::MergeTracks_k()
 
 			// we've decided that the tracks should be merged
 			// replace the tracks by a track made of a fit of their combined hits
-			for (auto hit : tr2->hits)
-				tr1->AddHit(hit);
+			//
+			// *** now we only take the hits from the first track
+			// since the tracks are similar we can just use one track
+			// *** the refit can eventually be taken out all together
+			//for (auto hit : tr2->hits)
+			//	tr1->AddHit(hit);
 
 			kalman_track kft;
 			kft.par_handler = par_handler;
