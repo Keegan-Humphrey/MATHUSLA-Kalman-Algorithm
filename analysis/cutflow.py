@@ -19,7 +19,7 @@ import pandas as pd
 import joblib
 import inspect    
 
-ncuts = 20
+ncuts = 23
 
 events_passed = 0
 ev_w_veto_hits = 0
@@ -101,9 +101,13 @@ class sample_space():
         self.tree.SetBranchStatus("Track_k_m_y0", 1)
         self.tree.SetBranchStatus("Track_k_m_z0", 1)
 
-        self.tree.SetBranchStatus("Track_k_smooth_chi_sum",1)
-        #self.tree.SetBranchStatus("Track_k_m_smooth_chi_sum",1)
-
+        self.tree.SetBranchStatus("x_estimates_m", 1)
+        self.tree.SetBranchStatus("y_estimates_m", 1)
+        self.tree.SetBranchStatus("z_estimates_m", 1)
+        
+        #self.tree.SetBranchStatus("Track_k_smooth_chi_sum",1)
+        self.tree.SetBranchStatus("Track_k_m_smooth_chi_sum",1)   
+        
         cut_vectors = []
         
         self.additional_info = np.zeros((int(self.tree.GetEntries()),2)) # Fill me up with info if you want internal 
@@ -203,6 +207,12 @@ class sample_space():
             self.n += 1
 
             self.Close_approach_topology()
+            self.n += 1
+            
+            self.Crinkle_cut()
+            self.n += 1
+            
+            self.Fiducial_leniency_track_hits()
             self.n += 1
 
             self.Chi_ndof_cut()
@@ -669,9 +679,9 @@ class sample_space():
             for trk in self.vertex_trackIndices[vert]: # track
                 trk = int(trk)
                 
-                vert_chi.append(self.tree.Track_k_smooth_chi_sum[trk])
-                #vert_chi.append(self.tree.Track_k_m_smooth_chi_sum[trk])
-                
+                #self.tree.SetBranchStatus("Track_k_smooth_chi_sum",1) # old naming convention, some files still have it
+                self.tree.SetBranchStatus("Track_k_m_smooth_chi_sum",1)
+                        
             vert_chi.sort(reverse=False)
             
             chi_ndofs.append(np.sum(vert_chi[:2])) # add the two lowest chi ndof in the vertex
@@ -736,6 +746,32 @@ class sample_space():
         #self.event_info.data_dict['slope dist'].append(max_dist_to_slope)
         
         self.current_vector[self.n] = max_dist_to_slope
+        
+        
+    def Fiducial_leniency_track_hits(self):
+        self.cuts['Fiducial_leniency_track_hits'] = {'index':self.n, 'cut if':'<'}
+    
+        # Could the particle have come in above the wall?
+        #
+        # calculate the track hit distance to the line through the top of the wall and IP 
+        #
+        # distance^2 to a line in the plane through the origin (the IP) with slope m from a point (z, y) is 
+        # ( z - y m ) / ( 1 + m^2 ) , with m = self.IP_to_wall_slope for us
+    
+        min_dist_to_slope = 1e6
+    
+        for vertex in range(len(self.tree.Vertex_k_m_x)): # loop through vertices in the event 
+            for track in self.vertex_trackIndices[vertex]: # loop through pairs of tracks in the vertex
+                track = int(track)
+                for digi in self.fullhitindices[track]:
+                    hity, hitz = self.tree.Digi_y[digi], self.tree.Digi_z[digi]
+                
+                    hit_dist_to_slope = ( hitz - hity * self.IP_to_wall_slope ) / ( 1 + self.IP_to_wall_slope**2 )    
+                    min_dist_to_slope = min(min_dist_to_slope, hit_dist_to_slope)
+            
+        #self.event_info.data_dict['slope dist'].append(max_dist_to_slope)
+        
+        self.current_vector[self.n] = min_dist_to_slope
         
         
     def Delta_ray_cut(self):
@@ -954,7 +990,9 @@ class sample_space():
     
     def IP_consistency(self):
         #self.cuts['IP_consistency'] = {'index':self.n, 'cut if':'and gt'} # for 2 parameter cut setup
-        self.cuts['IP_consistency'] = {'index':self.n, 'cut if':'False'}
+        #self.cuts['IP_consistency'] = {'index':self.n, 'cut if':'False'}
+        
+        self.cuts['IP_consistency'] = {'index':self.n, 'cut if':'>'}
         
         '''
         Only for two track events
@@ -996,10 +1034,10 @@ class sample_space():
             return np.abs(ang)
             
         
-        #alpha = -1 # won't get cut
-        #theta = -1 # for 2 parameter cut setup
+        alpha = -1 # won't get cut
+        theta = -1 # for 2 parameter cut setup or two cut
         
-        made_it = True
+        #made_it = True
         
         if self.tree.NumVertices_k_m == 1: ## do we want to only check numvertices and then check 
                                                                   ## only that there are two tracks participating in vertex?        
@@ -1023,14 +1061,22 @@ class sample_space():
                         
                         V.append(np.array([vx,vy,vz])) # list of track vectors
                         
-                else: 
+                else: # don't cut the event since it's not a 2 track vertex
                     #self.current_vector[self.n] = alpha # for 2 parameter cut setup
                     
                     #self.n += 1
                     
                     #self.current_vector[self.n] = theta
                     
-                    self.current_vector[self.n] = True 
+                    #self.current_vector[self.n] = True # for boolean cut setup
+                    
+                    self.current_vector[self.n] = -1 # theta
+                    
+                    self.n += 1
+
+                    self.cuts['IP_consistency2'] = {'index':self.n, 'cut if':'>'}
+            
+                    self.current_vector[self.n] = -1 # alpha
                     
                     self.event_info.data_dict['2 track angles with vIP'].append([-1,-1,-1])
                     
@@ -1065,24 +1111,27 @@ class sample_space():
                                                                                      # theta: minimum angle to a track
                                                                                      # alpha: angular deviation of vIP from being || to the plane 
                                                                                      # beta: angle between the tracks
-            ''' ------------------------------- '''
-            #if theta < -0.05 and alpha < 0.03: # 1e-3 values ## **** still need to switch to 2 parameter cut setup
-            if theta < -0.01 and alpha < 0.06: # 1e-5 values
+            ''' ------------------------------- # boolean cut setup
+            if theta < -0.065 and alpha < 0.03: # 1e-3 values ## **** still need to switch to 2 parameter cut setup
+            #if theta < -0.01 and alpha < 0.06: # 1e-5 values
                 made_it = True
                 
             else:
                 made_it = False
+            '''
         
         else: # Has too many vertices, write as unphysical value for plotting
             self.event_info.data_dict['2 track angles with vIP'].append([-1,-1,-1])
           
-        self.current_vector[self.n] = made_it
+        #self.current_vector[self.n] = made_it
                        
-        #self.current_vector[self.n] = theta # for 2 parameter cut setup
+        self.current_vector[self.n] = theta # for 2 parameter cut setup
         
-        #self.n += 1
+        self.n += 1
 
-        #self.current_vector[self.n] = alpha
+        self.cuts['IP_consistency2'] = {'index':self.n, 'cut if':'>'}
+
+        self.current_vector[self.n] = alpha
         
         
     def Close_approach_topology(self):
@@ -1173,6 +1222,11 @@ class sample_space():
                     initial_x_cont = v_tr1 * t_tr1 - v_tr2 * t_tr2 # contribution from backpropagating to position
                                                                    # of tracks at t = 0
                     
+                    '''
+                    SEE LINE 214 OF /tracker/src/Physics.cc
+                    for correct algorithm
+                    '''
+                    
                     t_CA = np.sum((del_x + initial_x_cont)* del_v) # Time of the closest approach of the tracks
                     t_CA /= np.sum(del_v * del_v) # (see docs for details, here initial time is t = 0)
                     
@@ -1190,6 +1244,91 @@ class sample_space():
                 del_y = vert_del_y
                 
         self.current_vector[self.n] = del_y
+        
+        
+    def Crinkle_cut(self):
+        self.cuts['Crinkle_cut'] = {'index':self.n, 'cut if':'>'}
+        
+        '''
+        angle(two 3 vectors)
+            
+            arccors (inner product / norm of two vectors )
+        
+        For every vertex
+            for every track in the vertex
+                
+                starting from second layer, 
+                    compute angle between 3 vectors from previous to current, and current to next
+                        
+                    (call angle above)
+                    
+                    sum this angle over all layers
+                    
+                keep second lowest track sum value in the vertex --->>> we expect one clean muon track in W background
+                
+            keep lowest vertex value ---->>> cut on this angle
+        '''
+        
+        def angle(v1, v2):
+            
+            v1, v2 = np.array(v1), np.array(v2)
+            
+            _dot = np.sum(v1 * v2)
+            _norm = np.linalg.norm(v1) * np.linalg.norm(v2)
+            
+            theta = np.arccos(_dot / _norm) 
+            
+            return theta
+            
+
+        Xs = util.unzip(self.tree.x_estimates_m)
+        Ys = util.unzip(self.tree.y_estimates_m)
+        Zs = util.unzip(self.tree.z_estimates_m)
+        
+        min_vert_dflx = 1e6
+        
+        for vertex in range(len(self.tree.Vertex_k_m_x)):
+            vert_track_dflx = [] # deflections for each track in vertex
+        
+            for track in self.vertex_trackIndices[vertex]:
+                track = int(track)
+                
+                xs = Xs[track]
+                ys = Ys[track]
+                zs = Zs[track]
+                
+                #theta_dflx = 0 # sum over deflection angles of the track
+                #num_dflx = 0
+                
+                max_track_dflx = 0
+                
+                for lyr in range(1,len(xs)-1): # loop over layers w hits, starting from second
+                    d_pr = [xs[lyr]-xs[lyr-1],
+                            ys[lyr]-ys[lyr-1],
+                            zs[lyr]-zs[lyr-1]] # current direction of track
+                            
+                    d_nx = [xs[lyr+1]-xs[lyr],
+                            ys[lyr+1]-ys[lyr],
+                            zs[lyr+1]-zs[lyr]] # next direction of track
+                            
+                    #theta_dflx += angle(d_pr, d_nx) # add deflection at current layer to track total
+                    #num_dflx += 1
+                
+                    current_dflx = angle(d_pr, d_nx)
+                    
+                    if current_dflx > max_track_dflx:
+                        max_track_dflx = current_dflx
+                
+                #vert_track_dflx.append(theta_dflx / num_dflx)
+                vert_track_dflx.append(max_track_dflx)
+                
+            second_min_track_dflx = np.sort(vert_track_dflx)[1] # use second-lowest track deflection in the vertex 
+                                                          # (expect one clean muon track in background)
+                    
+            if second_min_track_dflx < min_vert_dflx: # cut on lowest second-lowest value of all vertices
+                min_vert_dflx = second_min_track_dflx
+                
+        self.current_vector[self.n] = min_vert_dflx
         
             
     
@@ -1250,9 +1389,14 @@ class pair_track:
         del_v = v_tr - self.v
         del_x = x_tr[1:] - self.x0[1:]
         
+        '''
+        SEE LINE 214 OF /tracker/src/Physics.cc
+        for correct algorithm
+        '''
+        
         initial_x_cont = self.v * self.x0[0] - v_tr * x_tr[0] # contribution from backpropagating to position
                                                                    # of tracks at t = 0
-        t_CA = np.sum((del_x + initial_x_cont)* del_v)
+        t_CA = np.sum((del_x - initial_x_cont)* del_v)
         t_CA /= np.sum(del_v * del_v)
     
         self.closest_approach = np.sqrt(np.sum((del_x + del_v * t_CA)**2)) # square root of the squared distance of closest approach
@@ -1473,7 +1617,7 @@ class Plotter:
         #self.vertex_pos()
         #self.slope_dist()
     
-        #self.beta_vs_approach()   
+        self.beta_vs_approach()   
         
         self.IP_consistency_angles()
         
@@ -1534,14 +1678,22 @@ class Plotter:
         #print(_data_x)
         #print(_data_z)
         
-        _xlims = [0,np.max(_data_x)*1.1]
+        #_xlims = [0,np.max(_data_x)*1.1]
+        _xlims = [0,30000]
         _zlims = [0,1.0] # [np.amin(_data_z),np.max(_data_z)*1.1]
         
         _xbins=100
         _zbins=100
         
-        visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
-	      	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+        #visualization.root_2D_Histogram(_data_x, _data_z, Title=_Title, xbins=_xbins, zbins=_zbins,
+	      #	              xlims=_xlims, zlims=_zlims, xlabel=_xlabel, zlabel=_zlabel, fname=_fname)
+                                                    
+        _Title = 'Closest Approach with Vertex Track {}'.format(self.sample)
+        _fname = 'approach_{}.png'.format(self.sample)
+
+        
+        visualization.root_Histogram(_data_x, rng=_xlims, ft_rng=None, bins=0, Title=_Title, xaxis=_xlabel, logx=False, logy=False, fname=_fname)
+        
                               
     
     def slope_dist(self):    
@@ -1705,20 +1857,17 @@ def main():
         #-------------------------
 
     else: 
-        # plotting booleans (do you want to make plots?)
-        plot_cut = False
-        plot_obj = True 
+        plot_cut = True # plotting booleans (do you want to make plots?)
+        plot_obj = False 
         
-        sum_flows = True # True <=> Background / sum over data in files for flows ***** need to adress sum_flows or load booleans in below code
+        sum_flows = False # True => sum over data in files for flows
         
         load = False # set at most one of these to True
         save = False
         
-        start_from_cut = True
+        start_from_cut = False
         
-        start_cut = -1 # work only with the files with survivors at cut start_cut (indexed as in flows)
-        # it would be good to have it run without cutting, just to gather passed_event joblibs into a single file
-        # add boolean for that so we can start after the relevant cut. 
+        start_cut = 4 # work only with the files with survivors at cut start_cut (indexed as in flows)
         
         if start_from_cut:
             #passed_events_file = 'passed_events.joblib'
@@ -1728,9 +1877,9 @@ def main():
             #passed_events_file = 'passed_events_run6_4hits_23_2_22.joblib'
             #passed_events_file = 'passed_events_0_left_27_2_22.joblib'
             #passed_events_file = 'passed_events_1_left.joblib'
-            #passed_events_file = 'joblibs_for_pres/passed_events_1e5_W.joblib'
+            passed_events_file = 'joblibs_for_pres/passed_events_1e5_W.joblib'
             #passed_events_file = 'joblibs_for_pres/passed_events_1e3_W.joblib'
-            passed_events_file = 'joblibs_for_pres/passed_events_full_eff.joblib'
+            #passed_events_file = 'joblibs_for_pres/passed_events_full_eff.joblib'
             
             passed_events_prev = joblib.load(passed_events_file)
             
@@ -1741,9 +1890,9 @@ def main():
                 #file_converter_file = 'file_converter_W_1e3_29_3_22.joblib'
                 #file_converter_file = 'file_converter_1e5_8_5_22.joblib'
                 #file_converter_file = 'file_converter.joblib'
-                #file_converter_file = 'joblibs_for_pres/file_converter_1e5_W.joblib'
+                file_converter_file = 'joblibs_for_pres/file_converter_1e5_W.joblib'
                 #file_converter_file = 'joblibs_for_pres/file_converter_1e3_W.joblib'
-                file_converter_file = 'joblibs_for_pres/file_converter_full_eff.joblib'
+                #file_converter_file = 'joblibs_for_pres/file_converter_full_eff.joblib'
                 
                 file_converter = joblib.load(file_converter_file) # converts root file to joblib file
             
@@ -1757,11 +1906,11 @@ def main():
                         
         elif load:
             if sum_flows:
-                #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+                load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
                 
                 #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run8/21_05_22/14_05_20/trees/' # air support structure study 
                 #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/08_05_22/' # 1e-5 run
-                load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/' # 1e-3 large run
+                #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/' # 1e-3 large run
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/31_03_22/" # empty 
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/28_03_22/"
                 #load_files_dir = "/home/keeganh/scratch/job_test/W_sample_dir/run6/analysis_data/21_01_22/"
@@ -1773,7 +1922,8 @@ def main():
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_03_22/"
                 #load_files_dir = "/home/keeganh/scratch/26_05_22/05_50_07/trees/" # air scintillator casings and support structures
 
-                files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
+                #files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
+                files = [filename for filename in glob.iglob(load_files_dir+'/scissor_W_*.joblib', recursive=True)]
             
             else:
                 load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
@@ -1802,7 +1952,7 @@ def main():
                 files = [filename for filename in glob.iglob(directory_8+'stat_*.root', recursive=True)]
                 #files.extend([filename for filename in glob.iglob(directory_4+'stat_*.root', recursive=True)])
             
-        
+            
             else: # signal
                 files_4 = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_0_0.root',
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_1_0.root',
@@ -1812,7 +1962,6 @@ def main():
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_2_0.root',
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root'] # 3 hits per track
         #            '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/25_11_21/20_54_21/trees/stat_4_0.root']
-        
         
                 files_4_w_vert_chi = ['/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_0_0.root',
                     '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/10_03_22/18_20_20/trees/stat_1_0.root',
@@ -1834,12 +1983,12 @@ def main():
                                         '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_1_2.root',
                                         '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/19_05_22/10_53_20/trees/stat_2_2.root']
         
-                files = files_full_eff
+                files = files_1e5
                 
         
     if save: # where should I write the save files to?
-        #write_dir = 'save_files' 
-        write_dir = directory_8
+        write_dir = 'save_files' 
+        #write_dir = directory_8
     
         
     if len(files) == 0:
@@ -1849,7 +1998,7 @@ def main():
     else:
         print("Running on {} files".format(len(files)))
 
-    cuts_to_plot = [3,5] # [int] which cuts to plot (index in cut_options) 
+    cuts_to_plot = [0,14,3,15,18,19] # [int] which cuts to plot (index in cut_options) 
                         # **** need to update for multiple in list to work for sum_flows = True as well
                         # **** doesn't work for "and" cuts that require plotting of 2D parameter space (use plot obj instead)
     
@@ -1857,33 +2006,40 @@ def main():
     drawers = [] # to hold the scissors
 
     flows = dict()
-    passed_events = dict()
+    passed_events = dict() 
     file_converter = dict()
     
     option = ['cut name', 'cut parameter', 'units', 'on?'] # [name, value of the cut, units of what is being cut on, whether the cut is used (1 => yes)]
     func_name = 'func_name' # func_name is the corresponding data collection function in get_states_m
 
     # specify cuts and parameters
-    cut_options = {'0' :{option[0]:'2 Tracks'                     ,option[1]:2            ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks' },
-                   '1' :{option[0]:'Vertices'                     ,option[1]:1            ,option[2]:'verts'         ,option[3]:1 , func_name:'Vertices' },
-                   '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1            ,option[2]:'bool'          ,option[3]:1 , func_name:'Fiducial_vertex' },
-                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2000         ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex' },
-                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:True         ,option[2]:'bool'          ,option[3]:1 , func_name:'Track_floor_hits' },
-                   '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.4          ,option[2]:'rad'           ,option[3]:0 , func_name:'Opening_angle' },
-                   '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2         ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological' },
-                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2     ,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta' },
-                   '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1      ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs' },
+    cut_options = {'0' :{option[0]:'Tracks'                       ,option[1]:2            ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks'},
+                   '1' :{option[0]:'Vertices'                     ,option[1]:1            ,option[2]:'verts'         ,option[3]:1 , func_name:'Vertices'},
+                   '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1            ,option[2]:'bool'          ,option[3]:1 , func_name:'Fiducial_vertex'},
+                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2000         ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex'},
+                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:True         ,option[2]:'bool'          ,option[3]:1 , func_name:'Track_floor_hits'},
+                   '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.4          ,option[2]:'rad'           ,option[3]:0 , func_name:'Opening_angle'},
+                   '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2         ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological'},
+                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2     ,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta'},
+                   '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1      ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs'},
                    '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600          ,option[2]:'cm'            ,option[3]:0 , func_name:'Exp_hits' },
                    '10':{option[0]:'No Floor Hits'                ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
                    '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6           ,option[2]:'-missed hits'  ,option[3]:0 , func_name:'Missing_hit_sum' },
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20          ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
                    '13':{option[0]:'Hits per track in vertex'     ,option[1]:4            ,option[2]:'hits'          ,option[3]:0 , func_name:'Hits_per_track'},
                    '14':{option[0]:'Fiducial Leniency'            ,option[1]:750          ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
-                   '15':{option[0]:'Closest Approach Delta ray'   ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
+                   '15':{option[0]:'Psuedo-Tracks Pairwise Hits'  ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
                    '16':{option[0]:'All vertices before all hits' ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'},
                    '17':{option[0]:'Vertex chi per ndof'          ,option[1]:20           ,option[2]:'chi ndof'      ,option[3]:0 , func_name:'Vertex_chi'},
-                   '18':{option[0]:'Velocities Consistent with IP',option[1]:True         ,option[2]:'bool'          ,option[3]:1 , func_name:'IP_consistency'},
-                   '19':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:0 , func_name:'Close_approach_topology'}} 
+                   #'18':{option[0]:'Consistent with IP theta'     ,option[1]:-0.05        ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency'}, # 1e-3
+                   #'19':{option[0]:'Consistent with IP alpha'     ,option[1]:0.03         ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency2'},
+                   '18':{option[0]:'Consistent with IP theta'     ,option[1]:-0.01        ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency'}, # 1e-5
+                   '19':{option[0]:'Consistent with IP alpha'     ,option[1]:0.06         ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency2'},
+                   '20':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:0 , func_name:'Close_approach_topology'},
+                   '21':{option[0]:'Crinkle cut'                  ,option[1]:0.05         ,option[2]:'rad'           ,option[3]:0 , func_name:'Crinkle_cut'},
+                   '22':{option[0]:'Corner cut w track hits'      ,option[1]:750          ,option[2]:'cm'            ,option[3]:0 , func_name:'Fiducial_leniency_track_hits'}} 
+
+
 
     # **** can retune fiducial leniency cut to get back some signal
 
@@ -1900,7 +2056,7 @@ def main():
 
     # ----------------
 
-    permutation = [0,1,2,4,14,3,15,18,19,5,9,13,11,6,7,8,10,12,16,17] # order in which the cuts are performed
+    permutation = [0,1,2,4,14,3,15,18,19,22,21,20,5,9,13,11,6,7,8,10,12,16,17] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
@@ -2043,24 +2199,32 @@ def main():
 
         if plot_cut and len(scissor.survivor_inds) != 0:
             for p, cut in enumerate(cuts_to_plot_perm):
-                inds = np.array(scissor.survivor_inds[cut-1],dtype=int) # surviving indices before cut
+                
+                if cut != 0:
+                    inds = np.array(scissor.survivor_inds[cut-1],dtype=int) # surviving indices before cut
+                
+                else:
+                    inds = np.array(scissor.survivor_inds[cut],dtype=int) # surviving indices before cut
                 
                 values = scissor.cut_vectors[inds,scissor.func_dicts[cut_options[str(permutation[cut])]['func_name']]['index']]
-    
-                #if cut = 7:
-                #values = 1 / np.array(values)
-                #values = lint(values) 
+                #values = scissor.cut_vectors[inds,scissor.func_dicts[cut_options[str(cuts_to_plot[p])]['func_name']]['index']]
     
                 if sum_flows:
                     sum_values[cut].extend(values) # ****** need to change this when we are plotting more than one thing!!! 
     
                 if not sum_flows and len(values) != 0:
                     _bins = 100
+                    _logy = False
                     
-                    #_rng = (0,5000)
+                    if cuts_to_plot[p] == 0:
+                        _rng = (0,10)
+                        _logy = True
                     
-                    if cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
+                    elif cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
                         _rng = (0,3000)
+                        
+                    elif cuts_to_plot[p] == 20:
+                        _rng = (0,0.1)
                     
                     else:                
                         _rng = (np.amin(values),np.max(values)*1.1)
@@ -2070,7 +2234,8 @@ def main():
                   					bins=_bins-int(np.sqrt(len(values))),
                   					Title='{} {}'.format(flows['cut name'][cut],sample),
                   					xaxis=flows['units'][cut],
-                  					fname='distribution_{}_{}.png'.format(cut,sample))
+                            logy=_logy,
+                  					fname='distribution_{}_{}.png'.format(cuts_to_plot[p],sample))
                     
                 
         i += 1
@@ -2091,10 +2256,18 @@ def main():
         if plot_cut and len(sum_values) != 0:
             for p, cut in enumerate(cuts_to_plot_perm):
                 _bins = 100
-                
-                if cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
+                _logy = False
+                    
+                if cuts_to_plot[p] == 0:
+                    _rng = (0,10)
+                    _logy = True
+                    
+                elif cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
                     _rng = (0,3000)
                     
+                elif cuts_to_plot[p] == 20:
+                    _rng = (0,0.1)
+                        
                 else:
                     _rng = (np.amin(sum_values[cut]),np.max(sum_values[cut])*1.1)
                 
@@ -2104,7 +2277,7 @@ def main():
               					Title='{} {}'.format(flows['cut name'][cut],sample),
               					xaxis=flows['units'][cut],
               					fname='distribution_{}_{}.png'.format(cuts_to_plot[p],sample),
-                        logy=False,
+                        logy=_logy,
                         logx=False)
     
     #-------------------------------------------------------------------------------

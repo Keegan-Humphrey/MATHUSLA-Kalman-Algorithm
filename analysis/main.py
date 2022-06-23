@@ -16,7 +16,7 @@ import joblib
 RUN OPTION
 '''
  
-option = 0
+option = 1
 
 
 print('hello viewer')
@@ -40,7 +40,6 @@ def main(opt):
         passed_events = joblib.load('passed_events_hits_before_full_eff_29_5_22.joblib')
         #passed_events = joblib.load('joblibs_for_pres/passed_events_1e3.joblib')
         #passed_events = joblib.load('passed_events_1e5_8_5_22.joblib')
-
 #        passed_events = joblib.load('passed_events_run6_4hits_23_2_22.joblib')
         
         total_event_cap = 45
@@ -51,23 +50,12 @@ def main(opt):
         if not os.path.exists('vis_plots'):
             os.makedirs('vis_plots')
 
-        #files_handled = 0
-        
         total_events_processed = 0
 
-        #print(passed_events)
-
         for file in passed_events.keys():
-        #file = '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/21_02_22/13_52_17/trees/stat_2_0.root'
-
-        #if True:
-
 
             events_processed = 0
-            #ev = event.Event(file, 0)
             
-            #try:
-
             if survivors:
                 inds = passed_events[file][cut].astype(int)
 
@@ -77,21 +65,11 @@ def main(opt):
             
                 inds = inds_before - inds_after # show events cut
                 
-                #print(inds) 
-
-            #except:
-            #    inds = []
-
             if len(inds) != 0:
                 #print(files_handled)
                 print(file)
                 #print(inds)
 
-            #files_handled += 1
-            
-            #if file != '/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm//08_01_22/17_50_20/trees/stat_0_0.root':
-            #    continue
-        
             for ind in inds:
                 if events_processed > file_event_cap:
                     break
