@@ -1,4 +1,5 @@
 #include "Digitizer.hh"
+#include "NoiseMaker.hh"
 #include "physics.hh"
 #include "globals.hh"
 #include <TRandom.h>
@@ -276,7 +277,13 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	}
 
 	digis = digis_not_dropped; // only keep hits not dropped by inefficiency in the floor or wall
-
+	if(NoiseMaker::run){
+                NoiseMaker* noise = new NoiseMaker(digis);
+                std::vector<physics::digi_hit*> noise_digis = noise->return_digis();
+                for(auto digi:noise_digis){
+                        digis.push_back(digi);
+                }
+        }
 	//setting digi indices
 	int k = 0;
 	for (auto digi : digis) {

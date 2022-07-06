@@ -22,3 +22,4 @@ kalman_v_drop[0] 0.8
 kalman_v_drop[1] 1.2
 start_ev 0.0
 end_ev 100000.0
+noise_hz 0

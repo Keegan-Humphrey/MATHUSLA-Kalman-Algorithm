@@ -8,6 +8,7 @@
 #include <fstream>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include "NoiseMaker.hh"
 #include "par_handler.hh"
 
 int RunManager::StartTracking()
@@ -44,7 +45,7 @@ int RunManager::StartTracking()
 	_digitizer->par_handler = &hndlr;
 	_tracker->par_handler = &hndlr;
 	_vertexer->par_handler = &hndlr;
-
+	NoiseMaker::preDigitizer();
 	while (TH->Next() >= 0)
 	{
 

@@ -25,6 +25,7 @@ add_library(tracker-lib SHARED
     src/Digitizer.cc
     src/VertexFinder.cc
     src/Physics.cc
+    src/NoiseMaker.cc
 	src/LinearAlgebra.cc
 	src/kalman.cc
 	src/kalman-test.cc
