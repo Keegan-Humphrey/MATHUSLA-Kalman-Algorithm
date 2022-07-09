@@ -21,16 +21,17 @@ class Plot:
 
         # make write directories for each branch
         for branch in branches:
-             directory = self.write_dir+'/plots/'+branch
+             directory = self.write_dir+'/plots/'+branch+'/'
 
-             if not os.path.exists(directory):
-                 os.makedirs(directory)
+             #if not os.path.exists(directory):
+             os.makedirs(directory)
+#             print("made "+directory)
 
         for file in self.filelist:
              infile = root.TFile.Open( file ," READ ")
              self.tree = infile.Get("integral_tree")
 
-             #print("Plotting in file: ", file)
+             print("Plotting in file: ", file)
 
              self.canvas = root.TCanvas()
              self.canvas.cd()
@@ -58,20 +59,21 @@ class Plot:
 
 
 if __name__ == "__main__":
-    '''
     branches = ["Track_k_numHits",
-		"Track_numHits",
 		"local_chi_f",
 		"local_chi_s",
 		"Track_k_smooth_chi_sum",
-		"NumTracks",
-		"NumTracks_k",
 		"NumTracks_k_m",
-		"vertex_k_f_beta",
-		"vertex_k_s_beta",
 		"Track_k_beta",
-		"Track_k_beta_err"]
+		"Track_k_beta_err",
+		"Vertex_chi2",
+		"Track_k_m_opening_angle",
+		"Hit_energy",
+		"Track_k_m_x_std_scat_per_m",
+		"Track_k_m_z_std_scat_per_m",
+		"Digi_energy"]
 
+    '''
     branches = ["Vertex_k_m_ErrorT",
 		"Vertex_k_m_ErrorX",
 		"Vertex_k_m_ErrorY",

@@ -34,6 +34,9 @@ int RunManager::StartTracking()
 	int verts_k = 0;
 	int verts_k_m = 0;
 
+	int dropped_hits = 0;
+	int floor_wall_hits = 0;
+
 	std::vector<int> zeros(9, 0);
 	std::vector<int> failures_k = zeros;
 
@@ -41,11 +44,13 @@ int RunManager::StartTracking()
 	hndlr.Handle();
 
 	if (hndlr.par_map["branch"] == 1.0) std::cout << "Running in Cosmic Mode" << std::endl;
-	
+
 	_digitizer->par_handler = &hndlr;
 	_tracker->par_handler = &hndlr;
 	_vertexer->par_handler = &hndlr;
-	NoiseMaker::preDigitizer();
+    
+    NoiseMaker::preDigitizer();
+
 	while (TH->Next() >= 0)
 	{
 
@@ -107,7 +112,11 @@ int RunManager::StartTracking()
 			_tracker->CalculateHoles(_digitizer->_geometry);
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 			_tracker->MergeTracks();
-			_tracker->MergeTracks_k();
+
+			if (hndlr.par_map["merge_cos_theta"] != -2) {
+				_tracker->MergeTracks_k();
+			}
+
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 
 			made_its += _tracker->tracks.size();
@@ -143,6 +152,9 @@ int RunManager::StartTracking()
 			if (_tracker->tracks.size() > 0) events_w_tracks++;
 			if (_tracker->tracks_k_m.size() > 0) events_w_k_tracks++;
 
+			dropped_hits += _digitizer->dropped_hits;
+			floor_wall_hits += _digitizer->floor_wall_hits;
+
 		}
 
 		events_handled++;
@@ -160,6 +172,8 @@ int RunManager::StartTracking()
 		TH->Write();
 
 		std::cout << "Tracked " << TotalEventsProcessed << " Events" << std::endl;
+
+//		std::cout << "# Dropped Hits / # Floor Wall Hits = " << (double) dropped_hits / floor_wall_hits;
 
 	}
 

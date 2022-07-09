@@ -34,6 +34,7 @@ class Editor:
                 pars_to_handle = ['branch',
 				'debug',
 				'seed',
+				'seed_interval',
 				'kalman_chi_s',
 				'kalman_chi_add',
 				'kalman_track_chi',
@@ -54,7 +55,8 @@ class Editor:
 				'kalman_v_drop[0]',
 				'kalman_v_drop[1]',
 				'start_ev',
-				'end_ev']
+				'end_ev',
+                'noise_hz']
 
                 pars_dict = dict()
 

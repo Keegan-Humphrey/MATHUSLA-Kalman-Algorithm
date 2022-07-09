@@ -99,7 +99,7 @@ done < "$input"
 cp ./run/*.txt "$1/$day/$time/"
 #cp ./run/*.txt "$1/$day/$time/plots"
 
-python ./run/plotting.py "$1/$day/$time/"
+#python ./run/plotting.py "$1/$day/$time/"
 
 cd "$1"
 

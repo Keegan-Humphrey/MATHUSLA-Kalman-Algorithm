@@ -651,7 +651,7 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
       // Number of Tracks Reconstructed
       track_k_m_numHits.push_back( (tr->hits).size() );
 
-      if ((tr->hits).size()  > 8 ) std::cout << "something's wrong here" << std::endl;
+      if ((tr->hits).size()  > 8 ) std::cout << "num_hits " << (tr->hits).size() << std::endl;
 
       // Push velocity and position of lowest (in y) Kalman estimate for each track
     	track_k_m_vx.push_back(tr->vx);

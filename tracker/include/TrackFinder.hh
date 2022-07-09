@@ -228,9 +228,13 @@ public:
 		int i;
 		for (auto seed : seeds_k)
 		{
-			seeds_k[i].score = c_score(seed);
+			auto P1 = seed.hits.first->PosVector();
+			auto P2 = seed.hits.second->PosVector();
 
-			file << "seed score for hits " << seeds_k[i].hits.first->index << " and " << seeds_k[i].hits.second->index << " is " << seeds_k[i].score << std::endl;
+			double dr = (P2 - P1).Magnitude() / constants::c; // [ns]
+
+			seeds_k[i].score = c_score(seed) / (dr * dr); // these will now be ordered by relative scores
+
 			i++;
 		}
 		//file.close();
@@ -240,7 +244,7 @@ public:
 	{ //sorts by c_compatability score
 
 		int min_index = -1;
-		int min_val = cuts::seed_ds2;
+		double min_val = cuts::seed_ds2;
 		int j = 0;
 		for (auto seed : seeds)
 		{
@@ -262,23 +266,19 @@ public:
 		//file.open("print.txt", std::ios_base::app);
 
 		int min_index = -1;
-		double min_val = cuts::seed_ds2;
+		double min_val = 1e6; // large value to be overwritten by first seed
 		int j = 0;
 		for (auto seed : seeds_k)
 		{
 			if (seed.score < min_val)
 			{
+
 				min_index = j;
 				min_val = seed.score;
-
-				file << " min index is " << min_index << std::endl;
-				file << " min val is " << min_val << std::endl;
 			}
 
 			j++;
 		}
-
-		file << " min index last is " << min_index << std::endl;
 
 		//file.close();
 
