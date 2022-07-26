@@ -30,9 +30,11 @@ void TrackFinder::Seed()
 			if (layer1 == layer2)
 				continue;
 
-			double ds = c_score(hits[first], hits[second]);
+			double ds_2 = c_score(hits[first], hits[second]);
 
-			if (ds > cuts::seed_ds2)
+			//double dr = (hits[first].PosVector() - hits[second].PosVector()).Magnitude() / constants::c; // [ns]
+
+			if (ds_2 > par_handler->par_map["seed_interval"])
 				continue;
 
 			seeds.push_back(seed(hits[first], hits[second]));
@@ -383,10 +385,12 @@ void TrackFinder::MergeTracks_k()
 			}
 
 			if ((tr1->_holes.size() >= 3 or tr2->_holes.size() >= 3) and (distance < 150 and cos_theta > 0.95)){
+				//std::cout << "first holes" << std::endl;
 				mergebool = true;
 			}
 
 			if ((tr1->_holes.size() >= 2 or tr2->_holes.size() >= 2) and (distance < 100 and cos_theta > 0.99)){
+				//std::cout << "second holes" << std::endl;
 				mergebool = true;
 			}
 			//at this point, we need to check if they have a certain number of missing hits
@@ -461,11 +465,15 @@ void TrackFinder::MergeTracks_k()
 			//	continue;
 			if (!mergebool){continue;} // from above loop
 
+			//std::cout << "made it passed mergebool" << std::endl;
+
 			Vector CA_mid = tr1->closest_approach_midpoint(tr2);
 			if (!geo.inBox(CA_mid.x, CA_mid.y, CA_mid.z)) {
 				std::cout << "CA is outside of detector" << std::endl;
 				continue;
 			}
+
+			//std::cout << "made it passed CA" << std::endl;
 
 			seed artificial_seed = seed(tr1->hits[0], tr1->hits[1]);
 

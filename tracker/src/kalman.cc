@@ -220,10 +220,11 @@ void KalmanFilter::king_moves_algorithm(const std::vector<physics::digi_hit *> y
         {
           if (std::abs(res[2]) < std::sqrt(12) * y_list[i]->ez * scale[2])
           {
-            king_move_inds.push_back(y_list[i]->index);
+            //king_move_inds.push_back(y_list[i]->index);
 
             // within king moves of the chosen hit, remove from hit pool
-            continue;
+            //continue;
+            unadded_hits.push_back(y_list[i]);
           }
         }
       }
@@ -354,7 +355,8 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
   //mag = std::sqrt(a*a + b*b + c*c); // just 1, only included incase above norm is removed
   mag = 1;
 
-  double sin_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
+//  double sin_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
+  double sin_theta = std::sqrt(b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
 
   Q << dy * dy * (b * b + a * a) / std::pow(b, 4),
       dy * dy * a / (constants::c * std::pow(b, 4)),
@@ -411,7 +413,7 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
 
   L_rad /= sin_theta; // [rad lengths] in direction of track
 
-  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log(L_rad));
+  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log10(L_rad)); // used to be standard ln
   sigma_ms /= par_handler->par_map["p"];
 
   Q = Q * std::pow(sigma_ms, 2);

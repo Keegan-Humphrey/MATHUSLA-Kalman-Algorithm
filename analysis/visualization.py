@@ -298,8 +298,8 @@ def root_Histogram(data, rng=None, ft_rng=None, bins=0, Title="Histogram", xaxis
     fwhm = hist.GetBinCenter(bin2) - hist.GetBinCenter(bin1)
     hwhm = fwhm / 2
 
-#    print("fwhm is ", fwhm)
-#    print("hwhm is ", hwhm)
+    print("fwhm is ", fwhm)
+    print("hwhm is ", hwhm)
 
     canv.Update()
     canv.Draw()

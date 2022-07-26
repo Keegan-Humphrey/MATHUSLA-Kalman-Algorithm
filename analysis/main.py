@@ -10,13 +10,13 @@ import warnings
 import numpy as np
 import visualization
 import joblib
-
+import glob
 
 '''
 RUN OPTION
 '''
  
-option = 1
+option = 3
 
 
 print('hello viewer')
@@ -27,17 +27,17 @@ def main(opt):
     try:
         ev = event.Event(sys.argv[1], 0)
 
-    except IndexError: # no argument passed (some opts don't use one)
+    except (IndexError,ReferenceError): # no argument passed (some opts don't use one)
         pass
 
     if opt == 0:
         # plot visualisations for events used in the analysis
         # to be put in ./vis_plots/
         
-        cut = 5 # -1 to look at survivors (otherwise indexed as in flows)
+        cut = 4 # -1 to look at survivors (otherwise indexed as in flows)
         
-        #passed_events = joblib.load('passed_events.joblib')
-        passed_events = joblib.load('passed_events_hits_before_full_eff_29_5_22.joblib')
+        passed_events = joblib.load('passed_events.joblib')
+        #passed_events = joblib.load('passed_events_hits_before_full_eff_29_5_22.joblib')
         #passed_events = joblib.load('joblibs_for_pres/passed_events_1e3.joblib')
         #passed_events = joblib.load('passed_events_1e5_8_5_22.joblib')
 #        passed_events = joblib.load('passed_events_run6_4hits_23_2_22.joblib')
@@ -188,7 +188,25 @@ def main(opt):
 
 
     elif opt == 3:
-        ev.VertexAccuracy()
+        #directory = sys.argv[1]
+        #files = [filename for filename in glob.iglob(directory+'/**/*.root', recursive=True)]
+
+        files = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/1e-3_seed_ordering_no_merge/trees/stat_0_2.root',
+                '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/1e-3_seed_ordering_no_merge/trees/stat_1_2.root',
+                '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/15_50_12/trees/stat_5_0.root',
+                '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/22_15_44/trees/stat_3_0.root',
+                '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/22_15_44/trees/stat_4_0.root']
+
+        samples = ['h10','h2','h35','qq10','qq50']
+        i = 0
+
+        for file in files:
+            ev = event.Event(file, 0)
+            print("Sample is: ",samples[i])
+            print(file)
+            print('id string: {}'.format(i))
+            ev.VertexAccuracy(id_str=str(i))
+            i += 1
 
     elif opt == 4:
         ev.PlotMomentum(num=1000, cut=1000)

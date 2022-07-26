@@ -319,6 +319,34 @@ public:
 	OutputTree->Branch("Track_k_m_z0", &track_k_m_z);
 	OutputTree->Branch("Track_k_m_t0", &track_k_m_t);
 	
+      	OutputTree->Branch("Track_k_m_ErrorT0", &track_k_m_t_error);
+      	OutputTree->Branch("Track_k_m_ErrorX0", &track_k_m_x_error);
+      	OutputTree->Branch("Track_k_m_ErrorY0", &track_k_m_y_error);
+      	OutputTree->Branch("Track_k_m_ErrorZ0", &track_k_m_z_error);
+      	OutputTree->Branch("Track_k_m_ErrorVx", &track_k_m_vx_error);
+      	OutputTree->Branch("Track_k_m_ErrorVy", &track_k_m_vy_error);
+      	OutputTree->Branch("Track_k_m_ErrorVz", &track_k_m_vz_error);
+
+	OutputTree->Branch("Track_k_m_cov_x_t", &track_k_m_cov_x_t);
+	OutputTree->Branch("Track_k_m_cov_x_z", &track_k_m_cov_x_z);
+	OutputTree->Branch("Track_k_m_cov_x_vx", &track_k_m_cov_x_vx);
+	OutputTree->Branch("Track_k_m_cov_x_vy", &track_k_m_cov_x_vy);
+	OutputTree->Branch("Track_k_m_cov_x_vz", &track_k_m_cov_x_vz);
+
+	OutputTree->Branch("Track_k_m_cov_t_z", &track_k_m_cov_t_z);
+	OutputTree->Branch("Track_k_m_cov_t_vx", &track_k_m_cov_t_vx);
+	OutputTree->Branch("Track_k_m_cov_t_vy", &track_k_m_cov_t_vy);
+	OutputTree->Branch("Track_k_m_cov_t_vz", &track_k_m_cov_t_vz);
+
+	OutputTree->Branch("Track_k_m_cov_z_vx", &track_k_m_cov_z_vx);
+	OutputTree->Branch("Track_k_m_cov_z_vy", &track_k_m_cov_z_vy);
+	OutputTree->Branch("Track_k_m_cov_z_vz", &track_k_m_cov_z_vz);
+
+	OutputTree->Branch("Track_k_m_cov_vx_vy", &track_k_m_cov_vx_vy);
+	OutputTree->Branch("Track_k_m_cov_vx_vz", &track_k_m_cov_vx_vz);
+
+	OutputTree->Branch("Track_k_m_cov_vy_vz", &track_k_m_cov_vy_vz);
+
   OutputTree->Branch("Track_k_m_beta", &track_k_m_beta);
 	OutputTree->Branch("Track_k_m_beta_err", &track_k_m_beta_err);
  
@@ -532,6 +560,34 @@ Double_t numvertices_k_m;
 	std::vector<double> track_k_m_y;
 	std::vector<double> track_k_m_z;
  
+  	std::vector<double> track_k_m_t_error;
+  	std::vector<double> track_k_m_x_error;
+  	std::vector<double> track_k_m_y_error;
+  	std::vector<double> track_k_m_z_error;
+  	std::vector<double> track_k_m_vx_error;
+  	std::vector<double> track_k_m_vy_error;
+  	std::vector<double> track_k_m_vz_error;
+
+	std::vector<double> track_k_m_cov_x_t;
+	std::vector<double> track_k_m_cov_x_z;
+	std::vector<double> track_k_m_cov_x_vx;
+	std::vector<double> track_k_m_cov_x_vy;
+	std::vector<double> track_k_m_cov_x_vz;
+
+	std::vector<double> track_k_m_cov_t_z;
+	std::vector<double> track_k_m_cov_t_vx;
+	std::vector<double> track_k_m_cov_t_vy;
+	std::vector<double> track_k_m_cov_t_vz;
+
+	std::vector<double> track_k_m_cov_z_vx;
+	std::vector<double> track_k_m_cov_z_vy;
+	std::vector<double> track_k_m_cov_z_vz;
+
+	std::vector<double> track_k_m_cov_vx_vy;
+	std::vector<double> track_k_m_cov_vx_vz;
+
+	std::vector<double> track_k_m_cov_vy_vz;
+
   std::vector<double> track_k_m_filter_chi;
   std::vector<double> track_k_m_smooth_chi;
   std::vector<double> track_k_m_smooth_chi_sum;
@@ -612,11 +668,39 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
 	track_k_m_y.clear();
 	track_k_m_z.clear();
 	track_k_m_t.clear();
+
+	track_k_m_vx_error.clear();
+	track_k_m_vy_error.clear();
+	track_k_m_vz_error.clear();
+	track_k_m_x_error.clear();
+	track_k_m_y_error.clear();
+	track_k_m_z_error.clear();
+	track_k_m_t_error.clear();
 	
 	x_estimates_m.clear();
 	y_estimates_m.clear();
 	z_estimates_m.clear();
-	
+
+	track_k_m_cov_x_t.clear();
+	track_k_m_cov_x_z.clear();
+	track_k_m_cov_x_vx.clear();
+	track_k_m_cov_x_vy.clear();
+	track_k_m_cov_x_vz.clear();
+
+	track_k_m_cov_t_z.clear();
+	track_k_m_cov_t_vx.clear();
+	track_k_m_cov_t_vy.clear();
+	track_k_m_cov_t_vz.clear();
+
+	track_k_m_cov_z_vx.clear();
+	track_k_m_cov_z_vy.clear();
+	track_k_m_cov_z_vz.clear();
+
+	track_k_m_cov_vx_vy.clear();
+	track_k_m_cov_vx_vz.clear();
+
+	track_k_m_cov_vy_vz.clear();
+
   track_hit_k_m_indices.clear();
   track_k_m_expected_hit_layer.clear();
 	king_move_inds.clear();
@@ -651,7 +735,19 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
       // Number of Tracks Reconstructed
       track_k_m_numHits.push_back( (tr->hits).size() );
 
-      if ((tr->hits).size()  > 8 ) std::cout << "num_hits " << (tr->hits).size() << std::endl;
+     /*
+      if ((tr->hits).size()  > 8 ) {
+	std::cout << "num_hits " << (tr->hits).size() << std::endl;
+\	for (auto hit : tr->hits) {
+		std::cout << " hit y: " << hit->y;
+	}
+	std::cout << std::endl;
+	for (auto hit : tr->hits) {
+		std::cout << " hit z: " << hit->z;
+	}
+	std::cout << std::endl;
+      }
+      */
 
       // Push velocity and position of lowest (in y) Kalman estimate for each track
     	track_k_m_vx.push_back(tr->vx);
@@ -662,7 +758,39 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
     	track_k_m_x.push_back(tr->x0);
     	track_k_m_y.push_back(tr->y0);
     	track_k_m_z.push_back(tr->z0);
+
+    	track_k_m_vx_error.push_back(tr->evx);
+    	track_k_m_vy_error.push_back(tr->evy);
+    	track_k_m_vz_error.push_back(tr->evz);
+     
+    	track_k_m_t_error.push_back(tr->et0);
+    	track_k_m_x_error.push_back(tr->ex0);
+    	track_k_m_y_error.push_back(tr->ey0);
+    	track_k_m_z_error.push_back(tr->ez0);
     
+	track_k_m_cov_x_t.push_back(tr->P_s(0,1));
+	track_k_m_cov_x_z.push_back(tr->P_s(0,2));
+	track_k_m_cov_x_vx.push_back(tr->P_s(0,3));
+	track_k_m_cov_x_vy.push_back(tr->P_s(0,4));
+	track_k_m_cov_x_vz.push_back(tr->P_s(0,5));
+
+	track_k_m_cov_t_z.push_back(tr->P_s(1,2));
+	track_k_m_cov_t_vx.push_back(tr->P_s(1,3));
+	track_k_m_cov_t_vy.push_back(tr->P_s(1,4));
+	track_k_m_cov_t_vz.push_back(tr->P_s(1,5));
+
+	track_k_m_cov_z_vx.push_back(tr->P_s(2,3));
+	track_k_m_cov_z_vy.push_back(tr->P_s(2,4));
+	track_k_m_cov_z_vz.push_back(tr->P_s(2,5));
+
+	track_k_m_cov_vx_vy.push_back(tr->P_s(3,4));
+	track_k_m_cov_vx_vz.push_back(tr->P_s(3,5));
+
+	track_k_m_cov_vy_vz.push_back(tr->P_s(4,5));
+
+
+
+
       // Push various Chis to Tree
       for (auto chi : tr->chi_f) track_k_m_filter_chi.push_back( static_cast<double>(chi) );
       for (auto chi : tr->chi_s) track_k_m_smooth_chi.push_back( static_cast<double>(chi) );

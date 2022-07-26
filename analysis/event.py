@@ -558,7 +558,7 @@ class Event:
 
 
 
-	def VertexAccuracy(self):
+	def VertexAccuracy(self,id_str=''):
 		''' get differences in each coordinate between decay location (truth vertex) and the closest made vertex'''
 
 		self.Tree.SetBranchStatus("GenParticle_G4index",1)
@@ -580,6 +580,8 @@ class Event:
 		px, py, pz = [], [], []
 		chi = []
 
+		long_res, trans_res = [], []
+
 		max = 1e2
 
 		res_info_txt = []
@@ -587,7 +589,7 @@ class Event:
 		for ev_num in range(self.Tree.GetEntries()):
 		#for ev_num in [34, 38, 52]:
 
-			print("event {}".format(ev_num)) if ev_num % 100 == 0 else None
+			print("event {}".format(ev_num)) if ev_num % 1000 == 0 else None
 
 			self.Tree.GetEntry(ev_num)
 
@@ -602,6 +604,12 @@ class Event:
 				      self.Tree.GenParticle_x[int(used_gens_inds[0])] / 10,
 				      self.Tree.GenParticle_z[int(used_gens_inds[0])] / 10,
 				      self.Tree.GenParticle_time[int(used_gens_inds[0])] / 300]
+			'''
+			vert_truth = [self.Tree.GenParticle_y[int(used_gens_inds[0])],
+				      self.Tree.GenParticle_x[int(used_gens_inds[0])],
+				      self.Tree.GenParticle_z[int(used_gens_inds[0])],
+				      self.Tree.GenParticle_time[int(used_gens_inds[0])]]
+			'''
 
 			x = self.Tree.Vertex_k_m_x
 			y = self.Tree.Vertex_k_m_y
@@ -615,28 +623,50 @@ class Event:
 			min_index = -1
 
 			for vert in range(len(x)):
-				_dx = x[vert] - vert_truth[0]
-				_dy = y[vert] - vert_truth[1]
-				_dz = z[vert] - vert_truth[2]
+				if self.Tree.NumTracks_k_m > 0 or id_str not in ['1','3']:
+						_dx = x[vert] - vert_truth[0]
+						_dy = y[vert] - vert_truth[1]
+						_dz = z[vert] - vert_truth[2]
 
-				dr = np.sqrt(_dx**2 + _dy**2 + _dz**2)
+						dr = np.sqrt(_dx**2 + _dy**2 + _dz**2)
 
-				if dr < min_dist:
-					min_index = vert
+						if dr < min_dist:
+							min_index = vert
 
 			if min_index != -1:
 				dx.append(x[min_index] - vert_truth[0])
 				dy.append(y[min_index] - vert_truth[1])
 				dz.append(z[min_index] - vert_truth[2])
 				dt.append(t[min_index] - vert_truth[3])
+
+				# vIP is given by vertex position
+				# want to seperate out longitudinal and transverse
+				# project res onto vIP -> longitudinal
+				# subtract longitudinal from res -> transverse
+
+				vIP = np.array(vert_truth[:3])
+				res = np.array([dx[-1],dy[-1],dz[-1]])
+
+				vIP_norm = np.sum(vIP * vIP)
+				_long_res = np.sum(res * vIP) / np.sqrt(vIP_norm) # signed to indicated direction
+				long_proj = _long_res / np.sqrt(vIP_norm) * vIP
+
+				trans_proj = res - long_proj
+				_trans_res = np.sqrt(np.sum(trans_proj * trans_proj))
+				if trans_proj[0] < 0: # assign negative if x residual is negative (for gaussian fit)
+						_trans_res *= -1.0
+
+				long_res.append(_long_res)
+				trans_res.append(_trans_res)
+
 				ex.append(_ex[min_index])
 				ey.append(_ey[min_index])
 				ez.append(_ez[min_index])
 				px.append(dx[-1] / ex[-1])
 				py.append(dy[-1] / ey[-1])
 				pz.append(dz[-1] / ez[-1])
-				chi.append(dx[-1]**2 / ex[-1]**2 + dy[-1]**2 / ey[-1]**2 + dz[-1]**2 / ez[-1]**2)
-
+				#chi.append(dx[-1]**2 / ex[-1]**2 + dy[-1]**2 / ey[-1]**2 + dz[-1]**2 / ez[-1]**2)
+				'''
 				res_info_txt.append("\nev num is " + str(ev_num)+ '\n')
 				res_info_txt.append("chi is " + str(chi[-1]) + '\n')
 				res_info_txt.append("pull X is " + str(px[-1]) + '\n')
@@ -648,7 +678,7 @@ class Event:
 				res_info_txt.append("diff X is " + str(dx[-1]) + '\n')
 				res_info_txt.append("diff Y is " + str(dy[-1]) + '\n')
 				res_info_txt.append("diff Z is " + str(dz[-1]) + '\n')
-
+				'''
 		#f = open("res_info.txt","w+")
 		#f.writelines(res_info_txt)
 		#f.close()
@@ -674,7 +704,7 @@ class Event:
 		vis_engine = visualization.Histogram(chi, rng=(0,200), Title='Vertex chi', \
                 	xaxis='Chi []', fname='chi.png')
 		'''
-
+		'''
 		vis_engine = visualization.root_Histogram(dx, rng=(-300,300), ft_rng=(-20,20), bins=50, Title='Vertex X Residual', \
                 	xaxis='Vertex X - Decay Location X [cm]', fname='residualX.png')
 		vis_engine = visualization.root_Histogram(dy, rng=(-700,700), ft_rng=(-50,50), bins=50, Title='Vertex Y Residual', \
@@ -684,6 +714,78 @@ class Event:
 #		vis_engine = visualization.root_Histogram(dt, rng=(-max,max), Title='Vertex T Resolution', \
 		vis_engine = visualization.root_Histogram(dt, rng=(-100,100), ft_rng=(-3,3), bins=100, Title='Vertex T Residual', \
                 	xaxis='Vertex T - Decay Time T [ns]', fname='residualT.png')
+		'''
+
+		if id_str == '4':
+			scale = 10
+
+		else:
+			scale = 5
+
+		x_rng = np.std(dx)/scale
+		y_rng = np.std(dy)/scale
+		z_rng = np.std(dz)/scale
+		t_rng = np.std(dt)/scale
+
+		pull_x = np.abs(np.mean(dx) - dx) / (x_rng * scale)
+		pull_x[pull_x > 2] = 0
+		pull_y = np.abs(np.mean(dy) - dy) / (y_rng * scale)
+		pull_y[pull_y > 2] = 0
+		pull_z = np.abs(np.mean(dz) - dz) / (z_rng * scale)
+		pull_z[pull_z > 2] = 0
+		pull_t = np.abs(np.mean(dt) - dt) / (t_rng * scale)
+		pull_t[pull_t > 2] = 0
+		print(np.count_nonzero(pull_x))
+		print(np.count_nonzero(pull_y))
+		print(np.count_nonzero(pull_z))
+		print(np.count_nonzero(pull_t))
+
+
+    
+
+		vis_engine = visualization.root_Histogram(dx, rng=(-x_rng*3,x_rng*3), ft_rng=(-x_rng/2,x_rng/2), bins=50, Title='Vertex X Residual', \
+                	xaxis='Vertex X - Decay Location X [cm]', fname='residualX{}.png'.format(id_str))
+		vis_engine = visualization.root_Histogram(dy, rng=(-y_rng*3,y_rng*3), ft_rng=(-y_rng/2,y_rng/2), bins=50, Title='Vertex Y Residual', \
+                	xaxis='Vertex Y - Decay Location Y [cm]', fname='residualY{}.png'.format(id_str))
+		vis_engine = visualization.root_Histogram(dz, rng=(-z_rng*3,z_rng*3), ft_rng=(-z_rng/2,z_rng/2), bins=50, Title='Vertex Z Residual', \
+                	xaxis='Vertex Z - Decay Location Z [cm]', fname='residualZ{}.png'.format(id_str))
+		vis_engine = visualization.root_Histogram(dt, rng=(-t_rng*3,t_rng*3), ft_rng=(-t_rng/2,t_rng/2), bins=100, Title='Vertex T Residual', \
+                	xaxis='Vertex T - Decay Time T [ns]', fname='residualT{}.png'.format(id_str))
+
+		t_perc_35_65 = (np.percentile(dt,17.5), np.percentile(dt,82.5))
+		x_perc_35_65 = (np.percentile(dx,17.5), np.percentile(dx,82.5))
+		y_perc_35_65 = (np.percentile(dy,17.5), np.percentile(dy,82.5))
+		z_perc_35_65 = (np.percentile(dz,17.5), np.percentile(dz,82.5))
+		t_perc_5_95 = (np.percentile(dt,2.5), np.percentile(dt,97.5))
+		x_perc_5_95 = (np.percentile(dx,2.5), np.percentile(dx,97.5))
+		y_perc_5_95 = (np.percentile(dt,2.5), np.percentile(dy,97.5))
+		z_perc_5_95 = (np.percentile(dz,2.5), np.percentile(dz,97.5))
+		print("t percentile 17.5 {}, 82.5 {}".format(*t_perc_35_65))
+		print("x percentile 17.5 {}, 82.5 {}".format(*x_perc_35_65))
+		print("y percentile 17.5 {}, 82.5 {}".format(*y_perc_35_65))
+		print("z percentile 17.5 {}, 82.5 {}".format(*z_perc_35_65))
+		print("t percentile 2.5 {}, 97.5 {}".format(*t_perc_5_95))
+		print("x percentile 2.5 {}, 97.5 {}".format(*x_perc_5_95))
+		print("y percentile 2.5 {}, 97.5 {}".format(*y_perc_5_95))
+		print("z percentile 2.5 {}, 97.5 {}".format(*z_perc_5_95))
+
+		long_rng = np.std(long_res)/scale
+		trans_rng = np.std(trans_res)/scale
+
+		vis_engine = visualization.root_Histogram(long_res, rng=(-long_rng*3,long_rng*3), ft_rng=(-long_rng/2,long_rng/2), bins=50, Title='Vertex Longitudinal Residual', \
+                	xaxis='Longitudinal Comp. of Res. [cm]', fname='residualLong{}.png'.format(id_str))
+		vis_engine = visualization.root_Histogram(trans_res, rng=(-trans_rng*3,trans_rng*3), ft_rng=(-trans_rng/2,trans_rng/2), bins=100, Title='Vertex Transverse Residual', \
+                	xaxis='Transverse Comp. of Res. [cm]', fname='residualTrans{}.png'.format(id_str))
+
+		long_perc_35_65 = (np.percentile(long_res,17.5), np.percentile(long_res,82.5))
+		trans_perc_35_65 = (np.percentile(trans_res,17.5), np.percentile(trans_res,82.5))
+		long_perc_5_95 = (np.percentile(long_res,2.5), np.percentile(long_res,97.5))
+		trans_perc_5_95 = (np.percentile(trans_res,2.5), np.percentile(trans_res,97.5))
+		print("long percentile 17.5 {}, 82.5 {}".format(*long_perc_35_65))
+		print("trans percentile 17.5 {}, 82.5 {}".format(*trans_perc_35_65))
+		print("long percentile 2.5 {}, 97.5 {}".format(*long_perc_5_95))
+		print("trans percentile 2.5 {}, 97.5 {}".format(*trans_perc_5_95))
+
 
 	def PlotMomentum(self, num=100, cut=0):
 		''' plot momentum distribution of sim hits '''

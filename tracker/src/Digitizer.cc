@@ -178,10 +178,10 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 			if (drop_generator.Rndm() < par_handler->par_map["scint_efficiency"]) {
 				//digis_not_dropped.push_back(digi);
 				drop_me = true;
-                //std::cout << "dropped a hit" << std::endl;
-                dropped_hits++;
-            }
-            floor_wall_hits++;
+				//std::cout << "dropped a hit" << std::endl;
+				dropped_hits++;
+			}
+			floor_wall_hits++;
 		}
 		else if (current_id.isWallElement){
             		uncertainty = _geometry->_wall.uncertainty();
@@ -190,10 +190,10 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 			if (drop_generator.Rndm() < par_handler->par_map["scint_efficiency"]) {
 				//digis_not_dropped.push_back(digi); // be careful, won't this add the pointer that goes away at the end of the loop?
 				drop_me = true;
-                //std::cout << "dropped a hit" << std::endl;
-                dropped_hits++;
-            }
-            floor_wall_hits++;
+				//std::cout << "dropped a hit" << std::endl;
+				dropped_hits++;
+			}
+			floor_wall_hits++;
 		}
 		else {
 			layer = _geometry->layer_list[current_id.layerIndex];
@@ -281,7 +281,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	}
 
 	digis = digis_not_dropped; // only keep hits not dropped by inefficiency in the floor or wall
-	if(NoiseMaker::run){
+    if(NoiseMaker::run){
                 NoiseMaker* noise = new NoiseMaker(digis);
                 std::vector<physics::digi_hit*> noise_digis = noise->return_digis();
                 for(auto digi:noise_digis){

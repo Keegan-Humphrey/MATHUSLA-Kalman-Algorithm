@@ -48,12 +48,11 @@ int RunManager::StartTracking()
 	_digitizer->par_handler = &hndlr;
 	_tracker->par_handler = &hndlr;
 	_vertexer->par_handler = &hndlr;
-    
-    NoiseMaker::preDigitizer();
 
+    NoiseMaker::preDigitizer();
+    
 	while (TH->Next() >= 0)
 	{
-
 		if (events_handled >= hndlr.par_map["end_ev"]) //cuts::end_ev)
 		{
 			break;
@@ -109,11 +108,11 @@ int RunManager::StartTracking()
 				_tracker->tracks_k_m.push_back(temp);
 			}
 
-			_tracker->CalculateHoles(_digitizer->_geometry);
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 			_tracker->MergeTracks();
 
 			if (hndlr.par_map["merge_cos_theta"] != -2) {
+				_tracker->CalculateHoles(_digitizer->_geometry);
 				_tracker->MergeTracks_k();
 			}
 

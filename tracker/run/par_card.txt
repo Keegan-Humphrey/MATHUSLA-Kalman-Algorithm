@@ -10,7 +10,7 @@ kalman_pval_add 0.99999999
 kalman_pval_track 0.95
 p 500.0
 scint_efficiency 0.001
-merge_cos_theta -1.0
+merge_cos_theta -2.0
 merge_distance 0.0
 seed_closest_approach 100.0
 vertex_chi2 15.0

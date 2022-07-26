@@ -25,6 +25,7 @@
 #include <fstream>
 #include <algorithm>
 #include "statistics.hh"
+#include "Math/ProbFunc.h"
 
 void kalman_track::kalman_all(std::vector<physics::digi_hit *> trackhits, seed *current_seed)
 { // tracking algorithm using the kalman filter
@@ -323,12 +324,12 @@ void kalman_track::filter()
     }
     else
     {
-      //chi_f.push_back(chi);
+      chi_f.push_back(chi);
 
-      n += 1.0;
-      double ndof = n > 1.0 ? 4.0 * n - 6.0 : 1.0;
+      //n += 1.0;
+      //double ndof = n > 1.0 ? 4.0 * n - 6.0 : 1.0;
 
-      chi_f.push_back(sts.chi_prob(chi, ndof));
+      //chi_f.push_back(sts.chi_prob(chi, ndof));
 
       x_scat.push_back(kf.x_scat);
       z_scat.push_back(kf.z_scat);
@@ -344,11 +345,15 @@ void kalman_track::smooth()
   // last filter best estimate is unaffected by smoother (see Fruhwirth paper)
   chi_s = {chi_f.back()};
 
+  double n = kf.added_hits.size();
+  double ndof = n > 1.0 ? 4.0 * n - 6.0 : 1.0;
+
   for (int i = kf.added_hits.size() - 1; i > 0; i--)
   {
     double chi = kf.smooth_gain(kf.added_hits[i - 1], i - 1);
 
     chi_s.insert(chi_s.begin(), chi);
+    //chi_s.insert(chi_s.begin(), ROOT::Math::chisquared_cdf(chi, ndof)); // need seperate storage for this (other is used for chi summing)
   }
 }
 
