@@ -191,13 +191,19 @@ def main(opt):
         #directory = sys.argv[1]
         #files = [filename for filename in glob.iglob(directory+'/**/*.root', recursive=True)]
 
+        directory_signal = '/home/keeganh/projects/rrg-mdiamond/keeganh/TDR_Presentation_3_8_22/signal/28_07_22/18_30_49/trees/'
+
+        files = [filename for filename in glob.iglob(directory_signal+'stat_*.root', recursive=True)]
+        '''
         files = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/1e-3_seed_ordering_no_merge/trees/stat_0_2.root',
                 '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/1e-3_seed_ordering_no_merge/trees/stat_1_2.root',
                 '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/15_50_12/trees/stat_5_0.root',
                 '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/22_15_44/trees/stat_3_0.root',
                 '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/22_15_44/trees/stat_4_0.root']
+	'''
+        #samples = ['h10','h2','h35','qq10','qq50']
+        samples = ['h35','qq_10gev','h10','qq_50gev','h2']
 
-        samples = ['h10','h2','h35','qq10','qq50']
         i = 0
 
         for file in files:

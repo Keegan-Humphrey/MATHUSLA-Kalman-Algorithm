@@ -170,6 +170,8 @@ void kalman_track::init_matrices(seed *current_seed)
   P = P * P;
   */
   Eigen::VectorXd errs(8);
+//  errs << first->ex, first->et * std::sqrt(2), first->ez, first->ey,
+//          second->ex, second->et * std::sqrt(2), second->ez, second->ey; ///// INCREASING T ERROR ARTICIFICALLY
   errs << first->ex, first->et, first->ez, first->ey,
           second->ex, second->et, second->ez, second->ey;
 
@@ -353,7 +355,7 @@ void kalman_track::smooth()
     double chi = kf.smooth_gain(kf.added_hits[i - 1], i - 1);
 
     chi_s.insert(chi_s.begin(), chi);
-    //chi_s.insert(chi_s.begin(), ROOT::Math::chisquared_cdf(chi, ndof)); // need seperate storage for this (other is used for chi summing)
+    //chi_s.insert(chi_s.begin(), ROOT::Math::chisquared_cdf(chi, ndof)); // need seperate storage for this (other is used for chi summing) // WAS TURNED ON FOR AUGUST 4TH PRESENTATION
   }
 }
 

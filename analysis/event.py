@@ -716,8 +716,11 @@ class Event:
                 	xaxis='Vertex T - Decay Time T [ns]', fname='residualT.png')
 		'''
 
-		if id_str == '4':
+		if id_str == '0' or id_str == '2':
 			scale = 10
+
+		elif id_str == '4' or id_str == '1':
+			scale = 3
 
 		else:
 			scale = 5

@@ -3,6 +3,7 @@
 #include "Geometry.hh"
 #include "physics.hh"
 #include "par_handler.hh"
+#include <TRandom3.h>
 
 #ifndef DIGI_DEFINE
 #define DIGI_DEFINE
@@ -24,6 +25,9 @@ public:
 	int floor_wall_hits = 0;
 
 	int null_num = 0;
+
+	TRandom3 generator;
+	TRandom3 drop_generator;
 
 	std::vector<physics::digi_hit*> Digitize();
 	Geometry* _geometry;
@@ -54,7 +58,30 @@ public:
 
 
 	
+	void InitGenerators(){
+		TRandom3 _generator;
 
+        	int seed_size = static_cast<int>(1e9);
+
+	        seed = par_handler->par_map["seed"];
+        	seed = seed == -1 ? rand()*rand()*rand() % seed_size : seed;
+
+	        if (par_handler->par_map["debug"] == 1) {
+        	        std::cout << "Digi seed is: " << seed << std::endl;
+        	}
+
+	        _generator.SetSeed(seed);
+
+	        // Now we throw out hits in the floor and wall to simulate reduced detector efficiency
+		std::vector<physics::digi_hit*> digis_not_dropped;
+
+	        //TRandom drop_generator;
+        	TRandom3 _drop_generator;
+	        _drop_generator.SetSeed( rand()*rand()*rand() % rand() );
+
+		generator = _generator;
+		drop_generator = _drop_generator;
+	}
 
 
 private:

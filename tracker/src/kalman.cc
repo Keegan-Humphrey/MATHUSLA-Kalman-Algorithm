@@ -62,6 +62,9 @@ void KalmanFilter::init_gain(const Eigen::VectorXd &x0, std::vector<physics::dig
   R << first_layer[0]->ex, 0, 0,
       0, first_layer[0]->et, 0,
       0, 0, first_layer[0]->ez;
+//  R << first_layer[0]->ex, 0, 0,
+//      0, first_layer[0]->et * std::sqrt(2), 0,
+//      0, 0, first_layer[0]->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
 
   // pass seed predicted position and first vector
@@ -220,11 +223,11 @@ void KalmanFilter::king_moves_algorithm(const std::vector<physics::digi_hit *> y
         {
           if (std::abs(res[2]) < std::sqrt(12) * y_list[i]->ez * scale[2])
           {
-            //king_move_inds.push_back(y_list[i]->index);
+//            king_move_inds.push_back(y_list[i]->index);
 
             // within king moves of the chosen hit, remove from hit pool
-            //continue;
-            unadded_hits.push_back(y_list[i]);
+//            continue;
+            unadded_hits.push_back(y_list[i]); // This should turn king_moves_algorithm off altogether
           }
         }
       }
@@ -264,6 +267,9 @@ double KalmanFilter::smooth_gain(const physics::digi_hit *y, int k)
   R << y->ex, 0, 0,
       0, y->et, 0,
       0, 0, y->ez;
+//  R << y->ex, 0, 0,
+//      0, y->et * std::sqrt(2), 0,
+//      0, 0, y->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
 
   Eigen::VectorXd Y(m);
@@ -314,12 +320,16 @@ void KalmanFilter::update_matrices(physics::digi_hit *a_hit)
   R << a_hit->ex, 0, 0,
       0, a_hit->et, 0,
       0, 0, a_hit->ez;
+//  R << a_hit->ex, 0, 0,
+//      0, a_hit->et * std::sqrt(2), 0,
+//      0, 0, a_hit->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
 
   if (initialized) {
 
    // what's the right way to do this?
 //    dy = a_hit->y - y_val;
+
 
     A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
       .0, 1.0, .0, .0, dy / (x_hat[4] * x_hat[4]), .0,
@@ -328,6 +338,16 @@ void KalmanFilter::update_matrices(physics::digi_hit *a_hit)
       .0, .0, .0, .0, 1.0, .0,
       .0, .0, .0, .0, .0, 1.0;
 
+/*
+    double dt = a_hit->t - x_hat[1];
+
+    A << 1.0, .0, .0, dt, .0, .0,
+      .0, 1.0, .0, .0, dt / x_hat[4], .0,
+      .0, .0, 1.0, .0, .0, dt,
+      .0, .0, .0, 1.0, .0, .0,
+      .0, .0, .0, .0, 1.0, .0,
+      .0, .0, .0, .0, .0, 1.0;
+*/
     // direction cosines
     double a = x_hat[3] / constants::c;
     double b = x_hat[4] / constants::c;
@@ -356,7 +376,7 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
   mag = 1;
 
 //  double sin_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
-  double sin_theta = std::sqrt(b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
+  double sin_theta = std::sqrt(b*b) / mag; // CORRECT ONE
 
   Q << dy * dy * (b * b + a * a) / std::pow(b, 4),
       dy * dy * a / (constants::c * std::pow(b, 4)),
@@ -413,10 +433,28 @@ void KalmanFilter::Q_update(double dy, double a, double b, double c)
 
   L_rad /= sin_theta; // [rad lengths] in direction of track
 
-  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log10(L_rad)); // used to be standard ln
+  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log10(L_rad)); // used to be standard ln (CORRECT ONE)
+//  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log(L_rad)); //
   sigma_ms /= par_handler->par_map["p"];
 
-  Q = Q * std::pow(sigma_ms, 2);
+  Q = Q * std::pow(sigma_ms, 2); // Scattering contribution to process noise
+
+
+
+  // x_process = {(dy / vy) * vx, (dy / vy), (dy / vy) * vz,0,0,0} jacobian of x_hat -> x_process
+  double dt = dy / x_hat[4];
+
+  Eigen::MatrixXd jac;
+  jac = Eigen::MatrixXd::Zero(6, 6);
+  jac << 0, 0, 0, dt, - dt * x_hat[3] / x_hat[4], 0 ,
+         0, 0, 0, 0 , - dt / x_hat[4]           , 0 ,
+         0, 0, 0, 0 , - dt * x_hat[5] / x_hat[4], dt,
+         0, 0, 0, 0 , 0                         , 0 ,
+         0, 0, 0, 0 , 0                         , 0 ,
+         0, 0, 0, 0 , 0                         , 0 ;
+
+  Q += jac * P * jac.transpose(); // Prediction contribution to process noise
+
 }
 
 void KalmanFilter::init_means(const Eigen::VectorXd x0, const Eigen::VectorXd q,

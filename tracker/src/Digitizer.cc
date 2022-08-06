@@ -3,6 +3,7 @@
 #include "physics.hh"
 #include "globals.hh"
 #include <TRandom.h>
+#include <TRandom3.h>
 #include <time.h>
 #include <stdlib.h>
 #include <algorithm>
@@ -111,8 +112,9 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	long int micro_sec = curTime.tv_usec;
 	srand( micro_sec );
 //	srand( time(NULL) + ev_num ); // incase called more than once per second across events
-
+/*
 	TRandom generator;
+
 	//TRandom3 generator;
 
 //	generator.SetSeed( rand()*rand()*rand() % rand() );
@@ -134,15 +136,13 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 
 	generator.SetSeed(seed);
 
-	// Now we throw out hits in the floor and wall to simulate reduced detector efficiency
-	std::vector<physics::digi_hit*> digis_not_dropped;
-
 	//std::cout << par_handler->par_map["scint_efficiency"];
 	//std::cout << 1.0 / par_handler->par_map["scint_efficiency"] << std::endl;
 
 	TRandom drop_generator;
+	//TRandom3 drop_generator;
 	drop_generator.SetSeed( rand()*rand()*rand() % rand() );
-
+*/
 	/*
 	for (auto digi : digis) {
 		// Rndm() uniformly samples (0,1) so 1 time in every scint_efficiency samples we don't satisfy this condition
@@ -157,6 +157,9 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 	digis = digis_not_dropped;
 	digis_not_dropped.clear();
 	*/
+
+	// Now we throw out hits in the floor and wall to simulate reduced detector efficiency
+	std::vector<physics::digi_hit*> digis_not_dropped;
 
 	// now manage hits in the floor and wall
 	for (auto digi : digis){
@@ -204,10 +207,12 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 		double e_sum = 0;
 		double long_direction_sum = 0.0;
 		double t_sum = 0;
+		//double y_sum = 0;
 
 		for (auto hit : digi->hits){
 			e_sum += hit->e;
 			t_sum += hit->t * hit->e;
+			//y_sum += hit->y * hit->e;
 
 			if (long_direction_index == 0){
 				long_direction_sum += hit->x * hit->e;
@@ -219,6 +224,7 @@ std::vector<physics::digi_hit*> Digitizer::Digitize(){
 		digi->e = e_sum;
 		digi->t = t_sum/e_sum;
 		digi->y = center[1];
+		//digi->y = y_sum/e_sum;
 		digi->ey = uncertainty[1];
 		digi->ex = uncertainty[0];
 		digi->ez = uncertainty[2];

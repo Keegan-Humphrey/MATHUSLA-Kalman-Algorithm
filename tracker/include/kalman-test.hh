@@ -248,6 +248,7 @@ private:
       }
       // prepare track state vector from first smoothed state
       x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], kf.x_s[0][4], kf.x_s[0][5], kf.x_s[0][1]};
+      //x_s = {kf.x_s.back()[0], layer_hits[layers.back()][0]->y, kf.x_s.back()[2], kf.x_s.back()[3], kf.x_s.back()[4], kf.x_s.back()[5], kf.x_s.back()[1]}; //// PASSING LAST COVARIANCE TEMPORARILY
 
       // prepare track error vector from covariance matrix
       /*
@@ -258,6 +259,7 @@ private:
       */
       std::vector<std::vector<double>> _track_cov;
       Eigen::MatrixXd TC = kf.P_s[0];
+      //Eigen::MatrixXd TC = kf.P_s.back(); //// PASSING LAST COVARIANCE TEMPORARILY
       _track_cov = {{TC(0,0),0,TC(0,2),TC(0,3),TC(0,4),TC(0,5),TC(0,1)},
                    {0      ,0,0      ,0      ,0      ,0      ,0      },
                    {TC(2,0),0,TC(2,2),TC(2,3),TC(2,4),TC(2,5),TC(2,1)},
@@ -267,6 +269,7 @@ private:
                    {TC(1,0),0,TC(1,2),TC(1,3),TC(1,4),TC(1,5),TC(1,1)}};
 
       _track_cov[1][1] = std::pow(layer_hits[layers[0]][0]->ey, 2);
+      //_track_cov[1][1] = std::pow(layer_hits[layers.back()][0]->ey, 2); //// PASSING LAST COVARIANCE TEMPORARILY
       track_cov = _track_cov;
       /*
       for (int i = 0; i < 7; i++) {
@@ -277,6 +280,7 @@ private:
       */
       //pass last covariance matrix
       P_s0 = kf.P_s[0];
+      //P_s0 = kf.P_s.back(); //// PASSING LAST COVARIANCE TEMPORARILY
     }
 
     king_move_inds = kf.king_move_inds;
