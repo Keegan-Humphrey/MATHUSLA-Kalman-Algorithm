@@ -300,7 +300,81 @@ public:
 	OutputTree->Branch("Track_k_m_x_std_scat_per_m", &x_scat);
 	OutputTree->Branch("Track_k_m_z_std_scat_per_m", &z_scat);
 
+	//Copy of branches for set beta value
+		
+	OutputTree->Branch("Vertex_c_b_t", &vertex_c_b_t);
+	OutputTree->Branch("Vertex_c_b_x", &vertex_c_b_x);
+	OutputTree->Branch("Vertex_c_b_y", &vertex_c_b_y);
+	OutputTree->Branch("Vertex_c_b_z", &vertex_c_b_z);
+      	OutputTree->Branch("Vertex_c_b_ErrorT", &vertex_t_c_b_error);
+      	OutputTree->Branch("Vertex_c_b_ErrorX", &vertex_x_c_b_error);
+      	OutputTree->Branch("Vertex_c_b_ErrorY", &vertex_y_c_b_error);
+      	OutputTree->Branch("Vertex_c_b_ErrorZ", &vertex_z_c_b_error);
+	OutputTree->Branch("vertex_c_b_chi2", &vertex_c_b_chi2_per_dof);
+	OutputTree->Branch("Vertex_c_b_trackIndices", &vertex_track_c_b_indices);
+	OutputTree->Branch("NumVertices_c_b", &numvertices_c_b, "NumVertices/D");
 
+	OutputTree->Branch("Track_c_b_velX", &track_c_b_vx);
+	OutputTree->Branch("Track_c_b_velY", &track_c_b_vy);
+	OutputTree->Branch("Track_c_b_velZ", &track_c_b_vz);
+	OutputTree->Branch("Track_c_b_x0", &track_c_b_x);
+	OutputTree->Branch("Track_c_b_y0", &track_c_b_y);
+	OutputTree->Branch("Track_c_b_z0", &track_c_b_z);
+	OutputTree->Branch("Track_c_b_t0", &track_c_b_t);
+
+      	OutputTree->Branch("Track_c_b_ErrorT0", &track_c_b_t_error);
+      	OutputTree->Branch("Track_c_b_ErrorX0", &track_c_b_x_error);
+      	OutputTree->Branch("Track_c_b_ErrorY0", &track_c_b_y_error);
+      	OutputTree->Branch("Track_c_b_ErrorZ0", &track_c_b_z_error);
+      	OutputTree->Branch("Track_c_b_ErrorVx", &track_c_b_vx_error);
+      	OutputTree->Branch("Track_c_b_ErrorVy", &track_c_b_vy_error);
+      	OutputTree->Branch("Track_c_b_ErrorVz", &track_c_b_vz_error);
+
+	OutputTree->Branch("Track_c_b_cov_x_t", &track_c_b_cov_x_t);
+	OutputTree->Branch("Track_c_b_cov_x_z", &track_c_b_cov_x_z);
+	OutputTree->Branch("Track_c_b_cov_x_vx", &track_c_b_cov_x_vx);
+	OutputTree->Branch("Track_c_b_cov_x_vy", &track_c_b_cov_x_vy);
+	OutputTree->Branch("Track_c_b_cov_x_vz", &track_c_b_cov_x_vz);
+
+	OutputTree->Branch("Track_c_b_cov_t_z", &track_c_b_cov_t_z);
+	OutputTree->Branch("Track_c_b_cov_t_vx", &track_c_b_cov_t_vx);
+	OutputTree->Branch("Track_c_b_cov_t_vy", &track_c_b_cov_t_vy);
+	OutputTree->Branch("Track_c_b_cov_t_vz", &track_c_b_cov_t_vz);
+
+	OutputTree->Branch("Track_c_b_cov_z_vx", &track_c_b_cov_z_vx);
+	OutputTree->Branch("Track_c_b_cov_z_vy", &track_c_b_cov_z_vy);
+	OutputTree->Branch("Track_c_b_cov_z_vz", &track_c_b_cov_z_vz);
+
+	OutputTree->Branch("Track_c_b_cov_vx_vy", &track_c_b_cov_vx_vy);
+	OutputTree->Branch("Track_c_b_cov_vx_vz", &track_c_b_cov_vx_vz);
+
+	OutputTree->Branch("Track_c_b_cov_vy_vz", &track_c_b_cov_vy_vz);
+
+	OutputTree->Branch("Track_c_b_beta", &track_c_b_beta);
+	OutputTree->Branch("Track_c_b_beta_err", &track_c_b_beta_err);
+
+	OutputTree->Branch("Track_c_b_filterchi", &track_c_b_filter_chi);
+	OutputTree->Branch("Track_c_b_smoothchi", &track_c_b_smooth_chi);
+	OutputTree->Branch("Track_c_b_smooth_chi_sum", &track_c_b_smooth_chi_sum);
+
+	OutputTree->Branch("x_estimates_c_b", &x_estimates_c_b);
+	OutputTree->Branch("y_estimates_c_b", &y_estimates_c_b);
+	OutputTree->Branch("z_estimates_c_b", &z_estimates_c_b);
+
+	OutputTree->Branch("NumTracks_c_b", &NumTracks_c_b);
+	OutputTree->Branch("Track_c_b_numHits", &track_c_b_numHits);
+	OutputTree->Branch("Track_c_b_hitIndices", &track_hit_c_b_indices);
+	OutputTree->Branch("king_move_inds", &c_b_king_move_inds);
+
+	OutputTree->Branch("Track_c_b_expected_hit_layer", &track_c_b_expected_hit_layer);
+	OutputTree->Branch("Track_c_b_opening_angle", &track_c_b_openingangle);
+	OutputTree->Branch("Track_c_b_pdgs", &track_c_b_pdgs);
+	OutputTree->Branch("Track_c_b_ids", &track_c_b_ids);
+
+	OutputTree->Branch("Track_c_b_x_std_scat_per_m", &x_c_b_scat);
+	OutputTree->Branch("Track_c_b_z_std_scat_per_m", &z_c_b_scat);
+
+		
 	}
 
 
@@ -362,6 +436,7 @@ public:
 
  		//__Make Vertex Branches________________________________________________________________________
 
+	//TODO: decide to copy this section of variables or not, don't appear to have branches
 	std::vector<double> q_s_x_m;
 	std::vector<double> q_s_y_m;
 	std::vector<double> q_s_z_m;
@@ -380,12 +455,22 @@ public:
 	std::vector<double> vertex_k_m_chi2_per_dof;
 	std::vector<double>	vertex_track_k_m_indices;
 	Double_t numvertices_k_m;
+	
+	//Copy of branches for set beta value
+	std::vector<double>	vertex_c_b_t;
+	std::vector<double>	vertex_c_b_x;
+	std::vector<double>	vertex_c_b_y;
+	std::vector<double>	vertex_c_b_z;
+  	std::vector<double> vertex_t_c_b_error;
+  	std::vector<double> vertex_x_c_b_error;
+  	std::vector<double> vertex_y_c_b_error;
+  	std::vector<double> vertex_z_c_b_error;
+	std::vector<double> vertex_c_b_chi2_per_dof;
+	std::vector<double>	vertex_track_c_b_indices;
+	Double_t numvertices_c_b;
+
 
   //__Make Track Branches_________________________________________________________________________
-
-	std::vector<double> x_estimates;
-	std::vector<double> y_estimates;
-	std::vector<double> z_estimates;
 
 	std::vector<double> x_scat;
 	std::vector<double> z_scat;
@@ -447,6 +532,70 @@ public:
 
 	std::vector<double> track_k_m_expected_hit_layer;
 	std::vector<int> king_move_inds;
+	
+	//Copy of branches for set beta value
+	
+	std::vector<double> x_c_b_scat;
+	std::vector<double> z_c_b_scat;
+
+	std::vector<int> track_c_b_pdgs;
+	std::vector<int> track_c_b_ids;
+	std::vector<double> track_c_b_openingangle;
+
+	std::vector<double> track_c_b_beta;
+	std::vector<double> track_c_b_beta_err;
+
+	std::vector<double> track_c_b_vx;
+	std::vector<double> track_c_b_vy;
+	std::vector<double> track_c_b_vz;
+	std::vector<double> track_c_b_t;
+	std::vector<double> track_c_b_x;
+	std::vector<double> track_c_b_y;
+	std::vector<double> track_c_b_z;
+
+  	std::vector<double> track_c_b_t_error;
+  	std::vector<double> track_c_b_x_error;
+  	std::vector<double> track_c_b_y_error;
+  	std::vector<double> track_c_b_z_error;
+  	std::vector<double> track_c_b_vx_error;
+  	std::vector<double> track_c_b_vy_error;
+  	std::vector<double> track_c_b_vz_error;
+
+	std::vector<double> track_c_b_cov_x_t;
+	std::vector<double> track_c_b_cov_x_z;
+	std::vector<double> track_c_b_cov_x_vx;
+	std::vector<double> track_c_b_cov_x_vy;
+	std::vector<double> track_c_b_cov_x_vz;
+
+	std::vector<double> track_c_b_cov_t_z;
+	std::vector<double> track_c_b_cov_t_vx;
+	std::vector<double> track_c_b_cov_t_vy;
+	std::vector<double> track_c_b_cov_t_vz;
+
+	std::vector<double> track_c_b_cov_z_vx;
+	std::vector<double> track_c_b_cov_z_vy;
+	std::vector<double> track_c_b_cov_z_vz;
+
+	std::vector<double> track_c_b_cov_vx_vy;
+	std::vector<double> track_c_b_cov_vx_vz;
+
+	std::vector<double> track_c_b_cov_vy_vz;
+
+	std::vector<double> track_c_b_filter_chi;
+	std::vector<double> track_c_b_smooth_chi;
+	std::vector<double> track_c_b_smooth_chi_sum;
+
+	int NumTracks_c_b;
+	std::vector<double> track_c_b_numHits;
+	std::vector<int> track_hit_c_b_indices;
+
+	std::vector<double> x_estimates_c_b;
+	std::vector<double> y_estimates_c_b;
+	std::vector<double> z_estimates_c_b;
+
+	std::vector<double> track_c_b_expected_hit_layer;
+	std::vector<int> c_b_king_move_inds;
+
 
   //___Make Digi Branches_____________________________________________________________________
   	std::vector<double> digi_hit_t;
