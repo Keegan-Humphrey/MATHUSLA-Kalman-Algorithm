@@ -4,7 +4,7 @@ Tracking software for MATHUSLA Experiment
 ## Introduction
 This repository, including this documentation, is a modification of the following code from: https://github.com/seg188/MATHUSLA-MLTracker 
 
-In addition to the previously existing Maximum Likelihood Linear Tracking Algorithm, this repository also contains a Kalman Filter Tracking Algorithm.
+This repository containts a Kalman Filter Tracking Algorithm based on architecture built for the Linear Tracker above.
 
 ## Installation
 

@@ -6,7 +6,7 @@ kalman_chi_s 150.0
 kalman_chi_add 200.0
 kalman_track_chi 15.0
 kalman_pval_drop 1.0
-kalman_pval_add 0.99999999
+kalman_pval_add 0.99
 kalman_pval_track 0.95
 p 500.0
 scint_efficiency 0.001
@@ -23,4 +23,4 @@ kalman_v_drop[0] 0.8
 kalman_v_drop[1] 1.2
 start_ev 0.0
 end_ev 100000.0
-noise_hz 0
+noise_hz 0.0

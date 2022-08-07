@@ -151,7 +151,7 @@ namespace physics{
 		double t0, et0;
 	        int first_layer;
 		std::vector<int> hits_to_drop = {};
-		std::vector<int> _holes;
+		//std::vector<int> _holes;
 		std::vector<int> _missing_layers;
 	        std::vector<int> expected_layers;
 		std::vector<int> king_move_inds;
@@ -176,7 +176,7 @@ namespace physics{
         //add hit to list of hits
         //DOES NOT DO ANY RE-FITTING until used by TrackFitter
 	void AddHit(physics::digi_hit* hit){ hits.push_back(hit); }
-	void set_holes(std::vector<int> layers){_holes = layers; };
+	//void set_holes(std::vector<int> layers){_holes = layers; };
 
         void SetExpectedLayers(std::vector<int> lyrs){expected_layers = lyrs;}
 

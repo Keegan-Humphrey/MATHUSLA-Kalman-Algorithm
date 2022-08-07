@@ -103,11 +103,11 @@ class TrackFinder
 public:
 	std::ofstream file;
 
-	std::vector<physics::digi_hit *> hits;
+//	std::vector<physics::digi_hit *> hits;
 	std::vector<physics::digi_hit *> hits_k;
-	std::vector<seed> seeds;
+//	std::vector<seed> seeds;
 	std::vector<seed> seeds_k;
-	std::vector<physics::track *> tracks;
+//	std::vector<physics::track *> tracks;
 	std::vector<physics::track *> tracks_k;
 	std::vector<physics::track *> tracks_k_m;
 	std::vector<double> local_chi_f;
@@ -120,20 +120,22 @@ public:
 	std::vector<physics::digi_hit *> undropped_hits;
 
 	void CalculateMissingHits(Geometry *geo);
-	void CalculateHoles(Geometry *geo);
+//	void CalculateHoles(Geometry *geo);
 	void clear()
 	{
-		seeds.clear();
-		for (auto hit : hits)
-			delete hit;
-		hits.clear();
-		for (auto tr : tracks)
-			delete tr;
-		tracks.clear();
+//		seeds.clear();
+
+//		for (auto hit : hits)
+//			delete hit;
+//		hits.clear(); // testing this
+
+//		for (auto tr : tracks)
+//			delete tr;
+//		tracks.clear();
 
 		seeds_k.clear();
-//		for (auto hit : hits_k)
-//			delete hit;
+		for (auto hit : hits_k)
+			delete hit;
 		// already taken care of by hits delete statement
 
 		hits_k.clear();
@@ -164,13 +166,13 @@ public:
 
 	int first_n_to_delete = 0;
 	void Seed();
-	void FindTracks();
+//	void FindTracks();
 	void FindTracks_kalman();
 	void FindTracks_all();
-	void CleanTracks();
+//	void CleanTracks();
 	void Reseed(bool);
 	void CheckSeeds();
-	void MergeTracks();
+//	void MergeTracks();
 	void MergeTracks_k();
 
 	//	bool seed_unused(seed current_seed);
@@ -223,8 +225,8 @@ public:
 		//std::ofstream file;
 		//file.open("print.txt", std::ios_base::app);
 
-		for (auto seed : seeds)
-			seed.score = c_score(seed);
+//		for (auto seed : seeds)
+//			seed.score = c_score(seed);
 
 		int i;
 		for (auto seed : seeds_k)
@@ -240,7 +242,7 @@ public:
 		}
 		//file.close();
 	}
-
+/*
 	int min_seed()
 	{ //sorts by c_compatability score
 
@@ -260,7 +262,7 @@ public:
 
 		return min_index;
 	}
-
+*/
 	int min_seed_k()
 	{ //sorts by c_compatability score
 		//std::ofstream file;
