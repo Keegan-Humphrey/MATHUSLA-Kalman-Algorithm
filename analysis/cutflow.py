@@ -19,7 +19,7 @@ import pandas as pd
 import joblib
 import inspect    
 
-ncuts = 24
+ncuts = 25
 
 events_passed = 0
 ev_w_veto_hits = 0
@@ -238,7 +238,14 @@ class sample_space():
         self.current_vector[self.n] = self.tree.NumTracks_k_m
         
         self.event_info.data_dict['num tracks'].append(self.tree.NumTracks_k_m)
-            
+        
+        self.n += 1
+        
+        self.cuts['Tracks gt'] = {'index':self.n, 'cut if':'>'} 
+        
+        self.current_vector[self.n] = self.tree.NumTracks_k_m
+        
+        
             
     def Vertices(self):
         self.cuts['Vertices'] = {'index':self.n, 'cut if':'<'} 
@@ -247,7 +254,7 @@ class sample_space():
         
 
     def Fiducial_vertex(self):
-            self.cuts['Fiducial_vertex'] = {'index':self.n, 'cut if':'<'} 
+            self.cuts['Fiducial_vertex'] = {'index':self.n, 'cut if':'False'} 
             
             #------------- Fiducial vertex cut
             inside = False
@@ -261,15 +268,17 @@ class sample_space():
                     
                     self.event_info.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add all vertices
                     
+                    
             # check if at least one vertex is in the detector
-            self.current_vector[3] = int(inside) # fiducial
+            self.current_vector[self.n] = int(inside) # fiducial
             
             #self.plotter.data_dict['vert pos'].append([vtxx,vtxy,vtxz]) # add one representative vertex or 0s if none
 
      
     def Floor_hits_before_vertex(self):
-            self.cuts['Floor_hits_before_vertex'] = {'index':self.n, 'cut if':'<'} 
-           
+            #self.cuts['Floor_hits_before_vertex'] = {'index':self.n, 'cut if':'<'} 
+            self.cuts['Floor_hits_before_vertex'] = {'index':self.n, 'cut if':'<'}
+            
             #------------- Floor hits before vertex
             # Is there a hit that should be part of a track that isn't?
             #
@@ -352,9 +361,16 @@ class sample_space():
                             
                             min_dist = np.amin([min_dist, dist_floor, dist_wall])
                             min_time = np.amin([min_time, dt_floor, dt_wall])
+            
                     
             self.current_vector[self.n] = min_dist 
-            
+            '''
+            if min_dist < 2500:
+                self.current_vector[self.n] = self.tree.NumTracks_k_m
+                
+            else:
+                self.current_vector[self.n] = 1000 # a value that won't get cut
+            '''
             ## add timing info to plotter ******
                 
 
@@ -460,7 +476,7 @@ class sample_space():
             
 
     def Vertex_track_beta(self):
-            self.cuts['Vertex_track_beta'] = {'index':self.n, 'cut if':'<'}
+            self.cuts['Vertex_track_beta'] = {'index':self.n, 'cut if':'>'}
              
             #---------- Vertex Beta Cut
             # want at least one vertex with two betas within some interval in each event
@@ -489,12 +505,12 @@ class sample_space():
 
             if len(second_closest_betas) != 0:
 #                current_vector[8] = 1 / second_closest_betas[0] 
-                self.current_vector[self.n] = 1 / second_closest_betas[0] # set to vertex with closest second_closest beta
+                self.current_vector[self.n] = second_closest_betas[0] # set to vertex with closest second_closest beta
                                                                 # use reciprocal so we can cut events 1/beta < 1/x (< fixed by algorithm)
                                                                 
 
     def Track_hit_diffs(self):
-            self.cuts['Track_hit_diffs'] = {'index':self.n, 'cut if':'<'}
+            self.cuts['Track_hit_diffs'] = {'index':self.n, 'cut if':'>'}
              
             #---------- Track Length Difference Cut
             # cut on minimum difference in number of hits in tracks in a vertex
@@ -518,7 +534,7 @@ class sample_space():
                 min_diffs.append(np.amin(diffs))
 
             if len(min_diffs) != 0:
-                self.current_vector[self.n] = 1/np.amin(min_diffs) if np.amin(min_diffs) != 0 else 1e6
+                self.current_vector[self.n] = np.amin(min_diffs) #if np.amin(min_diffs) != 0 else 1e6
 
 
     def Exp_hits(self):
@@ -639,7 +655,7 @@ class sample_space():
             
 
     def Missing_hit_sum(self):
-        self.cuts['Missing_hit_sum'] = {'index':self.n, 'cut if':'<'}
+        self.cuts['Missing_hit_sum'] = {'index':self.n, 'cut if':'>'}
              
         ''' Veto the event if there are too many missed layers for the tracks making up the vertex => likely fake'''
         
@@ -665,12 +681,16 @@ class sample_space():
                     expected_layers_above = len([layer for layer in expected_layers[trk] if layer >= lowest_hit_layer])
         
                 except IndexError:
+                    '''
                     print(self.vertex_trackIndices[vert])
                     print()
                     print(expected_layers)
                     print(len(expected_layers))
                     print(trk)
-        
+                    '''
+                    continue
+                    
+                    
                 num_hits = len(util.unzip(self.tree.Track_k_m_hitIndices)[trk])
                 
                 missed_layers =  expected_layers_above - num_hits
@@ -684,7 +704,7 @@ class sample_space():
             missed_hits_event.append(missed_hits_sum)
             
         if len(missed_hits_event) != 0:
-            self.current_vector[self.n] = -np.max(missed_hits_event) # if missed hit sum of the event is too large cut the event            
+            self.current_vector[self.n] = np.max(missed_hits_event) # if missed hit sum of the event is too large cut the event            
 
 
     def Chi_ndof_cut(self):
@@ -1631,7 +1651,11 @@ class Plotter:
         
         self.sample = 'sim data' # type of sample being used to make plots
         
-    
+        self.info_dict = {'v 5':[],'v 2':[],'v 6':[],'v -1':[],
+                          't 2':[],'t 5':[],'t 6':[],'t -1':[]}
+        #dict({cut for cut in [2,6,-1]})
+        
+        
     def merge_a_plotter(self, pltr):
        
        #try:
@@ -1643,8 +1667,18 @@ class Plotter:
        
        self.lists_of_event_infos.append(pltr.event_infos) # add the event infos as lists with survivors so they can be referenced easily
        self.survivors.append(pltr.survivors)
-           
-    
+       
+       '''
+       for cut in [2, 5, 6, -1]:
+           self.info_dict['v '+str(cut)].extend(pltr.gather_info('vert pos',cut))
+           self.info_dict['t '+str(cut)].extend(pltr.gather_info('num tracks',cut))
+       
+       # could try loading in data from each pltr object at each cut, without saving survivor objects?
+       # make an update data method that keeps track of data needed for current plots, and saves it 
+           # then we don't need to save plotter objects
+           # then a call at the end of the run will generate the plots with the stored data
+      ''' # these comments are a first pass at plotting without high memory demands
+      
     def gather_info(self, key, cut='all'):
         ''' specify which data in event_info.data_dict you want to view
             specifying cut will only look at events at a particular cut,
@@ -1677,7 +1711,7 @@ class Plotter:
             if type(cut) == int:
                 event_infos = np.array(self.event_infos, dtype=object)
                 
-                print(self.survivors)
+                #print(self.survivors)
                 
                 survivors = np.array(self.survivors[cut], dtype=int)
                  
@@ -1899,8 +1933,10 @@ class Plotter:
         _xlabel = 'Number of Tracks []'
         _fname = 'num_tracks_{}'.format(self.sample)
         
-        for cut in [2, 7, -1]:
-            num_tracks = np.array(self.gather_info('num tracks',cut))
+        for cut in [2, 6, -1]:
+        #for cut in [5, 6]:
+            #num_tracks = np.array(self.gather_info('num tracks',cut))
+            num_tracks = np.array(self.info_dict['t '+str(cut)])
             
             if num_tracks.size == 0:
                 print('no surviving vertices found to plot!')
@@ -1909,13 +1945,17 @@ class Plotter:
             _Title = 'Number of Tracks {} at cut {}'.format(self.sample, cut)
         
             _data_x = num_tracks
-            _xlims = [np.amin(_data_x),np.max(_data_x)]
+            #_xlims = [np.amin(_data_x),np.max(_data_x)]
+            _xlims = [0,30]
         
             _xbins=100
             
             visualization.root_Histogram(_data_x, rng=_xlims, ft_rng=None, bins=_xbins, Title=_Title, 
-                        xaxis=_xlabel, logx=False, logy=False, fname=_fname+"_{}.png".format(cut))
+                        xaxis=_xlabel, logx=False, logy=True, fname=_fname+"_{}_log.png".format(cut))
                         
+            visualization.root_Histogram(_data_x, rng=_xlims, ft_rng=None, bins=_xbins, Title=_Title, 
+                        xaxis=_xlabel, logx=False, logy=False, fname=_fname+"_{}.png".format(cut))
+                       
                                                                 
     def vertex_pos_at_each_cut(self):
      
@@ -1923,19 +1963,25 @@ class Plotter:
         _zlabel = '{} position [cm]'
         _fname = 'vert_pos_{}'.format(self.sample)
 
-        for cut in [2, 7, -1]:
-            vertex_pos = np.array(self.gather_info('vert pos',cut))
+        for cut in [2, 6, -1]:
+            #vertex_pos = np.array(self.gather_info('vert pos',cut))
+            vertex_pos = np.array(self.info_dict['v '+str(cut)])
+            
+            print(cut)
+            print(len(vertex_pos))
             
             #joblib.dump(vertex_pos,'vert_pos_array.joblib')
     
             if vertex_pos.size == 0:
                 print('no surviving vertices found to plot!')
-                return
+                #return
+                continue
     
             _Title = 'Fiducial Vertex Positions {} at cut {}'.format(self.sample, cut)
     
             _data_y = vertex_pos[:,1]
             _data_z = vertex_pos[:,2]
+            
     
             det = detector.Detector()
             _ylims = det.BoxLimits[1]
@@ -2017,9 +2063,9 @@ def main():
 
         #-------------------------
 
-    else: 
+    else:
         plot_cut = True # plotting booleans (do you want to make plots?)
-        plot_obj = True 
+        plot_obj = True
         
         sum_flows = False # True => sum over data in files for flows
         
@@ -2042,7 +2088,9 @@ def main():
             #passed_events_file = 'joblibs_for_pres/passed_events_1e3_W.joblib'
             #passed_events_file = 'joblibs_for_pres/passed_events_full_eff.joblib'
             #passed_events_file = 'joblibs_for_6_7_22_pres/passed_events_1e-2_1_7_22.joblib'
-            passed_events_file = 'joblibs_for_6_7_22_pres/passed_events_1e3_full_2_7_22.joblib'
+            #passed_events_file = 'joblibs_for_6_7_22_pres/passed_events_1e3_full_2_7_22.joblib'
+            #passed_events_file = 'passed_events_1e2_rerun_4_7_22.joblib'
+            passed_events_file = 'passed_events_1e3_W_15_7_22.joblib'
             
             passed_events_prev = joblib.load(passed_events_file)
             
@@ -2057,12 +2105,15 @@ def main():
                 #file_converter_file = 'joblibs_for_pres/file_converter_1e3_W.joblib'
                 #file_converter_file = 'joblibs_for_pres/file_converter_full_eff.joblib'
                 #file_converter_file = 'joblibs_for_6_7_22_pres/file_converter_1e-2_1_7_22.joblib'
-                file_converter_file = 'joblibs_for_6_7_22_pres/file_converter_1e3_2_7_22.joblib'
+                #file_converter_file = 'joblibs_for_6_7_22_pres/file_converter_1e3_2_7_22.joblib'
+                #file_converter_file = 'file_converter_1e2_rerun_4_7_22.joblib'
+                file_converter_file = 'file_converter_1e3_W_15_7_22.joblib'
                 
                 file_converter = joblib.load(file_converter_file) # converts root file to joblib file
             
             for file in passed_events_prev.keys():
-                if len(passed_events_prev[file][start_cut]) != 0: # check if it has any surviving events at start_cut
+                passed_events_loaded = joblib.load(passed_events_prev[file])
+                if len(passed_events_loaded[start_cut]) != 0: # check if it has any surviving events at start_cut
                     if load:
                         files.append(file_converter[file])
                         
@@ -2071,7 +2122,7 @@ def main():
                         
         elif load:
             if sum_flows:
-                load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
+                #load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
                 
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/air_iron_study/23_06_22/16_08_06/trees/" # air quartz, earth, and detector
                 #load_files_dir = '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run8/21_05_22/14_05_20/trees/' # air support structure study 
@@ -2088,9 +2139,21 @@ def main():
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/27_02_22/" ## Full Efficiency run
                 #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run6/analysis_data/12_03_22/"
                 #load_files_dir = "/home/keeganh/scratch/26_05_22/05_50_07/trees/" # air scintillator casings and support structures
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/04_07_22_1e-2/" # 1e-2 with new no track hits cut
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/04_07_22_1e-3/" # 1e-3 with new no track hits cut
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/13_07_22/" # 1e-3 follow up tracker version
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/15_07_22/" # 1e-2 follow up tracker version too few files!!!
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/17_07_22/" # 1e-2 follow up tracker version still too few files!!! Better tho
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/W_sample_dir/run7/analysis_data/17_07_22_full_eff/" # full eff follow up tracker version 
+                
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/TDR_Presentation_3_8_22/background/1e-3/analysis_data/30_07_22/" # with missed hits by track
+                load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/TDR_Presentation_3_8_22/background/1e-3/analysis_data/31_07_22/" # without missed hits by track
+                #load_files_dir = "/home/keeganh/projects/rrg-mdiamond/keeganh/TDR_Presentation_3_8_22/background/1e-3_w_king_and_scatt/analysis_data/30_07_22/" # with missed hits by track
 
-                #files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)]
-                files = [filename for filename in glob.iglob(load_files_dir+'/scissor_W_*.joblib', recursive=True)]
+                files = [filename for filename in glob.iglob(load_files_dir+'/**/scissor_W_*.joblib', recursive=True)] 
+                #files = [filename for filename in glob.iglob(load_files_dir+'/scissor_W_*.joblib', recursive=True)]
+                
+                #files = files[:2000]
             
             else:
                 load_files_dir = "/home/keeganh/GitHub/MATHUSLA-Kalman-Algorithm/analysis/save_files/"
@@ -2155,13 +2218,31 @@ def main():
         
                 files_tertiary_1e2 = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir//02_07_22/10_30_45/trees/stat_0_0.root',
                                       '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir//02_07_22/10_30_45/trees/stat_1_0.root']
-        
-                files = files_1e3[:2]
+
+
+                files_tertiary_1e3_follow_up_changes = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/1e-3_seed_ordering_no_merge/trees/stat_0_2.root',
+                                                        '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/1e-3_seed_ordering_no_merge/trees/stat_1_2.root']
+
+                files_secondary_1e3_follow_up_changes = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/15_50_12/trees/stat_5_0.root']
+
+                files_primary_1e3_follow_up_changes = ['/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/22_15_44/trees/stat_3_0.root',
+                                                        '/home/keeganh/projects/rrg-mdiamond/keeganh/job_test/Signal_sample_dir/TDR_presentation_20_7_22/tracker_trees/13_07_22/22_15_44/trees/stat_4_0.root']
+
+
+                directory_signal = '/home/keeganh/projects/rrg-mdiamond/keeganh/TDR_Presentation_3_8_22/signal/28_07_22/18_30_49/trees/' # no king moves 1e-3 t prop
                 
+                ## seperate into quark and muon signal
+
+                #files = files_tertiary_1e3_follow_up_changes
+
+                files = [filename for filename in glob.iglob(directory_signal+'stat_*.root', recursive=True)]
+
         
     if save: # where should I write the save files to?
         write_dir = 'save_files' 
         #write_dir = directory_8
+        
+    #passed_events_dir_name = 'passed_events'
     
         
     if len(files) == 0:
@@ -2174,53 +2255,85 @@ def main():
         if start_from_cut:
             print("Starting from cut: {}".format(start_cut))
 
-    cuts_to_plot = [4,14]
-    #cuts_to_plot = [18,19,23]
-    #cuts_to_plot = [0,14,3,15,18,19,23] # [int] which cuts to plot (index in cut_options) 
-                        # **** need to update for multiple in list to work for sum_flows = True as well
-                        # **** doesn't work for "and" cuts that require plotting of 2D parameter space (use plot obj instead)
-    
+    #cuts_to_plot = [0,4,14,3]
+    cuts_to_plot = [0,4,14,3,18,19,23,21,5,11,8,7,12,17,20] # [int] which cuts to plot (index in cut_options) 
+                        
     sum_values = [[] for i in range(ncuts)] # a list to add values to plot for every cut
     drawers = [] # to hold the scissors
 
     flows = dict()
     passed_events = dict() 
     file_converter = dict()
-    
+     
     option = ['cut name', 'cut parameter', 'units', 'on?'] # [name, value of the cut, units of what is being cut on, whether the cut is used (1 => yes)]
     func_name = 'func_name' # func_name is the corresponding data collection function in get_states_m
 
     # specify cuts and parameters
+    
+    
+    
     cut_options = {'0' :{option[0]:'Tracks'                       ,option[1]:2            ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks'},
                    '1' :{option[0]:'Vertices'                     ,option[1]:1            ,option[2]:'verts'         ,option[3]:1 , func_name:'Vertices'},
                    '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1            ,option[2]:'bool'          ,option[3]:1 , func_name:'Fiducial_vertex'},
-                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2000         ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex'},
-                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:20           ,option[2]:'tracks'        ,option[3]:1 , func_name:'Track_floor_hits'},
+                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2500         ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex'},
+                   #'3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:99           ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex'},
+                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:30           ,option[2]:'tracks'        ,option[3]:1 , func_name:'Track_floor_hits'},
                    '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.4          ,option[2]:'rad'           ,option[3]:0 , func_name:'Opening_angle'},
                    '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2         ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological'},
-                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1 / 0.2     ,option[2]:'1 / beta res'  ,option[3]:0 , func_name:'Vertex_track_beta'},
-                   '8' :{option[0]:'Hit Differences'              ,option[1]: 1 / -1      ,option[2]:'1 / hits'      ,option[3]:0 , func_name:'Track_hit_diffs'},
-                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600          ,option[2]:'cm'            ,option[3]:0 , func_name:'Exp_hits' },
+                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1.75        ,option[2]:'beta residual' ,option[3]:0 , func_name:'Vertex_track_beta'},
+                   '8' :{option[0]:'Hit Differences'              ,option[1]: 2           ,option[2]:'hits'          ,option[3]:0 , func_name:'Track_hit_diffs'},
+                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600          ,option[2]:'cm'            ,option[3]:1 , func_name:'Exp_hits' },
                    '10':{option[0]:'No Floor Hits'                ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
-                   '11':{option[0]:'Missing Hit Sum'              ,option[1]:-6           ,option[2]:'-missed hits'  ,option[3]:0 , func_name:'Missing_hit_sum' },
+                   '11':{option[0]:'Missing Hit Sum'              ,option[1]:4            ,option[2]:'missed hits'   ,option[3]:1 , func_name:'Missing_hit_sum' },
                    '12':{option[0]:'Chi sum cut'                  ,option[1]:-20          ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
                    '13':{option[0]:'Hits per track in vertex'     ,option[1]:4            ,option[2]:'hits'          ,option[3]:0 , func_name:'Hits_per_track'},
                    '14':{option[0]:'Fiducial Leniency'            ,option[1]:750          ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
-                   '15':{option[0]:'Psuedo-Tracks Pairwise Hits'  ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:1 , func_name:'Delta_ray_cut'},
+                   '15':{option[0]:'Psuedo-Tracks Pairwise Hits'  ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:0 , func_name:'Delta_ray_cut'},
                    '16':{option[0]:'All vertices before all hits' ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'},
                    '17':{option[0]:'Vertex chi per ndof'          ,option[1]:20           ,option[2]:'chi ndof'      ,option[3]:0 , func_name:'Vertex_chi'},
                    '18':{option[0]:'Consistent with IP theta'     ,option[1]:-0.05        ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency'}, # 1e-3
                    '19':{option[0]:'Consistent with IP alpha'     ,option[1]:0.03         ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency2'},
                    #'18':{option[0]:'Consistent with IP theta'     ,option[1]:-0.01        ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency'}, # 1e-5
                    #'19':{option[0]:'Consistent with IP alpha'     ,option[1]:0.06         ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency2'},
-                   '20':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:0 , func_name:'Close_approach_topology'},
-                   '21':{option[0]:'Crinkle cut'                  ,option[1]:0.05         ,option[2]:'rad'           ,option[3]:0 , func_name:'Crinkle_cut'},
+                   '20':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:1 , func_name:'Close_approach_topology'},
+                   '21':{option[0]:'Crinkle cut'                  ,option[1]:0.75         ,option[2]:'rad'           ,option[3]:1 , func_name:'Crinkle_cut'},
                    '22':{option[0]:'Corner cut w track hits'      ,option[1]:750          ,option[2]:'cm'            ,option[3]:0 , func_name:'Fiducial_leniency_track_hits'},
-                   '23':{option[0]:'High Mult. Consistency Cut'   ,option[1]:0.7            ,option[2]:'rad'           ,option[3]:1 , func_name:'K_long_consistency'}} # corner cut might still be viable
+                   '23':{option[0]:'High Mult. Consistency Cut'   ,option[1]:1            ,option[2]:'opening / 2'   ,option[3]:1 , func_name:'K_long_consistency'},
+                   '24':{option[0]:'Tracks gt'                    ,option[1]:6            ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks gt'}} # secondary and tertiary analysis
+    
+    '''
+                   
+    cut_options = {'0' :{option[0]:'Tracks'                       ,option[1]:7            ,option[2]:'tracks'        ,option[3]:1 , func_name:'Tracks'},
+                   '1' :{option[0]:'Vertices'                     ,option[1]:1            ,option[2]:'verts'         ,option[3]:1 , func_name:'Vertices'},
+                   '2' :{option[0]:'Fiducial Vertex'              ,option[1]:1            ,option[2]:'bool'          ,option[3]:1 , func_name:'Fiducial_vertex'},
+                   '3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:2500         ,option[2]:'cm'            ,option[3]:1 , func_name:'Floor_hits_before_vertex'},
+                   #'3' :{option[0]:'Floor/Wall Hits Before Vertex',option[1]:99           ,option[2]:'tracks'        ,option[3]:1 , func_name:'Floor_hits_before_vertex'},
+                   '4' :{option[0]:'No track hits in the floor'   ,option[1]:30           ,option[2]:'tracks'        ,option[3]:1 , func_name:'Track_floor_hits'},
+                   '5' :{option[0]:'Vertex opening angle'         ,option[1]:0.5          ,option[2]:'rad'           ,option[3]:1 , func_name:'Opening_angle'},
+                   '6' :{option[0]:'Topological Veto'             ,option[1]:-1e2         ,option[2]:'sigma'         ,option[3]:0 , func_name:'Topological'},
+                   '7' :{option[0]:'2 Good Betas in a Vertex'     ,option[1]: 1.75        ,option[2]:'beta residual' ,option[3]:0 , func_name:'Vertex_track_beta'},
+                   '8' :{option[0]:'Hit Differences'              ,option[1]: 2           ,option[2]:'hits'          ,option[3]:0 , func_name:'Track_hit_diffs'},
+                   '9' :{option[0]:'Expected hit edge distance'   ,option[1]:600          ,option[2]:'cm'            ,option[3]:1 , func_name:'Exp_hits' },
+                   '10':{option[0]:'No Floor Hits'                ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'No_floor_hits' },
+                   '11':{option[0]:'Missing Hit Sum'              ,option[1]:5            ,option[2]:'missed hits'   ,option[3]:1 , func_name:'Missing_hit_sum' }, # -> 5
+                   '12':{option[0]:'Chi sum cut'                  ,option[1]:-20          ,option[2]:'-chi ndof'     ,option[3]:0 , func_name:'Chi_ndof_cut' },
+                   '13':{option[0]:'Hits per track in vertex'     ,option[1]:4            ,option[2]:'hits'          ,option[3]:0 , func_name:'Hits_per_track'},
+                   '14':{option[0]:'Fiducial Leniency'            ,option[1]:750          ,option[2]:'cm'            ,option[3]:1 , func_name:'Fiducial_leniency'},
+                   '15':{option[0]:'Psuedo-Tracks Pairwise Hits'  ,option[1]:3e5          ,option[2]:'cm'            ,option[3]:0 , func_name:'Delta_ray_cut'},
+                   '16':{option[0]:'All vertices before all hits' ,option[1]:1            ,option[2]:'bool'          ,option[3]:0 , func_name:'Fiducial_vertex_time'},
+                   '17':{option[0]:'Vertex chi per ndof'          ,option[1]:20           ,option[2]:'chi ndof'      ,option[3]:0 , func_name:'Vertex_chi'},
+                   '18':{option[0]:'Consistent with IP theta'     ,option[1]:-0.05        ,option[2]:'rad'           ,option[3]:0 , func_name:'IP_consistency'}, # 1e-3
+                   '19':{option[0]:'Consistent with IP alpha'     ,option[1]:0.03         ,option[2]:'rad'           ,option[3]:0 , func_name:'IP_consistency2'},
+                   #'18':{option[0]:'Consistent with IP theta'     ,option[1]:-0.01        ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency'}, # 1e-5
+                   #'19':{option[0]:'Consistent with IP alpha'     ,option[1]:0.06         ,option[2]:'rad'           ,option[3]:1 , func_name:'IP_consistency2'},
+                   '20':{option[0]:'Closest Approach Topological' ,option[1]:400          ,option[2]:'cm'            ,option[3]:1 , func_name:'Close_approach_topology'},
+                   '21':{option[0]:'Crinkle cut'                  ,option[1]:0.75         ,option[2]:'rad'           ,option[3]:1 , func_name:'Crinkle_cut'},
+                   '22':{option[0]:'Corner cut w track hits'      ,option[1]:750          ,option[2]:'cm'            ,option[3]:0 , func_name:'Fiducial_leniency_track_hits'},
+                   '23':{option[0]:'High Mult. Consistency Cut'   ,option[1]:1.25         ,option[2]:'opening / 2'   ,option[3]:1 , func_name:'K_long_consistency'},
+                   '24':{option[0]:'Tracks gt'                    ,option[1]:35           ,option[2]:'tracks'        ,option[3]:0 , func_name:'Tracks gt'}} # primary analysis
 
+    '''
 
-
-    # **** can retune fiducial leniency cut to get back some signal
 
     # ---------------- copy cutting details into display dictionary
     
@@ -2234,8 +2347,9 @@ def main():
     flows[option[3]] = flows[option[3]].astype(int)
 
     # ----------------
-
-    permutation = [0,1,2,14,4,3,15,23,18,19,22,21,20,5,9,13,11,6,7,8,10,12,16,17] # order in which the cuts are performed
+    permutation = [0,24,1,2,14,4,3,5,11,23,7,18,20,12,17,21,19,13,8,15,22,9,6,10,16] # primary analysis
+    #permutation = [0,24,1,2,14,4,3,5,11,7,23,18,20,21,19,13,8,15,22,9,6,10,12,16,17] # tertiary and seondary analysis
+    #permutation = [0,1,2,14,4,3,15,21,5,23,18,19,22,20,9,13,11,6,7,8,10,12,16,17] # order in which the cuts are performed
                                                     # describes a permutation of 
                                                     # (0, ..., ncuts-1); keys of cut_options
                                                     
@@ -2259,8 +2373,14 @@ def main():
             sample = 'W'
 
         else:
-            if files == files_primary_1e3:
+            if len(files) == 5:
+                sample = ['h35','qq_10gev','h10','qq_50gev','h2'][i]     
+        
+            elif files == files_primary_1e3 or files == files_primary_1e3_follow_up_changes:
                 sample = ['qq_10gev','qq_50gev'][i]
+                
+            elif files == files_secondary_1e3_follow_up_changes:
+                sample = 'h35'
                 
             else:
                 sample = ['h10','h2','qq'][i] # particle type for each sample in files 
@@ -2315,8 +2435,6 @@ def main():
                 i += 1
                 continue
                 
-                
-                
         #--------------------- THIS IS THE CALL THAT DOES THE CUTTING ------  
         
         scissor.cut_dict(cut_options, permutation)
@@ -2326,8 +2444,22 @@ def main():
         # update total digis count
         #total_digis += scissor.num_digis
 
-        if not plot_obj: # to save memory (for large runs we run out of memory keeping track of both plot info and survivors)
-            passed_events[scissor.file] = scissor.survivor_inds # in order of permutation (indexed as in flows)
+        #if not plot_obj: # to save memory (for large runs we run out of memory keeping track of both plot info and survivors)
+        if True:        
+            #passed_events[scissor.file] = scissor.survivor_inds # in order of permutation (indexed as in flows)
+            
+            #if not os.path.exists(passed_events_dir_name):
+            #    os.makedirs(passed_events_dir_name)
+            
+            #scissor_joblib_name = scissor.file.split('/')[-1].split('.')[0]+'.joblib'
+            scissor_joblib_name = file.split('.')[0]+'_passed_events.pkl'
+            
+            passed_events[scissor.file] = scissor_joblib_name # in order of permutation (indexed as in flows) 
+                                                                # 1) only keep track of which files have survivors, not their indices. 
+                                                                # 2) alternatively, keep track of which cut each event is cut at (fewer redundancies => less memory)
+                                                                # 3) or write suriviro_inds to file, and store file path in passed events instead
+
+            joblib.dump(scissor.survivor_inds, scissor_joblib_name) # save it with the joblib load file
             
         if load:
             file_converter[scissor.file] = file # make a file that points between joblib and root file
@@ -2408,10 +2540,16 @@ def main():
                         _logy = True
                     
                     elif cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
-                        _rng = (0,3000)
+                        #_rng = (0,3000)
+                        _rng = (0,50)
+                        _logy = True
                         
                     elif cuts_to_plot[p] == 4:
-                        _rng = (0,90)
+                        _rng = (0,60)
+                        _logy = True
+                        
+                    elif cuts_to_plot[p] == 17:
+                        _rng = (0,15)
                     
                     elif cuts_to_plot[p] == 20:
                         _rng = (0,0.1)
@@ -2435,8 +2573,8 @@ def main():
     if sum_flows:
         # if plotting across files (eg. for large Background Samples) we do it after the file loop
         
-        if not plot_obj: # to save memory
-            flows['Flows fraction'] = np.round(flows['Flows'] / total_events, 8)
+        #if not plot_obj: # to save memory
+        flows['Flows fraction'] = np.round(flows['Flows'] / total_events, 8)
         
         print("Total Events: ",total_events)
 
@@ -2446,18 +2584,27 @@ def main():
         if plot_cut and len(sum_values) != 0:
             for p, cut in enumerate(cuts_to_plot_perm):
                 _bins = 100
-                _logy = False
-                _rng = (np.amin(sum_values[cut]),np.max(sum_values[cut])*1.1)
-                    
+                _logy, _logx = False, False
+                
                 try:
+                    _rng = (np.amin(sum_values[cut]),np.max(sum_values[cut])*1.1)
+                    
                     if cuts_to_plot[p] == 0:
                         _logy = True
                         
                     elif cuts_to_plot[p] == 3: # index as in cut_options to set custom range etc.
-                        _rng = (0,3000)
+                        _rng = (0,50)
+                        _logy = True
+                        _logx = False
+                        
+                        #bins = array('d',sorted([0]+[10**(-i) for i in range(num_bins-1)])) # log bins
                         
                     elif cuts_to_plot[p] == 4:
-                        _rng = (0,90)
+                        _rng = (0,60)
+                        _logy = True
+                        
+                    elif cuts_to_plot[p] == 17:
+                        _rng = (0,15)
                         
                     elif cuts_to_plot[p] == 20:
                         _rng = (0,0.1)
@@ -2472,7 +2619,7 @@ def main():
                   					xaxis=flows['units'][cut],
                   					fname='distribution_{}_{}.png'.format(cuts_to_plot[p],sample),
                             logy=_logy,
-                            logx=False)
+                            logx=_logx)
 
                 except ValueError:
                     print("Cut {} has no survivors".format(cuts_to_plot[p]))

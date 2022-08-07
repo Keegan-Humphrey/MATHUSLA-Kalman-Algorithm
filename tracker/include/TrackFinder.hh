@@ -3,6 +3,7 @@
 #include "LinearAlgebra.hh"
 #include <TMath.h>
 #include <TRandom.h>
+#include <TRandom3.h>
 #include "Geometry.hh"
 #include <iostream>
 #include <fstream>

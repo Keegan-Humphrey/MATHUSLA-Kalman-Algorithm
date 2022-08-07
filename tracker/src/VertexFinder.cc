@@ -419,8 +419,8 @@ void VertexFitter::nll(int &npar, double *gin, double &f, double *pars, int ifla
 		if (isnan(error))
 		{
 			bad_fit = true;
-			std::cout << " Bad Vertex fit! " << std::endl;
-			std::cout << dist << " " << err << std::endl;
+			//std::cout << " Bad Vertex fit! " << std::endl;
+			//std::cout << dist << " " << err << std::endl;
 //			track->CovMatrix().Print();
 			return;
 		}

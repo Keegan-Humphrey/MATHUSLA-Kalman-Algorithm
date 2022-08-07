@@ -55,7 +55,7 @@ class Editor:
 				'kalman_v_drop[0]',
 				'kalman_v_drop[1]',
 				'start_ev',
-                'end_ev',
+				'end_ev',
                 'noise_hz']
 
                 pars_dict = dict()

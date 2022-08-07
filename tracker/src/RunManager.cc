@@ -51,6 +51,8 @@ int RunManager::StartTracking()
 
     NoiseMaker::preDigitizer();
     
+	_digitizer->InitGenerators();
+
 	while (TH->Next() >= 0)
 	{
 		if (events_handled >= hndlr.par_map["end_ev"]) //cuts::end_ev)
@@ -98,7 +100,7 @@ int RunManager::StartTracking()
 			_tracker->hits = digi_list;
 			_tracker->hits_k = digi_list;
 			_tracker->Seed();
-			_tracker->FindTracks();
+			//_tracker->FindTracks();
 			_tracker->FindTracks_kalman();
 
 			// copy kalman tracks for merging
