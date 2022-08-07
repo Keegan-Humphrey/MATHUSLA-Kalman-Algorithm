@@ -228,28 +228,6 @@ public:
  		OutputTree->Branch("EXTRA_14", "std::vector<double>", sim_EXTRA_14);
  		OutputTree->Branch("EXTRA_15", "std::vector<double>", sim_EXTRA_15);
 
- 		OutputTree->Branch("NumVertices", &numvertices, "NumVertices/D");
-      	OutputTree->Branch("Vertex_numTracks", &vertex_numTracks);
-        OutputTree->Branch("Vertex_cosOpeningAngle", &vertex_cosOpeningAngle);
-      	OutputTree->Branch("Vertex_t", &vertex_t);
-      	OutputTree->Branch("Vertex_x", &vertex_x);
-      	OutputTree->Branch("Vertex_y", &vertex_y);
-      	OutputTree->Branch("Vertex_z", &vertex_z);
-      	OutputTree->Branch("Vertex_ErrorT", &vertex_t_error);
-      	OutputTree->Branch("Vertex_ErrorX", &vertex_x_error);
-      	OutputTree->Branch("Vertex_ErrorY", &vertex_y_error);
-      	OutputTree->Branch("Vertex_ErrorZ", &vertex_z_error);
-      	OutputTree->Branch("Vertex_chi2", &vertex_chi2);
-      	OutputTree->Branch("Vertex_chi2PerNdof", &vertex_chi2_per_dof);
-      	OutputTree->Branch("Vertex_chi2PValue", &vertex_chi2_p_value);
-        OutputTree->Branch("Vertex_trackIndices", &vertex_track_indices);
-
-//        OutputTree->Branch("Vertex_k_t", &vertex_k_t);
-//        OutputTree->Branch("Vertex_k_x", &vertex_k_x);
-//        OutputTree->Branch("Vertex_k_y", &vertex_k_y);
-//        OutputTree->Branch("Vertex_k_z", &vertex_k_z);
-//        OutputTree->Branch("Vertex_k_trackIndices", &vertex_track_k_indices);
-
 	OutputTree->Branch("Vertex_k_m_t", &vertex_k_m_t);
         OutputTree->Branch("Vertex_k_m_x", &vertex_k_m_x);
         OutputTree->Branch("Vertex_k_m_y", &vertex_k_m_y);
@@ -262,63 +240,14 @@ public:
         OutputTree->Branch("Vertex_k_m_trackIndices", &vertex_track_k_m_indices);
 	OutputTree->Branch("NumVertices_k_m", &numvertices_k_m, "NumVertices/D");
 
-      	OutputTree->Branch("NumTracks", &numtracks, "NumTracks/D");
-      	OutputTree->Branch("Track_numHits", &track_numHits);
-      	OutputTree->Branch("Track_t0", &track_t);
-      	OutputTree->Branch("Track_x0", &track_x);
-      	OutputTree->Branch("Track_y0", &track_y);
-      	OutputTree->Branch("Track_z0", &track_z);
-      	OutputTree->Branch("Track_velX", &track_vx);
-      	OutputTree->Branch("Track_velY", &track_vy);
-      	OutputTree->Branch("Track_velZ", &track_vz);
-      	OutputTree->Branch("Track_ErrorT0", &track_t_error);
-      	OutputTree->Branch("Track_ErrorX0", &track_x_error);
-      	OutputTree->Branch("Track_ErrorY0", &track_y_error);
-      	OutputTree->Branch("Track_ErrorZ0", &track_z_error);
-      	OutputTree->Branch("Track_ErrorVx", &track_vx_error);
-      	OutputTree->Branch("Track_ErrorVy", &track_vy_error);
-      	OutputTree->Branch("Track_ErrorVz", &track_vz_error);
-      	OutputTree->Branch("Track_chi2", &track_chi2);
-      	OutputTree->Branch("Track_chi2PerNdof", &track_chi2_per_dof);
-      	OutputTree->Branch("Track_chi2PValue", &track_chi2_p_value);
-      	OutputTree->Branch("Track_beta", &track_beta);
-      	OutputTree->Branch("Track_beta_err", &track_beta_error);
-      	OutputTree->Branch("Track_ErrorBeta", &track_beta_error);
-      	OutputTree->Branch("Track_angle", &track_angle);
-       	OutputTree->Branch("Track_ErrorAngle", &track_angle_error);
-       	OutputTree->Branch("Track_detCount", &unique_detector_count);
-      	OutputTree->Branch("Track_expectedHitLayer", &track_expected_hit_layer);
-      	OutputTree->Branch("Track_missingHitLayer", &track_missing_hit_layer);
-        OutputTree->Branch("Track_hitIndices", &track_hit_indices);
-        OutputTree->Branch("track_ipDistance", &track_distance_to_ip);
-
-	
-/*
-	OutputTree->Branch("Track_k_hitIndices", &track_hit_k_indices);
-	OutputTree->Branch("Track_k_velX", &track_k_vx);
-	OutputTree->Branch("Track_k_velY", &track_k_vy);
-	OutputTree->Branch("Track_k_velZ", &track_k_vz);
-	OutputTree->Branch("Track_k_x0", &track_k_x);
-	OutputTree->Branch("Track_k_y0", &track_k_y);
-	OutputTree->Branch("Track_k_z0", &track_k_z);
-	OutputTree->Branch("Track_k_t0", &track_k_t);
- 	OutputTree->Branch("NumTracks_k", &NumTracks_k);
-	OutputTree->Branch("x_estimates", &x_estimates);
-	OutputTree->Branch("y_estimates", &y_estimates);
-	OutputTree->Branch("z_estimates", &z_estimates);
-*/
-//OutputTree->Branch("Track_k_m_chi2PerNdof", &track_k_chi2_per_dof);
-  //OutputTree->Branch("local_chi_f_k_m", &chi_f_first);
-  //OutputTree->Branch("local_chi_s_k_m", &chi_s_first); 
-  
-  OutputTree->Branch("Track_k_m_velX", &track_k_m_vx);
+	OutputTree->Branch("Track_k_m_velX", &track_k_m_vx);
 	OutputTree->Branch("Track_k_m_velY", &track_k_m_vy);
 	OutputTree->Branch("Track_k_m_velZ", &track_k_m_vz);
 	OutputTree->Branch("Track_k_m_x0", &track_k_m_x);
 	OutputTree->Branch("Track_k_m_y0", &track_k_m_y);
 	OutputTree->Branch("Track_k_m_z0", &track_k_m_z);
 	OutputTree->Branch("Track_k_m_t0", &track_k_m_t);
-	
+
       	OutputTree->Branch("Track_k_m_ErrorT0", &track_k_m_t_error);
       	OutputTree->Branch("Track_k_m_ErrorX0", &track_k_m_x_error);
       	OutputTree->Branch("Track_k_m_ErrorY0", &track_k_m_y_error);
@@ -347,39 +276,29 @@ public:
 
 	OutputTree->Branch("Track_k_m_cov_vy_vz", &track_k_m_cov_vy_vz);
 
-  OutputTree->Branch("Track_k_m_beta", &track_k_m_beta);
+	OutputTree->Branch("Track_k_m_beta", &track_k_m_beta);
 	OutputTree->Branch("Track_k_m_beta_err", &track_k_m_beta_err);
- 
-  OutputTree->Branch("Track_k_m_filterchi", &track_k_m_filter_chi);
+
+	OutputTree->Branch("Track_k_m_filterchi", &track_k_m_filter_chi);
 	OutputTree->Branch("Track_k_m_smoothchi", &track_k_m_smooth_chi);
-  OutputTree->Branch("Track_k_m_smooth_chi_sum", &track_k_m_smooth_chi_sum);
-	
-  OutputTree->Branch("x_estimates_m", &x_estimates_m);
+	OutputTree->Branch("Track_k_m_smooth_chi_sum", &track_k_m_smooth_chi_sum);
+
+	OutputTree->Branch("x_estimates_m", &x_estimates_m);
 	OutputTree->Branch("y_estimates_m", &y_estimates_m);
 	OutputTree->Branch("z_estimates_m", &z_estimates_m);
- 
-  OutputTree->Branch("NumTracks_k_m", &NumTracks_k_m);
-  OutputTree->Branch("Track_k_m_numHits", &track_k_m_numHits);
+
+	OutputTree->Branch("NumTracks_k_m", &NumTracks_k_m);
+	OutputTree->Branch("Track_k_m_numHits", &track_k_m_numHits);
 	OutputTree->Branch("Track_k_m_hitIndices", &track_hit_k_m_indices);
 	OutputTree->Branch("king_move_inds", &king_move_inds);
- 
-  OutputTree->Branch("Track_k_m_expected_hit_layer", &track_k_m_expected_hit_layer);
-  OutputTree->Branch("Track_k_m_opening_angle", &track_k_m_openingangle);
-  OutputTree->Branch("Track_k_m_pdgs", &track_pdgs); // Add k_m_s?
+
+	OutputTree->Branch("Track_k_m_expected_hit_layer", &track_k_m_expected_hit_layer);
+	OutputTree->Branch("Track_k_m_opening_angle", &track_k_m_openingangle);
+	OutputTree->Branch("Track_k_m_pdgs", &track_pdgs);
 	OutputTree->Branch("Track_k_m_ids", &track_ids);
- 
-  OutputTree->Branch("Track_k_m_x_std_scat_per_m", &x_scat);
+
+	OutputTree->Branch("Track_k_m_x_std_scat_per_m", &x_scat);
 	OutputTree->Branch("Track_k_m_z_std_scat_per_m", &z_scat);
- 
-/*
-	OutputTree->Branch("vertex_vx_m", &q_s_x_m);
-	OutputTree->Branch("vertex_vy_m", &q_s_y_m);
-	OutputTree->Branch("vertex_vz_m", &q_s_z_m);
-	OutputTree->Branch("vertex_k_f_beta", &vertex_k_f_beta);
-	OutputTree->Branch("vertex_k_s_beta", &vertex_k_s_beta);
-	OutputTree->Branch("vertex_k_s_beta_err", &vertex_k_s_beta_err);
-	
-*/
 
 
 	}
@@ -442,29 +361,7 @@ public:
  	std::vector<double> *sim_EXTRA_15 = nullptr;
 
  		//__Make Vertex Branches________________________________________________________________________
-  	std::vector<int> vertex_numTracks;
-    std::vector<double> vertex_cosOpeningAngle;
-  	std::vector<double> vertex_chi2;
-  	std::vector<double> vertex_chi2_per_dof;
- 	std::vector<double> vertex_chi2_p_value;
-  	std::vector<double> vertex_t;
-  	std::vector<double> vertex_x;
-  	std::vector<double> vertex_y;
-  	std::vector<double> vertex_z;
-  	std::vector<double> vertex_t_error;
-  	std::vector<double> vertex_x_error;
-  	std::vector<double> vertex_y_error;
-  	std::vector<double> vertex_z_error;
-    std::vector<int> vertex_track_indices;
-  	Double_t numvertices;
 
-/*
-        std::vector<double> vertex_k_t;
-        std::vector<double> vertex_k_x;
-        std::vector<double> vertex_k_y;
-        std::vector<double> vertex_k_z;
-	std::vector<int> vertex_track_k_indices;
-*/
 	std::vector<double> q_s_x_m;
 	std::vector<double> q_s_y_m;
 	std::vector<double> q_s_z_m;
@@ -472,84 +369,32 @@ public:
 	std::vector<double> vertex_k_s_beta;
 	std::vector<double> vertex_k_s_beta_err;
 
-std::vector<double>	vertex_k_m_t;
-std::vector<double>	vertex_k_m_x;
-std::vector<double>	vertex_k_m_y;
-std::vector<double>	vertex_k_m_z;
+	std::vector<double>	vertex_k_m_t;
+	std::vector<double>	vertex_k_m_x;
+	std::vector<double>	vertex_k_m_y;
+	std::vector<double>	vertex_k_m_z;
   	std::vector<double> vertex_t_k_m_error;
   	std::vector<double> vertex_x_k_m_error;
   	std::vector<double> vertex_y_k_m_error;
   	std::vector<double> vertex_z_k_m_error;
 	std::vector<double> vertex_k_m_chi2_per_dof;
-std::vector<double>	vertex_track_k_m_indices;
-Double_t numvertices_k_m;
+	std::vector<double>	vertex_track_k_m_indices;
+	Double_t numvertices_k_m;
 
   //__Make Track Branches_________________________________________________________________________
-  	std::vector<double> track_numHits;
-  	std::vector<double> track_chi2;
-  	std::vector<double> track_chi2_per_dof;
-  	std::vector<double> track_chi2_p_value;
-  	std::vector<double> track_beta;
-  	std::vector<double> track_beta_error;
-  	std::vector<double> track_angle;
-  	std::vector<double> track_angle_error;
-  	std::vector<double> unique_detector_count;
-  	std::vector<double> track_t;
-  	std::vector<double> track_x;
-  	std::vector<double> track_y;
-  	std::vector<double> track_z;
-  	std::vector<double> track_vx;
-  	std::vector<double> track_vy;
-  	std::vector<double> track_vz;
-  	std::vector<double> track_t_error;
-  	std::vector<double> track_x_error;
-  	std::vector<double> track_y_error;
-  	std::vector<double> track_z_error;
-  	std::vector<double> track_vx_error;
-  	std::vector<double> track_vy_error;
-  	std::vector<double> track_vz_error;
-  	std::vector<int> track_expected_hit_layer;
-  	std::vector<double> track_missing_hit_layer;
-        std::vector<int> track_hit_indices;
-        std::vector<double> track_distance_to_ip;
-        
-        
-        
-/*
-	std::vector<double> track_k_vx;
-	std::vector<double> track_k_vy;
-	std::vector<double> track_k_vz;
-	std::vector<double> track_k_beta;
-	std::vector<double> track_k_beta_err;
-	std::vector<double> track_k_t;
-	std::vector<double> track_k_x;
-	std::vector<double> track_k_y;
-	std::vector<double> track_k_z;
-	int NumTracks_k;
-*/
 
-
-  	Double_t numtracks;
-   
-		//std::vector<double> track_k_chi2_per_dof;
-		
-  //std::vector<int> track_hit_k_indices;
-
-	//std::vector<double> chi_f_first;
-	//std::vector<double> chi_s_first;
- 
 	std::vector<double> x_estimates;
-  std::vector<double> y_estimates;
-  std::vector<double> z_estimates;
-	
-  std::vector<double> x_scat;
+	std::vector<double> y_estimates;
+	std::vector<double> z_estimates;
+
+	std::vector<double> x_scat;
 	std::vector<double> z_scat;
 
 	std::vector<int> track_pdgs;
 	std::vector<int> track_ids;
 	std::vector<double> track_k_m_openingangle;
 
-  std::vector<double> track_k_m_beta;
+	std::vector<double> track_k_m_beta;
 	std::vector<double> track_k_m_beta_err;
 
 	std::vector<double> track_k_m_vx;
@@ -559,7 +404,7 @@ Double_t numvertices_k_m;
 	std::vector<double> track_k_m_x;
 	std::vector<double> track_k_m_y;
 	std::vector<double> track_k_m_z;
- 
+
   	std::vector<double> track_k_m_t_error;
   	std::vector<double> track_k_m_x_error;
   	std::vector<double> track_k_m_y_error;
@@ -588,18 +433,18 @@ Double_t numvertices_k_m;
 
 	std::vector<double> track_k_m_cov_vy_vz;
 
-  std::vector<double> track_k_m_filter_chi;
-  std::vector<double> track_k_m_smooth_chi;
-  std::vector<double> track_k_m_smooth_chi_sum;
+	std::vector<double> track_k_m_filter_chi;
+	std::vector<double> track_k_m_smooth_chi;
+	std::vector<double> track_k_m_smooth_chi_sum;
 
 	int NumTracks_k_m;
-  std::vector<double> track_k_m_numHits;
+	std::vector<double> track_k_m_numHits;
 	std::vector<int> track_hit_k_m_indices;
- 
+
 	std::vector<double> x_estimates_m;
-  std::vector<double> y_estimates_m;
-  std::vector<double> z_estimates_m;
-  
+	std::vector<double> y_estimates_m;
+	std::vector<double> z_estimates_m;
+
 	std::vector<double> track_k_m_expected_hit_layer;
 	std::vector<int> king_move_inds;
 
@@ -803,29 +648,29 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
 			}
 			chi_sum = chi_sum / (4.0*tr->chi_s.size() - 6.0);
 			track_k_m_smooth_chi_sum.push_back(chi_sum); // final chi per ndof for the track
-    
+
       // Indices of various sorts
     	for (auto ind : tr->king_move_inds) {
     		king_move_inds.push_back(ind);
     	}
     	if (tr->king_move_inds.size() != 0) king_move_inds.push_back(-1); // indices of hits removed by king moves algorithm
                                                                          // see presentation slides in Doc for description
-    
+
     	for (auto hit : tr->hits) {
     		track_hit_k_m_indices.push_back(hit->index);
     	}
     	track_hit_k_m_indices.push_back(-1.); // indices of digi hits included in the tracks
-    
+
       // Indices of layers where tracks are expected to have travelled through
     	for (auto exp_layer : tr->expected_layers) {
     		track_k_m_expected_hit_layer.push_back( static_cast<double>(exp_layer) );
     	}
     	track_k_m_expected_hit_layer.push_back(-1);
-    
+
       // Scattering per m calculated for covariance parallel to detector planes
       for (auto std : tr->x_scats) x_scat.push_back(std);
 			for (auto std : tr->z_scats) z_scat.push_back(std);
-    
+
       // List of all kalman best estimates of hit positions for each track
     	for (auto est : tr->estimate_list) {
     		x_estimates_m.push_back(est[0]);
@@ -843,7 +688,7 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
 			}
 			track_ids.push_back(-1);
 			track_pdgs.push_back(-1);
-      
+
       // Track Betas and Error in Beta
       double v = std::sqrt(std::pow(tr->vx,2) + std::pow(tr->vy,2) + std::pow(tr->vz,2));
 			track_k_m_beta.push_back(v / constants::c);
@@ -860,109 +705,7 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
       }
 
 }
-/*
-void TreeHandler::Export_kalman_info(std::vector<double> local_chi_f, std::vector<double> local_chi_s) {
 
-	chi_f_first.clear();
-	chi_s_first.clear();
-
-	for (auto chi : local_chi_f) chi_f_first.push_back(chi);
-	for (auto chi : local_chi_s) chi_s_first.push_back(chi);
-}
-*/
-
-template<class Track>
-void TreeHandler::ExportTracks(std::vector<Track*> track_list){
-
-    track_numHits.clear();
-    track_chi2.clear();
-    track_chi2_per_dof.clear();
-    track_chi2_p_value.clear();
-    track_beta.clear();
-    track_beta_error.clear();
-    track_angle.clear();
-    track_angle_error.clear();
-    unique_detector_count.clear();
-    track_t.clear();
-    track_x.clear();
-    track_y.clear();
-    track_z.clear();
-    track_vx.clear();
-    track_vy.clear();
-    track_vz.clear();
-    track_t_error.clear();
-    track_x_error.clear();
-    track_y_error.clear();
-    track_z_error.clear();
-    track_vx_error.clear();
-    track_vy_error.clear();
-    track_vz_error.clear();
-    track_hit_indices.clear();
-    track_missing_hit_layer.clear();
-    track_distance_to_ip.clear();
-    track_expected_hit_layer.clear();
-
-    numtracks = track_list.size();
-    for (auto tr : track_list){
-      track_numHits.push_back( (tr->hits).size() );
-      track_chi2.push_back(tr->chi2());
-      track_chi2_per_dof.push_back(tr->chi2_per_dof());
-      track_beta.push_back(tr->beta());
-      track_beta_error.push_back(tr->beta_err());
-      track_t.push_back(tr->t0);
-      track_x.push_back(tr->x0);
-      track_y.push_back(tr->y0);
-      track_z.push_back(tr->z0);
-      track_vx.push_back(tr->vx);
-      track_vy.push_back(tr->vy);
-      track_vz.push_back(tr->vz);
-      track_x_error.push_back(tr->ex0);
-      track_y_error.push_back(tr->ey0);
-      track_z_error.push_back(tr->ez0);
-      track_vx_error.push_back(tr->evx);
-      track_vy_error.push_back(tr->evy);
-      track_vz_error.push_back(tr->evz);
-      track_angle.push_back(tr->cos_angle_from_ip());
-      track_distance_to_ip.push_back(tr->shortDistance());
-
-      for (auto missing_layer : tr->_missing_layers) track_missing_hit_layer.push_back( static_cast<double>(missing_layer) );
-      track_missing_hit_layer.push_back(-1);
-
-      for (auto exp_layer : tr->expected_layers) track_expected_hit_layer.push_back( static_cast<double>(exp_layer) );
-      track_expected_hit_layer.push_back(-1);
-
-      for (auto hit : tr->hits) { track_hit_indices.push_back(hit->index); }
-      track_hit_indices.push_back(-1.);
-
-    }
-
-}
-/*
-template<typename vertex>
-void TreeHandler::ExportVertices_k(std::vector<vertex*> vertices){
-
-	vertex_k_t.clear();
-	vertex_k_x.clear();
-	vertex_k_y.clear();
-	vertex_k_z.clear();
-	vertex_track_k_indices.clear();
-
-	for (auto v : vertices) {
-
-		vertex_k_t.push_back(v->t);
-		vertex_k_x.push_back(v->x);
-		vertex_k_y.push_back(v->y);
-		vertex_k_z.push_back(v->z);
-
-		for (auto tr_index : v->track_indices){
-        	vertex_track_k_indices.push_back(tr_index);
-        	}
-
-	        vertex_track_k_indices.push_back(-1);
-	}
-
-}
-*/
 template<typename vertex>
 void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 
@@ -986,18 +729,13 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 	vertex_k_m_chi2_per_dof.clear();
 	numvertices_k_m = vertices.size();
 
-	//std::cout << "export test 1 " << std::endl;
-
 	for (auto v : vertices) {
-
-		//std::cout << "export test 2 " << std::endl;
 
 		vertex_k_m_t.push_back(v->t);
 		vertex_k_m_x.push_back(v->x);
 		vertex_k_m_y.push_back(v->y);
 		vertex_k_m_z.push_back(v->z);
 
-		//std::cout << "export test 3 " << std::endl;
 		vertex_x_k_m_error.push_back(sqrt(v->CovMatrix()[0][0]));
 		vertex_y_k_m_error.push_back(sqrt(v->CovMatrix()[1][1]));
 		vertex_z_k_m_error.push_back(sqrt(v->CovMatrix()[2][2]));
@@ -1032,59 +770,10 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
         		vertex_track_k_m_indices.push_back(tr_index);
         	}
 
-		//std::cout << "export test 4 " << std::endl;
-
 	        vertex_track_k_m_indices.push_back(-1);
 	}
 
 }
 
-template<typename vertex>
-void TreeHandler::ExportVertices(std::vector<vertex*> vertices){
-
-    vertex_numTracks.clear();
-    vertex_cosOpeningAngle.clear();
-    vertex_chi2.clear();
-    vertex_chi2_per_dof.clear();
-    vertex_chi2_p_value.clear();
-    vertex_t.clear();
-    vertex_x.clear();
-    vertex_y.clear();
-    vertex_z.clear();
-    vertex_t_error.clear();
-    vertex_x_error.clear();
-    vertex_y_error.clear();
-    vertex_z_error.clear();
-    vertex_track_indices.clear();
-
-
-    numvertices = vertices.size();
-
-
-    for (auto v : vertices){
-      vertex_numTracks.push_back(v->track_indices.size());
-      vertex_cosOpeningAngle.push_back(v->cos_opening_angle);
-      vertex_t.push_back(v->t);
-      vertex_x.push_back(v->x);
-      vertex_y.push_back(v->y);
-      vertex_z.push_back(v->z);
-
-      vertex_x_error.push_back(sqrt(v->CovMatrix()[0][0]));
-      vertex_y_error.push_back(sqrt(v->CovMatrix()[1][1]));
-      vertex_z_error.push_back(sqrt(v->CovMatrix()[2][2]));
-      vertex_t_error.push_back(sqrt(v->CovMatrix()[3][3]));
-
-      vertex_chi2_per_dof.push_back(v->merit());
-
-
-      for (auto tr_index : v->track_indices){
-        vertex_track_indices.push_back(tr_index);
-      }
-
-      vertex_track_indices.push_back(-1);
-
-    }
-
-}
 
 #endif
