@@ -161,10 +161,10 @@ void VertexFinder::FindVertices_c_b_hybrid()
 		if (status == false or fitter.merit() > par_handler->par_map["vertex_chi2"])
 		{
 			if (status == false)
-				noConverge_c_b += 1;
+				noConverge += 1;
 //			if (fitter.merit() > cuts::vertex_chi2)
 			if (fitter.merit() > par_handler->par_map["vertex_chi2"])
-				missedChi2_c_b += 1;
+				missedChi2 += 1;
 			continue;
 		}
 
@@ -401,7 +401,7 @@ void VertexFinder::FindVertices_c_b()
 	}
 }
 
-//TODO: check through the rest of the functions and variables to see if they need to be copied, I think they don't
+//TODO: check through the rest of the functions and variables to see if they need to be copied
 
 std::vector<physics::track *> VertexFitter::track_list = {};
 std::vector<double> VertexFitter::parameters = {};
