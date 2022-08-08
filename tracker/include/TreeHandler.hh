@@ -436,7 +436,6 @@ public:
 
  		//__Make Vertex Branches________________________________________________________________________
 
-	//TODO: decide to copy this section of variables or not, don't appear to have branches
 	std::vector<double> q_s_x_m;
 	std::vector<double> q_s_y_m;
 	std::vector<double> q_s_z_m;
@@ -457,6 +456,13 @@ public:
 	Double_t numvertices_k_m;
 	
 	//Copy of branches for set beta value
+	std::vector<double> q_s_x_m_c_b;
+	std::vector<double> q_s_y_m_c_b;
+	std::vector<double> q_s_z_m_c_b;
+	std::vector<double> vertex_k_f_beta_c_b;
+	std::vector<double> vertex_k_s_beta_c_b;
+	std::vector<double> vertex_k_s_beta_err_c_b;
+	
 	std::vector<double>	vertex_c_b_t;
 	std::vector<double>	vertex_c_b_x;
 	std::vector<double>	vertex_c_b_y;
@@ -855,6 +861,212 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
 
 }
 
+template<class Track>
+void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){ 
+  // Data pushed to Tree for all the Tracks (that survived the merging algorithm)
+
+	track_c_b_vx.clear();
+	track_c_b_vy.clear();
+	track_c_b_vz.clear();
+	track_c_b_x.clear();
+	track_c_b_y.clear();
+	track_c_b_z.clear();
+	track_c_b_t.clear();
+
+	track_c_b_vx_error.clear();
+	track_c_b_vy_error.clear();
+	track_c_b_vz_error.clear();
+	track_c_b_x_error.clear();
+	track_c_b_y_error.clear();
+	track_c_b_z_error.clear();
+	track_c_b_t_error.clear();
+	
+	x_estimates_c_b.clear();
+	y_estimates_c_b.clear();
+	z_estimates_c_b.clear();
+
+	track_c_b_cov_x_t.clear();
+	track_c_b_cov_x_z.clear();
+	track_c_b_cov_x_vx.clear();
+	track_c_b_cov_x_vy.clear();
+	track_c_b_cov_x_vz.clear();
+
+	track_c_b_cov_t_z.clear();
+	track_c_b_cov_t_vx.clear();
+	track_c_b_cov_t_vy.clear();
+	track_c_b_cov_t_vz.clear();
+
+	track_c_b_cov_z_vx.clear();
+	track_c_b_cov_z_vy.clear();
+	track_c_b_cov_z_vz.clear();
+
+	track_c_b_cov_vx_vy.clear();
+	track_c_b_cov_vx_vz.clear();
+
+	track_c_b_cov_vy_vz.clear();
+
+  track_hit_c_b_indices.clear();
+  track_c_b_expected_hit_layer.clear();
+	c_b_king_move_inds.clear();
+ 
+  track_c_b_filter_chi.clear();
+  track_c_b_smooth_chi.clear();
+	track_c_b_smooth_chi_sum.clear();
+ 
+  NumTracks_c_b = track_list.size();
+  track_c_b_numHits.clear();
+
+  track_c_b_openingangle.clear();
+  track_c_b_ids.clear();
+  track_c_b_pdgs.clear();
+  
+  x_c_b_scat.clear();
+  z_c_b_scat.clear();
+  
+  track_c_b_beta.clear();
+  track_c_b_beta_err.clear();
+  
+  // Opening angles among all pairs of tracks
+  for (int i = 0; i < NumTracks_c_b; i++) {
+  		for (int j = i+1; j < NumTracks_c_b; j++) {
+  		auto tr1 =  track_list[i];
+  		auto tr2 =  track_list[j];
+  		track_c_b_openingangle.push_back(tr1->direction()^tr2->direction());
+  	}
+  }
+
+  for (auto tr : track_list){
+      // Number of Tracks Reconstructed
+      track_c_b_numHits.push_back( (tr->hits).size() );
+
+     /*
+      if ((tr->hits).size()  > 8 ) {
+	std::cout << "c_b num_hits " << (tr->hits).size() << std::endl;
+\	for (auto hit : tr->hits) {
+		std::cout << "c_b  hit y: " << hit->y;
+	}
+	std::cout << std::endl;
+	for (auto hit : tr->hits) {
+		std::cout << "c_b hit z: " << hit->z;
+	}
+	std::cout << std::endl;
+      }
+      */
+
+      // Push velocity and position of lowest (in y) Kalman estimate for each track
+    	track_c_b_vx.push_back(tr->vx);
+    	track_c_b_vy.push_back(tr->vy);
+    	track_c_b_vz.push_back(tr->vz);
+     
+    	track_c_b_t.push_back(tr->t0);
+    	track_c_b_x.push_back(tr->x0);
+    	track_c_b_y.push_back(tr->y0);
+    	track_c_b_z.push_back(tr->z0);
+
+    	track_c_b_vx_error.push_back(tr->evx);
+    	track_c_b_vy_error.push_back(tr->evy);
+    	track_c_b_vz_error.push_back(tr->evz);
+     
+    	track_c_b_t_error.push_back(tr->et0);
+    	track_c_b_x_error.push_back(tr->ex0);
+    	track_c_b_y_error.push_back(tr->ey0);
+    	track_c_b_z_error.push_back(tr->ez0);
+    
+	track_c_b_cov_x_t.push_back(tr->P_s(0,1));
+	track_c_b_cov_x_z.push_back(tr->P_s(0,2));
+	track_c_b_cov_x_vx.push_back(tr->P_s(0,3));
+	track_c_b_cov_x_vy.push_back(tr->P_s(0,4));
+	track_c_b_cov_x_vz.push_back(tr->P_s(0,5));
+
+	track_c_b_cov_t_z.push_back(tr->P_s(1,2));
+	track_c_b_cov_t_vx.push_back(tr->P_s(1,3));
+	track_c_b_cov_t_vy.push_back(tr->P_s(1,4));
+	track_c_b_cov_t_vz.push_back(tr->P_s(1,5));
+
+	track_c_b_cov_z_vx.push_back(tr->P_s(2,3));
+	track_c_b_cov_z_vy.push_back(tr->P_s(2,4));
+	track_c_b_cov_z_vz.push_back(tr->P_s(2,5));
+
+	track_c_b_cov_vx_vy.push_back(tr->P_s(3,4));
+	track_c_b_cov_vx_vz.push_back(tr->P_s(3,5));
+
+	track_c_b_cov_vy_vz.push_back(tr->P_s(4,5));
+
+
+
+
+      // Push various Chis to Tree
+      for (auto chi : tr->chi_f) track_c_b_filter_chi.push_back( static_cast<double>(chi) );
+      for (auto chi : tr->chi_s) track_c_b_smooth_chi.push_back( static_cast<double>(chi) );
+      track_c_b_filter_chi.push_back(-1); // Raw chi increments at each kalman step of the final fit
+      track_c_b_smooth_chi.push_back(-1); 
+
+      double chi_sum = 0;
+			for (auto chi : tr->chi_s) {
+				chi_sum += chi;
+			}
+			chi_sum = chi_sum / (4.0*tr->chi_s.size() - 6.0);
+			track_c_b_smooth_chi_sum.push_back(chi_sum); // final chi per ndof for the track
+
+      // Indices of various sorts
+	//TODO: make sure the king moves are accurately done here with c_b added in
+    	for (auto ind : tr->king_move_inds) {
+    		c_b_king_move_inds.push_back(ind);
+    	}
+    	if (tr->c_b_king_move_inds.size() != 0) c_b_king_move_inds.push_back(-1); // indices of hits removed by king moves algorithm
+                                                                         // see presentation slides in Doc for description
+
+    	for (auto hit : tr->hits) {
+    		track_hit_c_b_indices.push_back(hit->index);
+    	}
+    	track_hit_c_b_indices.push_back(-1.); // indices of digi hits included in the tracks
+
+      // Indices of layers where tracks are expected to have travelled through
+    	for (auto exp_layer : tr->expected_layers) {
+    		track_c_b_expected_hit_layer.push_back( static_cast<double>(exp_layer) );
+    	}
+    	track_c_b_expected_hit_layer.push_back(-1);
+
+      // Scattering per m calculated for covariance parallel to detector planes
+      for (auto std : tr->x_scats) x_c_b_scat.push_back(std);
+			for (auto std : tr->z_scats) z_c_b_scat.push_back(std);
+
+      // List of all kalman best estimates of hit positions for each track
+    	for (auto est : tr->estimate_list) {
+    		x_estimates_c_b.push_back(est[0]);
+    		y_estimates_c_b.push_back(est[1]);
+    		z_estimates_c_b.push_back(est[2]);
+    	}
+    	x_estimates_c_b.push_back(-1.0);
+    	y_estimates_c_b.push_back(-1.0);
+    	z_estimates_c_b.push_back(-1.0);
+
+      // Track and Pdg Ids of hits
+      for (auto hit : tr->hits) {
+				track_ids.push_back(hit->min_track_id);
+				track_pdgs.push_back(hit->pdg);
+			}
+			track_c_b_ids.push_back(-1);
+			track_c_b_pdgs.push_back(-1);
+
+      // Track Betas and Error in Beta
+      double v = std::sqrt(std::pow(tr->vx,2) + std::pow(tr->vy,2) + std::pow(tr->vz,2));
+			track_c_b_beta.push_back(v / constants::c);
+
+			Eigen::MatrixXd R = tr->P_s;
+			Eigen::MatrixXd D(3,3);
+			D << R(3,3), R(3,4), R(3,5),
+		             R(4,3), R(4,4), R(4,5),
+       			     R(5,3), R(5,4), R(5,5);
+			Eigen::VectorXd q(3);
+			q << tr->vx, tr->vy, tr->vz;
+			track_c_b_beta_err.push_back((q.transpose() * D * q)(0) / (v * v));
+
+      }
+
+}
+
+
 template<typename vertex>
 void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 
@@ -923,6 +1135,76 @@ void TreeHandler::ExportVertices_k_m(std::vector<vertex*> vertices){
 	}
 
 }
+
+template<typename vertex>
+void TreeHandler::ExportVertices_c_b(std::vector<vertex*> vertices){
+
+	vertex_c_b_t.clear();
+	vertex_c_b_x.clear();
+	vertex_c_b_y.clear();
+	vertex_c_b_z.clear();
+	vertex_track_c_b_indices.clear();
+
+	q_s_x_m_c_b.clear();
+	q_s_y_m_c_b.clear();
+	q_s_z_m_c_b.clear();
+	vertex_k_f_beta_c_b.clear();
+	vertex_k_s_beta_c_b.clear();
+	vertex_k_s_beta_err_c_b.clear();
+
+	vertex_t_c_b_error.clear();
+	vertex_x_c_b_error.clear();
+	vertex_y_c_b_error.clear();
+	vertex_z_c_b_error.clear();
+	vertex_c_b_chi2_per_dof.clear();
+	numvertices_c_b = vertices.size();
+
+	for (auto v : vertices) {
+
+		vertex_c_b_t.push_back(v->t);
+		vertex_c_b_x.push_back(v->x);
+		vertex_c_b_y.push_back(v->y);
+		vertex_c_b_z.push_back(v->z);
+
+		vertex_x_c_b_error.push_back(sqrt(v->CovMatrix()[0][0]));
+		vertex_y_c_b_error.push_back(sqrt(v->CovMatrix()[1][1]));
+		vertex_z_c_b_error.push_back(sqrt(v->CovMatrix()[2][2]));
+		vertex_t_c_b_error.push_back(sqrt(v->CovMatrix()[3][3]));
+
+		vertex_c_b_chi2_per_dof.push_back(v->merit());
+
+		for (auto q_f : v->q_f) vertex_k_f_beta_c_b.push_back(q_f.norm() / constants::c);
+		vertex_k_f_beta_c_b.push_back(-1.0);
+
+		for (int i=0; i < v->q_s.size(); i++) {
+			q_s_x_m_c_b.push_back(v->q_s[i][0]);
+			q_s_y_m_c_b.push_back(v->q_s[i][1]);
+			q_s_z_m_c_b.push_back(v->q_s[i][2]);
+
+			//double pull = (v->q_s[i].norm() - constants::c) * v->q_s[i].squaredNorm() /
+			//	(v->q_s[i].transpose() * v->D_s[i] * v->q_s[i])(0);
+			//vertex_k_beta_c_b.push_back(pull);
+
+			double vertex_k_beta_err = (v->q_s[i].transpose() * v->D_s[i] * v->q_s[i])(0) / v->q_s[i].squaredNorm();
+
+			vertex_k_s_beta_err_c_b.push_back(vertex_k_beta_err);
+
+			vertex_k_s_beta_c_b.push_back((v->q_s[i]).norm() / constants::c);
+		}
+		q_s_x_m_c_b.push_back(-1.0);
+		q_s_y_m_c_b.push_back(-1.0);
+		q_s_z_m_c_b.push_back(-1.0);
+		vertex_k_s_beta_c_b.push_back(-1.0);
+
+		for (auto tr_index : v->track_indices){
+        		vertex_track_c_b_indices.push_back(tr_index);
+        	}
+
+	        vertex_track_c_b_indices.push_back(-1);
+	}
+
+}
+
 
 
 #endif
