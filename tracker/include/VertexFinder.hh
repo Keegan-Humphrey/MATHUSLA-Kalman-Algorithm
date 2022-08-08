@@ -47,36 +47,29 @@ public:
 //	std::vector<physics::track *> tracks;
 //	std::vector<physics::track *> tracks_k;
 	std::vector<physics::track *> tracks_k_m;
-	std::vector<physics::track *> tracks_c_b;
 
 //	std::vector<physics::vertex *> vertices;
 //	std::vector<physics::vertex *> vertices_k;
 	std::vector<physics::vertex *> vertices_k_m;
-	std::vector<physics::vertex *> vertices_c_b;
 
 //	std::vector<vertex_seed> seeds;
 //	std::vector<vertex_seed> seeds_k;
 	std::vector<vertex_seed> seeds_k_m;
-	std::vector<vertex_seed> seeds_c_b;
 
 	ParHandler* par_handler;
-	
+
 	int missedChi2 = 0;
-	int missedChi2_c_b = 0;
 	int noConverge = 0;
-	int noConverge_c_b = 0;
 
 //	void Seed();
 //	void Seed_k();
 	void Seed_k_m();
-	void Seed_c_b();
 
 	void clear()
 	{
 //		tracks.clear();
 //		tracks_k.clear();
 		tracks_k_m.clear();
-		tracks_c_b.clear();
 
 //		for (auto v : vertices)
 //			delete v;
@@ -84,28 +77,21 @@ public:
 //                      delete v;
 		for (auto v : vertices_k_m)
 		        delete v;
-		for (auto v : vertices_c_b)
-		        delete v;
 
 //		vertices.clear();
 //		vertices_k.clear();
 		vertices_k_m.clear();
-		vertices_c_b.clear();
-
 
 //		seeds.clear();
 //		seeds_k.clear();
 		seeds_k_m.clear();
-		seeds_c_b.clear();
 
 	}
 
 //	void FindVertices();
 //	void FindVertices_k_hybrid();
 	void FindVertices_k();
-	void FindVertices_c_b();
 	void FindVertices_k_m_hybrid();
-	void FindVertices_c_b_hybrid();
 
 
 }; //class VertexFinder
