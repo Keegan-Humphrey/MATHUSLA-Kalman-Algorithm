@@ -24,7 +24,6 @@ Now, the project can be built using cmake:
 
 ```bash
 $ cd tracker
-$ mkdir build
 $ cd build
 $ cmake ../ 
 $ make 
