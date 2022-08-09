@@ -205,6 +205,7 @@ void VertexFinder_c_b::FindVertices_k()
 	}
 }
 
+/*
 std::vector<physics::track *> VertexFitter::track_list = {};
 std::vector<double> VertexFitter::parameters = {};
 std::vector<double> VertexFitter::parameter_errors = {};
@@ -248,3 +249,5 @@ void VertexFitter::nll(int &npar, double *gin, double &f, double *pars, int ifla
 
 	f = error;
 }
+
+*/
