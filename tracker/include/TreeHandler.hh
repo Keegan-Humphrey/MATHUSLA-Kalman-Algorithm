@@ -35,6 +35,7 @@ public:
 		gROOT->cd();
 		InputTree->GetEvent(index);
 		OutputTree->Fill();
+		OutputTree_c_b->Fill();
 	}
 
 	void Write(){
