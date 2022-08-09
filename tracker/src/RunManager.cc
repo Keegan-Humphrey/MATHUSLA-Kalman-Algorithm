@@ -99,7 +99,14 @@ int RunManager::StartTracking()
 			_tracker_c_b->failure_reason = zeros;
 
 			_tracker->hits_k = digi_list;
-			_tracker_c_b->hits_k = digi_list;
+
+			// allocate new memory for hits so trackers operate completely independently
+			for (auto d : digi_list)
+			{
+				physics::digi_hit *temp = new physics::digi_hit(*d);
+				_tracker_c_b->hits_k.push_back(temp);
+			}
+
 			_tracker->Seed();
 			_tracker_c_b->Seed();
 			_tracker->FindTracks_kalman();
@@ -117,8 +124,7 @@ int RunManager::StartTracking()
 				physics::track *temp = new physics::track(*t);
 				_tracker_c_b->tracks_k_m.push_back(temp);
 			}
-			
-			
+
 			if (hndlr.par_map["merge_cos_theta"] != -2) {
 				_tracker->CalculateMissingHits(_digitizer->_geometry);
 				_tracker->MergeTracks_k();
@@ -128,7 +134,7 @@ int RunManager::StartTracking()
 				_tracker_c_b->CalculateMissingHits(_digitizer->_geometry);
 				_tracker_c_b->MergeTracks_k();
 			}
-			
+
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 			_tracker_c_b->CalculateMissingHits(_digitizer->_geometry);
 
