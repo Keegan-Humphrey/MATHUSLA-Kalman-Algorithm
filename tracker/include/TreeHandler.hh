@@ -1019,7 +1019,7 @@ void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){
     	for (auto ind : tr->king_move_inds) {
     		c_b_king_move_inds.push_back(ind);
     	}
-    	if (tr->c_b_king_move_inds.size() != 0) c_b_king_move_inds.push_back(-1); // indices of hits removed by king moves algorithm
+    	if (tr->king_move_inds.size() != 0) c_b_king_move_inds.push_back(-1); // indices of hits removed by king moves algorithm
                                                                          // see presentation slides in Doc for description
 
     	for (auto hit : tr->hits) {
