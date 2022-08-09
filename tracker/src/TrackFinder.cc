@@ -575,3 +575,270 @@ void TrackFinder::FindTracks_kalman()
         }
 
 }
+
+void TrackFinder::FindTracks_c_b()
+{
+
+	if (par_handler->par_map["debug"] == 1) std::cout << "Number of seeds:" <<  seeds_c_b.size() << std::endl;
+
+	if (seeds_c_b.size() == 0)
+		return; //no seeds found in initial seeding, will be retried with <c travel
+
+	int index = 0;
+	int total_hits = hits_c_b.size();
+	bool iterate = true;
+	int j = 0;
+	int MAX_ITS = 25;
+
+	Stat_Funcs sts;
+
+	while (iterate)
+	{
+		if (seeds_c_b.size() == 0)
+			break;
+		if (hits_c_b.size() == 0)
+			break;
+
+		int min_index = min_seed_c_b();
+		auto current_seed = seeds_c_b[min_index];
+
+		seeds_c_b.erase(seeds_c_b.begin() + min_index); //delete the seed so that it isn't used again
+
+		if (par_handler->par_map["debug"] == 1) std::cout << "New Seed ---------" << std::endl;
+
+		// check if the first seed hit is in the hit pool
+		bool used = !seed_unused(current_seed); // double negative! used = not unused
+
+		clear_vecs();
+
+		std::vector<int> king_move_inds;
+
+		// Construct the first filter (to find good hits from seed)
+		kalman_track kf_find;
+		kf_find.par_handler = par_handler;
+		kf_find.finding = true;
+		kf_find.dropping = true;
+		kf_find.seed_was_used = used;
+
+		if (par_handler->par_map["debug"] == 1) std::cout << "first fit" << std::endl;
+
+		kf_find.kalman_all(hits_k, &current_seed);
+
+		king_move_inds = kf_find.king_move_inds;
+
+		if (kf_find.status == -1)
+		{
+			failure_reason[5] += 1;
+			continue;
+		}
+
+		if (kf_find.status == -2)
+                {
+                        failure_reason[6] += 1;
+                        continue;
+                }
+
+		undropped_hits = kf_find.found_hits;
+		unused_hits = kf_find.unadded_hits;
+
+//		int drops = -1;
+		int i = 0;
+
+		bool failed = false;
+
+//		while (drops != 0)
+//		{
+			kalman_track kft_;
+			kft_.par_handler = par_handler;
+        	        kft_.finding = false;
+                	kft_.dropping = true;
+	                kft_.seed_was_used = used;
+			kft_.unadded_hits = unused_hits;
+
+			if (par_handler->par_map["debug"] == 1) std::cout << "second fit" << std::endl;
+
+                	kft_.kalman_all(undropped_hits, &current_seed);
+
+			if (kft_.status == -1)
+        	        {
+				failed = true;
+	                        continue;
+        	        }
+
+			good_hits = kft_.added_hits;
+
+			undropped_hits.clear();
+
+			if (kft_.status == -2)
+			{
+				failed = true;
+				continue;
+			}
+
+			if (good_hits.size() < cuts::track_nlayers)
+			{
+				failure_reason[4] += 1;
+			}
+
+			unused_hits = kft_.unadded_hits;
+			unused_hits.insert(unused_hits.end(), kf_find.unadded_hits.begin(), kf_find.unadded_hits.end());
+
+//			int drops = 0;
+
+			double ndof = good_hits.size();
+			ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+
+			//dropping hits
+			for (int n = 0; n < good_hits.size(); n++)
+			{
+				// make an eigenvector for the velocity at the lowest (in y) state of the track
+				Eigen::VectorXd v(3);
+				v << kft_.v_s_list[n][0], kft_.v_s_list[n][1], kft_.v_s_list[n][2];
+
+//				if (kft_.chi_s[n] > cuts::kalman_chi_s
+				//if (sts.chi_prob_eld(kft_.chi_s[n],ndof) > par_handler->par_map["kalman_pval_s"]
+//				if (kft_.chi_s[n] > par_handler->par_map["kalman_chi_s"]
+				if (ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) >= par_handler->par_map["kalman_pval_drop"]
+			           || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c
+				   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))
+//			           || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1]))
+				{
+					if (par_handler->par_map["debug"] == 1) {
+						std::cout << "hit dropped with y " << good_hits[n]->y << " chi " << ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) <<
+							" v " << v.norm() / constants::c << std::endl;
+					}
+					unused_hits.push_back(good_hits[n]);
+//					drops++;
+				}
+				else
+				{
+					undropped_hits.push_back(good_hits[n]);
+				}
+			}
+
+			if (undropped_hits.size() < cuts::track_nlayers)
+			{
+				failed = true;
+//				break;
+				continue;
+			}
+
+		//} // dropping while loop
+
+		// Do a final hit with bad hits removed
+		kalman_track kft_2;
+		kft_2.par_handler = par_handler;
+		kft_2.finding = false;
+		kft_2.dropping = false;
+
+		if (par_handler->par_map["debug"] == 1) std::cout << "third fit" << std::endl;
+
+		kft_2.kalman_all(undropped_hits, &current_seed);
+
+		if (kft_2.status != 2)
+		{
+			continue;
+		}
+
+		std::vector<double> diag_cov;
+		for (int i = 0; i < 7; i++) diag_cov.push_back(kft_2.track_cov[i][i]);
+
+		//auto current_track = new physics::track(kft_2.x_s, kft_2.P_s);
+		auto current_track = new physics::track(kft_2.x_s, diag_cov);
+		current_track->hits = undropped_hits;
+
+		current_track->x_scats = kft_2.x_scat;
+		current_track->z_scats = kft_2.z_scat;
+
+		current_track->chi_f = kft_2.chi_f;
+		current_track->chi_s = kft_2.chi_s;
+
+		current_track->estimate_list = kft_2.x_s_list;
+		current_track->P_s = kft_2.P_s0;
+
+		current_track->king_move_inds = kft_2.king_move_inds;
+
+		/*
+		static double cov_matrix[7][7];
+		for (int i = 0; i < 7; i++)
+		{
+			for (int j = 0; j < 7; j++)
+			{
+				//cov_matrix[i][j] = kft_2.track_cov[i][i];
+				//if (i == j)
+				//{
+				//	cov_matrix[i][j] = std::pow(kft_2.P_s[i],2);
+				//}
+				else
+				{
+					cov_matrix[i][j] = 0;
+				}
+
+			}
+		}
+		*/
+		//current_track->CovMatrix(cov_matrix, 7);
+
+		//static double cov_matrix[7][7];
+		//cov_matrix = kft_2.track_cov;
+		current_track->CovMatrix(kft_2.track_cov, 7);
+
+		//double ndof = kft_2.chi_s.size();
+		ndof = kft_2.chi_s.size();
+		ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+
+		for (auto chi : kft_2.chi_f) {
+			local_chi_f.push_back(chi);
+
+			//double p_val = sts.chi_prob(chi,ndof);
+                        //local_chi_f.push_back(p_val);
+		}
+		local_chi_f.push_back(-1);
+
+		for (auto chi : kft_2.chi_s) {
+			local_chi_s.push_back(chi);
+
+			//double p_val = sts.chi_prob(chi,ndof);
+			//local_chi_s.push_back(p_val);
+		}
+		local_chi_s.push_back(-1);
+
+		// calculate chi per ndof from sum of chi increments in the track
+		double chi_sum = 0;
+		for (auto chi : kft_2.chi_s)
+			chi_sum += chi;
+
+		//chi_sum = chi_sum / (4.0 * kft_2.chi_s.size() - 6.0); // always non_negative due to num_hit cut (if track can be passed)
+		chi_sum = chi_sum / ndof;
+
+//		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < cuts::kalman_track_chi)
+		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < par_handler->par_map["kalman_track_chi"])
+		{
+			tracks_k.push_back(current_track);
+
+			if (par_handler->par_map["debug"] == 1) std::cout << "Track made it" << std::endl;
+		}
+		else
+		{
+			delete current_track;
+			continue;
+		}
+
+
+		if (failed) continue;
+
+		hits_k = unused_hits;
+
+		if (seeds_k.size() == 0)
+			iterate = false;
+		if (hits_k.size() < cuts::nseed_hits)
+			iterate = false;
+
+	}
+	// assign indices
+	for (int i=0; i < tracks_k.size(); i++)
+        {
+                tracks_k[i]->index = i;
+        }
+
+}

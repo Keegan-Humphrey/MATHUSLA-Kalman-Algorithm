@@ -104,20 +104,29 @@ public:
 	std::ofstream file;
 
 //	std::vector<physics::digi_hit *> hits;
-	std::vector<physics::digi_hit *> hits_k;
+	std::vector<physics::digi_hit *> hits_k;	std::vector<physics::digi_hit *> hits_c_b;
 //	std::vector<seed> seeds;
-	std::vector<seed> seeds_k;
+	std::vector<seed> seeds_k;	
+	std::vector<seed> seeds_c_b;
 //	std::vector<physics::track *> tracks;
 	std::vector<physics::track *> tracks_k;
 	std::vector<physics::track *> tracks_k_m;
+	std::vector<physics::track *> tracks_c_b;
+	std::vector<physics::track *> tracks_c_b_m;
 	std::vector<double> local_chi_f;
 	std::vector<double> local_chi_s;
+	std::vector<double> local_chi_c_b_f;
+	std::vector<double> local_chi_c_b_s;
 	std::vector<int> failure_reason;
 
 	std::vector<physics::digi_hit *> track_pts;
 	std::vector<physics::digi_hit *> unused_hits;
 	std::vector<physics::digi_hit *> good_hits;
 	std::vector<physics::digi_hit *> undropped_hits;
+	std::vector<physics::digi_hit *> track_pts_c_b;
+	std::vector<physics::digi_hit *> unused_hits_c_b;
+	std::vector<physics::digi_hit *> good_hits_c_b;
+	std::vector<physics::digi_hit *> undropped_hits_c_b;
 
 	void CalculateMissingHits(Geometry *geo);
 //	void CalculateHoles(Geometry *geo);
@@ -140,6 +149,12 @@ public:
 
 		hits_k.clear();
 
+		seeds_c_b.clear();
+		for (auto hit : hits_k)
+			delete hit;
+
+		hits_c_b.clear();
+
 		for (auto tr : tracks_k)
 			delete tr;
 		tracks_k.clear();
@@ -147,8 +162,13 @@ public:
 		// 	delete tr;
 		tracks_k_m.clear();
 
+		tracks_c_b.clear();
+		tracks_c_b_m.clear();
+
 		local_chi_f.clear();
 		local_chi_s.clear();
+		local_chi_c_b_f.clear();
+		local_chi_c_b_s.clear();
 	}
 
 	void clear_vecs()
@@ -160,6 +180,13 @@ public:
 		good_hits.clear();
 	}
 
+	void clear_vecs_c_b() {
+		track_pts_c_b.clear();
+		unused_hits_c_b.clear();
+		undropped_hits_c_b.clear();
+		good_hits_c_b.clear();
+	}
+
 	seed first_seed;
 	//	kalman_do kft;
 	ParHandler* par_handler;
@@ -168,12 +195,14 @@ public:
 	void Seed();
 //	void FindTracks();
 	void FindTracks_kalman();
-	void FindTracks_all();
+	void FindTracks_c_b();
+//	void FindTracks_all();
 //	void CleanTracks();
-	void Reseed(bool);
-	void CheckSeeds();
+//	void Reseed(bool);
+//	void CheckSeeds();
 //	void MergeTracks();
 	void MergeTracks_k();
+	void MergeTracks_c_b();
 
 	//	bool seed_unused(seed current_seed);
 	//	bool extract_good_hits();
@@ -197,6 +226,25 @@ public:
 			file << "seed's first hit was already used by another track!!!!" << '\n';
 		}
 		//file.close();
+		return seed_hit_in;
+	}
+
+	bool seed_unused_c_b(seed current_seed)
+	{
+		// Checks if the seed has a hit that corresponds to it in the remaining hits to be used
+		bool seed_hit_in = false;
+		for (auto hit : hits_c_b)
+		{
+			if (hit->index == current_seed.hits.first->index)
+			{
+				seed_hit_in = true;
+				break;
+			}
+		}
+		if (!seed_hit_in)
+		{
+			file << "seed's first hit was already used by another track!!!!" << '\n';
+		}
 		return seed_hit_in;
 	}
 
@@ -239,6 +287,19 @@ public:
 			seeds_k[i].score = c_score(seed) / (dr * dr); // these will now be ordered by relative scores
 
 			i++;
+		}
+
+		int j;
+		for (auto seed : seeds_c_b)
+		{
+			auto P1 = seed.hits.first->PosVector();
+			auto P2 = seed.hits.second->PosVector();
+
+			double dr = (P2 - P1).Magnitude() / constants::c; // [ns]
+
+			seeds_c_b[i].score = c_score(seed) / (dr * dr); // these will now be ordered by relative scores
+
+			j++;
 		}
 		//file.close();
 	}
@@ -285,6 +346,21 @@ public:
 
 		//file.close();
 
+		return min_index;
+	}
+
+	int min_seed_c_b()
+	{ //sorts by c_compatability score
+		int min_index = -1;
+		double min_val = 1e6; // large value to be overwritten by first seed
+		int j = 0;
+		for (auto seed : seeds_c_b) {
+			if (seed.score < min_val) {
+				min_index = j;
+				min_val = seed.score;
+			}
+			j++;
+		}
 		return min_index;
 	}
 }; //TrackFinder
