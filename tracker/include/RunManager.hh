@@ -40,8 +40,8 @@ public:
 		delete _digitizer;
 		delete _tracker;
 		delete _vertexer;
-		delete _tracker_c_b();
-		delete _vertexer_c_b();
+		delete _tracker_c_b;
+		delete _vertexer_c_b;
 	}
 
 

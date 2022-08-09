@@ -126,7 +126,7 @@ int RunManager::StartTracking()
 
 			if (hndlr.par_map["merge_cos_theta"] != -2) {
 				_tracker_c_b->CalculateMissingHits(_digitizer->_geometry);
-				_tracker_c_b->MergeTracks();
+				_tracker_c_b->MergeTracks_k();
 			}
 			
 			_tracker->CalculateMissingHits(_digitizer->_geometry);

@@ -35,7 +35,6 @@ public:
 		gROOT->cd();
 		InputTree->GetEvent(index);
 		OutputTree->Fill();
-		OutputTree_c_b->Fill();
 	}
 
 	void Write(){
@@ -56,11 +55,17 @@ public:
 	template<class track>
   void ExportTracks_k_m(std::vector<track*>);
 
-  template<class track>
+	template<class track>
+  void ExportTracks_c_b(std::vector<track*>);
+
+  	template<class track>
   void ExportTracks(std::vector<track*>);
 
-  template<typename vertex>
+  	template<typename vertex>
   void ExportVertices(std::vector<vertex*>);
+
+	 template<typename vertex>
+  void ExportVertices_c_b(std::vector<vertex*>);
 
   //template<typename vertex>
   //void ExportVertices_k(std::vector<vertex*>);
