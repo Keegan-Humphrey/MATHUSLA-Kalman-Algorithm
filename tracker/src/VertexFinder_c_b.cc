@@ -22,12 +22,12 @@ void VertexFinder_c_b::Seed_k_m()
 //			if (tr1->closest_approach(tr2) < cuts::seed_closest_approach)
 			if (tr1->closest_approach(tr2) < par_handler->par_map["seed_closest_approach"])
 			{
-				seeds_k_m.push_back(vertex_seed(tr1, tr2));
+				seeds_k_m.push_back(vertex_seed_c_b(tr1, tr2));
 			}
 		} //n2
 	}	  //n1
 
-	std::sort(seeds_k_m.begin(), seeds_k_m.end(), [](vertex_seed a, vertex_seed b) -> bool
+	std::sort(seeds_k_m.begin(), seeds_k_m.end(), [](vertex_seed_c_b a, vertex_seed_c_b b) -> bool
 			  { return a.score() < b.score(); });
 } //VF:Seed
 
