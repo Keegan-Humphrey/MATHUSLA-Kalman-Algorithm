@@ -2,6 +2,7 @@
 #include <TFile.h>
 #include <TROOT.h>
 #include <Eigen/Dense>
+#include "Math/ProbFunc.h"
 
 #ifndef TH_DEFINE
 #define TH_DEFINE
@@ -242,7 +243,7 @@ public:
       	OutputTree->Branch("Vertex_k_m_ErrorX", &vertex_x_k_m_error);
       	OutputTree->Branch("Vertex_k_m_ErrorY", &vertex_y_k_m_error);
       	OutputTree->Branch("Vertex_k_m_ErrorZ", &vertex_z_k_m_error);
-	OutputTree->Branch("vertex_k_m_chi2", &vertex_k_m_chi2_per_dof);
+	OutputTree->Branch("Vertex_k_m_chi2", &vertex_k_m_chi2_per_dof);
         OutputTree->Branch("Vertex_k_m_trackIndices", &vertex_track_k_m_indices);
 	OutputTree->Branch("NumVertices_k_m", &numvertices_k_m, "NumVertices/D");
 
@@ -288,6 +289,7 @@ public:
 	OutputTree->Branch("Track_k_m_filterchi", &track_k_m_filter_chi);
 	OutputTree->Branch("Track_k_m_smoothchi", &track_k_m_smooth_chi);
 	OutputTree->Branch("Track_k_m_smooth_chi_sum", &track_k_m_smooth_chi_sum);
+	OutputTree->Branch("Track_k_m_cdf", &track_k_m_cdf);
 
 	OutputTree->Branch("x_estimates_m", &x_estimates_m);
 	OutputTree->Branch("y_estimates_m", &y_estimates_m);
@@ -362,6 +364,7 @@ public:
 	OutputTree->Branch("Track_c_b_filterchi", &track_c_b_filter_chi);
 	OutputTree->Branch("Track_c_b_smoothchi", &track_c_b_smooth_chi);
 	OutputTree->Branch("Track_c_b_smooth_chi_sum", &track_c_b_smooth_chi_sum);
+	OutputTree->Branch("Track_c_b_cdf", &track_c_b_cdf);
 
 	OutputTree->Branch("x_estimates_c_b", &x_estimates_c_b);
 	OutputTree->Branch("y_estimates_c_b", &y_estimates_c_b);
@@ -533,6 +536,7 @@ public:
 	std::vector<double> track_k_m_filter_chi;
 	std::vector<double> track_k_m_smooth_chi;
 	std::vector<double> track_k_m_smooth_chi_sum;
+	std::vector<double> track_k_m_cdf;
 
 	int NumTracks_k_m;
 	std::vector<double> track_k_m_numHits;
@@ -596,6 +600,7 @@ public:
 	std::vector<double> track_c_b_filter_chi;
 	std::vector<double> track_c_b_smooth_chi;
 	std::vector<double> track_c_b_smooth_chi_sum;
+	std::vector<double> track_c_b_cdf;
 
 	int NumTracks_c_b;
 	std::vector<double> track_c_b_numHits;
@@ -714,7 +719,8 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
   track_k_m_filter_chi.clear();
   track_k_m_smooth_chi.clear();
 	track_k_m_smooth_chi_sum.clear();
- 
+  track_k_m_cdf.clear();
+
   NumTracks_k_m = track_list.size();
   track_k_m_numHits.clear();
 
@@ -807,8 +813,12 @@ void TreeHandler::ExportTracks_k_m(std::vector<Track*> track_list){
 			for (auto chi : tr->chi_s) {
 				chi_sum += chi;
 			}
-			chi_sum = chi_sum / (4.0*tr->chi_s.size() - 6.0);
+			double ndof = (4.0*tr->chi_s.size() - 6.0);
+			track_k_m_cdf.push_back(ROOT::Math::chisquared_cdf(chi_sum, ndof));
+
+			chi_sum = chi_sum / ndof;
 			track_k_m_smooth_chi_sum.push_back(chi_sum); // final chi per ndof for the track
+
 
       // Indices of various sorts
     	for (auto ind : tr->king_move_inds) {
@@ -918,6 +928,7 @@ void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){
   track_c_b_filter_chi.clear();
   track_c_b_smooth_chi.clear();
 	track_c_b_smooth_chi_sum.clear();
+  track_c_b_cdf.clear();
  
   NumTracks_c_b = track_list.size();
   track_c_b_numHits.clear();
@@ -1011,7 +1022,10 @@ void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){
 			for (auto chi : tr->chi_s) {
 				chi_sum += chi;
 			}
-			chi_sum = chi_sum / (4.0*tr->chi_s.size() - 6.0);
+			double ndof = (4.0*tr->chi_s.size() - 6.0);
+			track_k_m_cdf.push_back(ROOT::Math::chisquared_cdf(chi_sum, ndof));
+
+			chi_sum = chi_sum / ndof;
 			track_c_b_smooth_chi_sum.push_back(chi_sum); // final chi per ndof for the track
 
       // Indices of various sorts
