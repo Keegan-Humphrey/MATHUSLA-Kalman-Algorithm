@@ -73,9 +73,11 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
   std::vector<int> x_inds = find_nearest(first_layer, x0);
   int x_ind = x_inds[0];
 
+  /*
   // if none make the 1e6 cut, choose a random hit to start the filter
   if (x_ind == -1)
     x_ind = rand() % first_layer.size();
+  */ // one hit will now always be chosen
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];

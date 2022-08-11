@@ -54,14 +54,20 @@ public:
     int j = 0;
 
     double min_val;
+    bool first_hit;
 
-    if (initialized)
+    if (initialized) {
       min_val = par_handler->par_map["kalman_chi_add"];
 //      min_val = par_handler->par_map["kalman_pval_add"];
 //      min_val = cuts::kalman_chi_add;
-    else
+      first_hit = false;
+    }
+
+    else {
       min_val = 1e6; // if the filter hasn't been initialised take hit
                      // with lowest chi regardless of the value
+      first_hit = true;
+    }
 
     Eigen::MatrixXd P_temp = P;
 
@@ -98,7 +104,13 @@ public:
       del_chi = sts.chi_prob_eld(del_chi, ndof);
       */
 
-      if (del_chi < min_val || !initialized ) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
+      if (first_hit) {
+        min_val = del_chi; // if not initialized, overwrite min_val with value of first hit (guarantees one of the hits gets used)
+        first_hit = false;
+        min_index = j;
+      }
+
+      if (del_chi < min_val) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best
 
         // keep track of second lowest for king moves
