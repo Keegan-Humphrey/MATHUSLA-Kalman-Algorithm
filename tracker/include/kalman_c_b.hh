@@ -100,7 +100,7 @@ public:
       del_chi = sts.chi_prob_eld(del_chi, ndof);
       */
 
-      if (del_chi < min_val) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
+      if (del_chi < min_val || !initialized) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best
 
         // keep track of second lowest for king moves
