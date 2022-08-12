@@ -331,10 +331,10 @@ void TrackFinder_c_b::FindTracks_kalman()
 	while (iterate)
 	{
 		if (seeds_k.size() == 0) { // If we've run out of seeds, decrease the beta value and try again with the non-used seeds
-			if (beta_index < sizeof(beta_vals)/sizeof(beta_vals[0])) // If we are also out of beta values, then we're done
+			beta_index++;
+			if (beta_index > sizeof(beta_vals)/sizeof(beta_vals[0])) // If we are also out of beta values, then we're done
 				break;
 			for (auto seed : recycled_seeds) { // Otherwise, use the recycled seeds and reset beta
-				beta_index++;
 				seeds_k.push_back(seed);
 			}
 			if (seeds_k.size() == 0) //If recycled seeds was empty too
@@ -343,7 +343,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 
 		if (hits_k.size() == 0) // No more hits to consider
 			break;
-		if (beta_index < sizeof(beta_vals)/sizeof(beta_vals[0])) // finished iterating through beta vals
+		if (beta_index > sizeof(beta_vals)/sizeof(beta_vals[0])) // finished iterating through beta vals
 			break;
 
 		int min_index = min_seed_k();
