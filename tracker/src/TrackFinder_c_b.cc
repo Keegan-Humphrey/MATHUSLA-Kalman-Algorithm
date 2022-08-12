@@ -375,6 +375,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (kf_find.status == -1)
 		{
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failure_reason[5] += 1;
 			failed = true;
 			continue;
@@ -382,6 +383,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		else if (kf_find.status == -2)
 		{
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failure_reason[6] += 1;
 			failed = true;
 			continue;
@@ -412,6 +414,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (kft_.status == -1)
 		{
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failed = true;
 			continue;
 		}
@@ -423,6 +426,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (kft_.status == -2)
 		{
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failed = true;
 			continue;
 		}
@@ -471,6 +475,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (undropped_hits.size() < cuts::track_nlayers)
 		{
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failed = true;
 //				break;
 			continue;
@@ -492,6 +497,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (kft_2.status != 2)
 		{
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failed = true;
 			continue;
 		}
@@ -579,6 +585,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		{
 			delete current_track;
 			recycled_seeds.push_back(seeds_k.at(min_index)); // if the seed didn't work, recycle it for a lower beta value
+			seeds_k.erase(seeds_k.begin() + min_index); // delete the seed so it's not used again
 			failed = true;
 			continue;
 		}
