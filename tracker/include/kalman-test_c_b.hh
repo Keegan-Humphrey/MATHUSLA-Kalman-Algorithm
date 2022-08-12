@@ -22,6 +22,8 @@ public:
 
   int status;
 
+  int beta;
+
   //std::ofstream file;
 
   std::vector<int> king_move_inds;
