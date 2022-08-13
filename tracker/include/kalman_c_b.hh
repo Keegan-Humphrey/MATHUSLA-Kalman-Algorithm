@@ -24,6 +24,7 @@ class KalmanFilter_c_b
 {
 
 public:
+  bool starting = true;
   /**
   * Create a Kalman filter with the specified matrices.
   *   A - System dynamics matrix
@@ -48,8 +49,8 @@ public:
   void init_smooth_means();
 
   std::vector<int> find_nearest(std::vector<physics::digi_hit *> hits, Eigen::VectorXd position)
-  { // find index of nearest hit to position
-
+  {if(starting)std::cout<<"Start of KalmanFilter_c_b::find_nearest"<<std::endl;
+ // find index of nearest hit to position 
     int min_index = -1;
     int second_min_index = -1;
 
@@ -125,10 +126,12 @@ public:
     }
 
     return {min_index, second_min_index};
+	if(starting)std::cout<<"End of KalmanFilter_c_b::find_nearest"<<std::endl;
   }
 
   int find_nearest_vertex(std::vector<physics::track *> tracks)
-  { // find index of nearest track to current vertex best estimate
+  {if(starting)std::cout<<"Start of KalmanFilter_c_b::find_nearest_vertex"<<std::endl;
+    // find index of nearest track to current vertex best estimate
     // CURRENTLY NOT IN USE
 
     int min_index = -1;
@@ -148,14 +151,13 @@ public:
       Eigen::MatrixXd R = track->P_s;
 
       double dt = x_f.back()[3] - track->t0;
-
-      Eigen::MatrixXd B(6, 3);
+//TODO: replace dummy theta and phi components
+      Eigen::MatrixXd B(5, 3);
       B << dt, 0, 0,
           0, dt / track->vy, 0,
           0, 0, dt,
-          1, 0, 0,
-          0, 1, 0,
-          0, 0, 1;
+          1, 1, 1,
+          1, 1, 1;
 
       Eigen::MatrixXd G = R.inverse(); // R is V in Fruhwirth
       Eigen::MatrixXd W = (B.transpose() * G * B).inverse();
@@ -164,8 +166,8 @@ public:
       // state covariance matrix
       Eigen::MatrixXd P_new = (P.inverse() + C.transpose() * G_B * C).inverse();
 
-      Eigen::VectorXd y(6);
-      y << track->x0, track->t0, track->z0, track->vx, track->vy, track->vz;
+      Eigen::VectorXd y(5);
+      y << track->x0, track->t0, track->z0, 1, 1; //TODO: replace dummy theta and phi components
 
       // filtered state and vertex velocity
       Eigen::VectorXd x_hat_new = P_new * (P.inverse() * x_hat + C.transpose() * G_B * y);
@@ -195,6 +197,7 @@ public:
       j++;
     }
     return min_index;
+	if(starting)std::cout<<"End of KalmanFilter_c_b::find_nearest_vertex"<<std::endl;
   }
 
   double update_gain(const std::vector<physics::digi_hit *> y);

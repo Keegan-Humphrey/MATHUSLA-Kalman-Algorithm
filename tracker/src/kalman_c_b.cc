@@ -37,14 +37,16 @@ KalmanFilter_c_b::KalmanFilter_c_b(
       m(C.rows()), n(A.rows()), dy(dy), initialized(false),
       I(n, n), x_hat(n), x_hat_new(n)
 {
+  if(starting)std::cout<<"Start of KalmanFilter_c_b::KalmanFilter_c_b"<<std::endl;
   I.setIdentity();
+  if(starting)std::cout<<"End of KalmanFilter_c_b::KalmanFilter_c_b"<<std::endl;
 }
 
 KalmanFilter_c_b::KalmanFilter_c_b() {}
 
 void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics::digi_hit *> first_layer)
 { // init function for the filter in the Gain Matrix Formalism
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::init_gain"<<std::endl;
   // no propagation to first hit
 //  dy = 0;
   A = I;
@@ -81,14 +83,14 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
-  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
+  x_hat << y0->x, y0->t, y0->z, 1, 1; //TODO: Replace theta and phi dummy variables
 
   if (par_handler->par_map["debug"] == 1) {
 
     Eigen::VectorXd Y(m);
     Y << y0->x, y0->t, y0->z;
     Eigen::VectorXd v(3);
-    v << x_hat[3], x_hat[4], x_hat[5];
+    v << 1, 1, 1; //TODO: fix dummy variables for proper velocity
 
     std::cout << "Filtering: First velocity is " << v.transpose() / constants::c <<
 	" at y = " << y_val << " digi is " << Y.transpose() << std::endl;
@@ -103,20 +105,24 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
   P_f = {P};         // Filter Cov
   A_k = {};          // Action Matrix
   added_hits = {y0}; // List of used hits
+if(starting)std::cout<<"End of KalmanFilter_c_b::init_gain"<<std::endl;
 }
 
 double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y, double dy)
 {
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::update_gain 1"<<std::endl;
   this->dy = dy;
 //  this->y_val = y_val + dy;
 
   double chi = update_gain(y);
   return chi;
+if(starting)std::cout<<"End of KalmanFilter_c_b::update_gain 1"<<std::endl;
 }
 
 double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_list)
-{ // predict and filter using the digi hits in the layer for tracker
+{
+if(starting)std::cout<<"Start of KalmanFilter_c_b::update_gain 2"<<std::endl;
+ // predict and filter using the digi hits in the layer for tracker
 
   if (!initialized)
     throw std::runtime_error("Filter is not initialized!");
@@ -176,7 +182,7 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
   if (par_handler->par_map["debug"] == 1) {
 
     Eigen::VectorXd v(3);
-    v << x_hat_new[3], x_hat_new[4], x_hat_new[5];
+    v << 1, 1, 1; //TODO: Replace dummy variables with proper velocity
 
     std::cout << "Filtering: Residue is " << (Y - C * x_hat_new).transpose() << " at y = " << y_val << " with chi " << chi_plus <<
 	" updated velocity is " << v.transpose() / constants::c << " digi is " << Y.transpose() << std::endl;
@@ -194,10 +200,13 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
   chi += chi_plus;
 
   return chi_plus;
+
+if(starting)std::cout<<"End of KalmanFilter_c_b::update_gain 2"<<std::endl;
 }
 
 void KalmanFilter_c_b::king_moves_algorithm(const std::vector<physics::digi_hit *> y_list, std::vector<int> hit_inds)
 {
+if(starting)std::cout<<"Start of KalmanFilter_c_b::king_moves_algorithm"<<std::endl;
   for (int i = 0; i < y_list.size(); i++)
   { // remove hits that have a small residual from the chosen hit
     // this helps avoid making duplicate tracks
@@ -240,10 +249,13 @@ void KalmanFilter_c_b::king_moves_algorithm(const std::vector<physics::digi_hit 
       unadded_hits.push_back(y_list[i]);
   }
 
+if(starting)std::cout<<"End of KalmanFilter_c_b::king_moves_algorithm"<<std::endl;
 }
 
 void KalmanFilter_c_b::init_smooth_gain()
-{ // init function for the smoother
+{ 
+if(starting)std::cout<<"Start of KalmanFilter_c_b::init_smooth_gain 1"<<std::endl;
+// init function for the smoother
 
   //starting smoothing process with the very last updated or filtered state/cov
   x_s = {x_hat};
@@ -252,10 +264,14 @@ void KalmanFilter_c_b::init_smooth_gain()
   chi = 0;
 
   if (par_handler->par_map["debug"] == 1) std::cout << std::endl;
+
+if(starting)std::cout<<"End of KalmanFilter_c_b::init_smooth_gain 1"<<std::endl;
 };
 
 double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
-{ // smooth the filtered states (propagate information from later hits to earlier ones)
+{ 
+if(starting)std::cout<<"Start of KalmanFilter_c_b::init_smooth_gain 2"<<std::endl;
+// smooth the filtered states (propagate information from later hits to earlier ones)
 
   // smoother gain matrix(A_k in Fruhwirth paper)
   Eigen::MatrixXd S = P_f[k] * A_k[k].transpose() * P_p[k].inverse();
@@ -286,7 +302,7 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
 
   // smoothed velocity
   Eigen::VectorXd v(3);
-  v << x_n[3], x_n[4], x_n[5];
+  v << 1, 1, 1; //TODO: Replace velocity dummy variables with correct velocity
 
   if (par_handler->par_map["debug"] == 1) {
 
@@ -315,10 +331,12 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
   chi += chi_plus_s;
 
   return chi_plus_s;
+if(starting)std::cout<<"End of KalmanFilter_c_b::init_smooth_gain 2"<<std::endl;
 }
 
 void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 {
+if(starting)std::cout<<"Start of KalmanFilter_c_b::update_matrices"<<std::endl;
   R << a_hit->ex, 0, 0,
       0, a_hit->et, 0,
       0, 0, a_hit->ez;
@@ -326,19 +344,25 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 //      0, a_hit->et * std::sqrt(2), 0,
 //      0, 0, a_hit->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
-
   if (initialized) {
 
    // what's the right way to do this?
 //    dy = a_hit->y - y_val;
 
-
+/*
     A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
       .0, 1.0, .0, .0, dy / (x_hat[4] * x_hat[4]), .0,
       .0, .0, 1.0, .0, .0, dy / x_hat[4],
       .0, .0, .0, 1.0, .0, .0,
       .0, .0, .0, .0, 1.0, .0,
       .0, .0, .0, .0, .0, 1.0;
+*/
+//TODO: Modified with dummy variables to be 5 by 5
+A << 1.0, .0, .0, 1.0, 1.0,
+      .0, 1.0, .0, 1.0, 1.0,
+      .0, .0, 1.0, 1.0, 1.0,
+      .0, .0, .0, 1.0, 1.0,
+      .0, .0, .0, .0, 1.0;
 
 /*
     double dt = a_hit->t - x_hat[1];
@@ -351,21 +375,23 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
       .0, .0, .0, .0, .0, 1.0;
 */
     // direction cosines
+
     double a = x_hat[3] / constants::c;
     double b = x_hat[4] / constants::c;
-    double c = x_hat[5] / constants::c;
+    double c = 1 / constants::c; //TODO: update these values to be accurate with theta and phi changes, dummy variable here
 
     Q_update(dy, a, b, c);
-
     x_scat = std::sqrt(Q(0, 0)) * 100 / dy; // predicted std of scattering in x per y m
     z_scat = std::sqrt(Q(2, 2)) * 100 / dy; // predicted std of scattering in z per y m
   }
 
-
+if(starting)std::cout<<"End of KalmanFilter_c_b::update_matrices"<<std::endl;
 }
 
 void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
 {
+if(starting)std::cout<<"Start of KalmanFilter_c_b::Q_update"<<std::endl;
+
   // See MATHUSLA Calculations paper in ../docs/ for details
 
   double mag = std::sqrt(a*a + b*b + c*c);
@@ -379,43 +405,36 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
 
 //  double sin_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
   double sin_theta = std::sqrt(b*b) / mag; // CORRECT ONE
-
+//TODO: Check to modify this with dummy variables
   Q << dy * dy * (b * b + a * a) / std::pow(b, 4),
       dy * dy * a / (constants::c * std::pow(b, 4)),
       dy * dy * a * c / std::pow(b, 4),
       constants::c * dy / b,
       -constants::c * dy * a / (b * b),
-      0,
+
       dy * dy * a / (constants::c * std::pow(b, 4)),
       dy * dy * (1 - b * b) / (std::pow(constants::c, 2) * std::pow(b, 4)),
       dy * dy * c / (constants::c * std::pow(b, 4)),
       dy * a / b,
       -dy * (1 - b * b) / (b * b),
-      dy * c / b,
+
       dy * dy * a * c / std::pow(b, 4),
       dy * dy * c / (constants::c * std::pow(b, 4)),
       dy * dy * (c * c + b * b) / std::pow(b, 4),
       0,
       -constants::c * dy * c / (b * b),
-      constants::c * dy / b,
+
       constants::c * dy / b,
       dy * a / b,
       0,
       std::pow(constants::c, 2) * (1 - a * a),
       -std::pow(constants::c, 2) * (a * b),
-      -std::pow(constants::c, 2) * (a * c),
+
       -constants::c * dy * a / (b * b),
       -dy * (1 - b * b) / (b * b),
       -constants::c * dy * c / (b * b),
       -std::pow(constants::c, 2) * (a * b),
-      std::pow(constants::c, 2) * (1 - b * b),
-      -std::pow(constants::c, 2) * (b * c),
-      0,
-      dy * c / b,
-      constants::c * dy / b,
-      -std::pow(constants::c, 2) * (a * c),
-      -std::pow(constants::c, 2) * (b * c),
-      std::pow(constants::c, 2) * (1 - c * c);
+      std::pow(constants::c, 2) * (1 - b * b);
 
   //double sigma_ms = kalman_c_b::sigma_ms_p / kalman_c_b::p; // [rad]
   //double sigma_ms = par_handler->par_map["sigma_ms_p"] / par_handler->par_map["p"]; // [rad]
@@ -444,9 +463,10 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
 
 
   // x_process = {(dy / vy) * vx, (dy / vy), (dy / vy) * vz,0,0,0} jacobian of x_hat -> x_process
-  double dt = dy / x_hat[4];
+  double dt = dy / 1; //TODO: update to give proper dt
 
   Eigen::MatrixXd jac;
+/*
   jac = Eigen::MatrixXd::Zero(6, 6);
   jac << 0, 0, 0, dt, - dt * x_hat[3] / x_hat[4], 0 ,
          0, 0, 0, 0 , - dt / x_hat[4]           , 0 ,
@@ -454,14 +474,24 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
          0, 0, 0, 0 , 0                         , 0 ,
          0, 0, 0, 0 , 0                         , 0 ,
          0, 0, 0, 0 , 0                         , 0 ;
+*/
+jac = Eigen::MatrixXd::Zero(5, 5); //TODO: Modify dummy variables to make sense
+  jac << 0, 0, 0, dt, - dt * 1 / 1,
+         0, 0, 0, 0 , - dt / 1           ,
+         0, 0, 0, 0 , - dt * 1 / 1,
+         0, 0, 0, 0 , 0                         ,
+         0, 0, 0, 0 , 0                         ;
+
 
   Q += jac * P * jac.transpose(); // Prediction contribution to process noise
 
+if(starting)std::cout<<"End of KalmanFilter_c_b::Q_update"<<std::endl;
 }
 
 void KalmanFilter_c_b::init_means(const Eigen::VectorXd x0, const Eigen::VectorXd q,
                               const Eigen::MatrixXd B, const Eigen::MatrixXd D)
 {
+if(starting)std::cout<<"Start of KalmanFilter_c_b::init_means"<<std::endl;
   P = P0;
   chi = 0;
 
@@ -484,11 +514,12 @@ void KalmanFilter_c_b::init_means(const Eigen::VectorXd x0, const Eigen::VectorX
   G_B_f = {};
 
   added_tracks = {};
+if(starting)std::cout<<"End of KalmanFilter_c_b::init_means"<<std::endl;
 }
 
 double KalmanFilter_c_b::update_means(const std::vector<physics::track *> tracks)
 { // filter in tracks for vertexer in weighted means formalism
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::update_means"<<std::endl;
   int track_ind = this->find_nearest_vertex(tracks);
 
   if (track_ind == -1) // no tracks found
@@ -508,8 +539,8 @@ double KalmanFilter_c_b::update_means(const std::vector<physics::track *> tracks
       unadded_tracks.push_back(tracks[i]);
   }
 
-  Eigen::VectorXd y(6);
-  y << new_track->x0, new_track->t0, new_track->z0, new_track->vx, new_track->vy, new_track->vz;
+  Eigen::VectorXd y(5);
+  y << new_track->x0, new_track->t0, new_track->z0, 1, 1; //TODO: Fix dummy variables for theta and phi
 
   update_matrices_means(new_track);
 
@@ -549,27 +580,28 @@ double KalmanFilter_c_b::update_means(const std::vector<physics::track *> tracks
   P = P_new;
 
   return chi_plus;
+if(starting)std::cout<<"End of KalmanFilter_c_b::update_means"<<std::endl;
 }
 
 void KalmanFilter_c_b::update_matrices_means(const physics::track *new_track)
 { // update matrices for vertexer
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::update_matrices_means"<<std::endl;
   Q_propagate(new_track);
 
   double dt = new_track->t0 - x_f.back()[3];
-
-  B = Eigen::MatrixXd::Zero(6, 3);
+//TODO: update with proper values for theta and phi and remove dummy variables
+  B = Eigen::MatrixXd::Zero(5, 3);
   B << dt, 0, 0,
       0, dt / new_track->vy, 0,
       0, 0, dt,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1;
+      1, 1, 1,
+      1, 1, 1;
+if(starting)std::cout<<"End of KalmanFilter_c_b::update_matrices_means"<<std::endl;
 }
 
 void KalmanFilter_c_b::Q_propagate(const physics::track *new_track)
 { // update R using Q for vertex
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::Q_propagate"<<std::endl;
   std::vector<std::vector<double>> y_s = detector::LAYERS_Y;
 
   double y_p = new_track->y0; // particle
@@ -591,7 +623,7 @@ void KalmanFilter_c_b::Q_propagate(const physics::track *new_track)
 
   Eigen::MatrixXd R_temp = new_track->P_s;
 
-  double a = new_track->vx / constants::c;
+  double a = new_track->vx / constants::c; //TODO: come back to check to see if this needs to be changed
   double b = new_track->vy / constants::c;
   double c = new_track->vz / constants::c;
 
@@ -627,11 +659,12 @@ void KalmanFilter_c_b::Q_propagate(const physics::track *new_track)
   }
 
   R = R_temp;
+if(starting)std::cout<<"End of KalmanFilter_c_b::Q_propagate"<<std::endl;
 }
 
 void KalmanFilter_c_b::init_smooth_means()
 { // init function for the smoother
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::init_smooth_means"<<std::endl;
   x_n = x_f.back(); // x_k^n = x_n
 
   P_n = P_f.back(); // C_k^n = C_n (in Fruhwirth)
@@ -639,11 +672,12 @@ void KalmanFilter_c_b::init_smooth_means()
   q_s.push_back(q_f.back());
 
   alrdy_drop = false;
+if(starting)std::cout<<"End of KalmanFilter_c_b::init_smooth_means"<<std::endl;
 }
 
 double KalmanFilter_c_b::smooth_means(int k)
 { // smooth the filtered data
-
+if(starting)std::cout<<"Start of KalmanFilter_c_b::smooth_means"<<std::endl;
   // smoothed vertex velocity
   Eigen::VectorXd q_n = W_f[k] * B_f[k].transpose() * G_f[k] * (y_v[k] - C_f[k] * x_n);
 
@@ -673,4 +707,5 @@ double KalmanFilter_c_b::smooth_means(int k)
   added_tracks[k]->D_s = D_n;
   added_tracks[k]->q_f = q_f[k];
   added_tracks[k]->D_f = D_f[k];
+if(starting)std::cout<<"End of KalmanFilter_c_b::smooth_means"<<std::endl;
 }

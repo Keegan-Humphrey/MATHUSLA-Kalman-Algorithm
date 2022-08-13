@@ -28,7 +28,9 @@
 #include "Math/ProbFunc.h"
 
 void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, seed_c_b *current_seed)
-{ // tracking algorithm using the kalman filter
+{ 
+if(starting)std::cout<<"Start of kalman_track_c_b::kalman_all"<<std::endl;
+// tracking algorithm using the kalman filter
 
   // sort hits by layer
   layer_sort(trackhits);
@@ -87,10 +89,13 @@ void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, se
     status = 2;
 
   } // while loop
+if(starting)std::cout<<"End of kalman_track_c_b::kalman_all"<<std::endl;
 }
 
 seed_c_b kalman_track_c_b::choose_seed(seed_c_b *current_seed)
-{ // choose either ds^2 based seed or lowest hits based on algorithm stage
+{
+if(starting)std::cout<<"Start of  kalman_track_c_b::choose_seed"<<std::endl;
+ // choose either ds^2 based seed or lowest hits based on algorithm stage
 
   seed_c_b filt_seed;
 
@@ -105,10 +110,13 @@ seed_c_b kalman_track_c_b::choose_seed(seed_c_b *current_seed)
   }
 
   return filt_seed;
+if(starting)std::cout<<"End of  kalman_track_c_b::choose_seed"<<std::endl;
 }
 
 void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
-{ // initialise matrices for the filter
+{
+if(starting)std::cout<<"Start of kalman_track_c_b::init_matrices"<<std::endl;
+ // initialise matrices for the filter
 
   A = Eigen::MatrixXd::Zero(n, n);
   C = Eigen::MatrixXd::Zero(m, n);
@@ -116,10 +124,10 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
   R = Eigen::MatrixXd::Zero(m, m);
   P = Eigen::MatrixXd::Zero(n, n);
 
-  // Projection Matrix
-  C << 1, 0, 0, 0, 0, 0,
-      0, 1, 0, 0, 0, 0,
-      0, 0, 1, 0, 0, 0;
+  // Projection Matrix //TODO: update this to be accurate with theta and phi
+  C << 1, 0, 0, 0, 0,
+      0, 1, 0, 0, 0,
+      0, 0, 1, 0, 0;
 
   physics::digi_hit* first;
   physics::digi_hit* second;
@@ -143,13 +151,12 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
 
   // jacobian of calculated first state (seed1 (+) seed2 space to filter state space)
   Eigen::MatrixXd jac;
-  jac = Eigen::MatrixXd::Zero(n, 8);
+  jac = Eigen::MatrixXd::Zero(n, 8); //TODO: check to make sure these are the correct dimentions and modify to correct jacobian, this is incorrect
   jac << 1      , 0           , 0       , 0       , 0       , 0             , 0     , 0     ,
       	0       , 1           , 0       , 0       , 0       , 0             , 0     , 0     ,
         0       , 0           , 1       , 0       , 0       , 0             , 0     , 0     ,
 	- 1 / dt, dx / (dt*dt), 0       , 0       , 1 / dt  , - dx / (dt*dt), 0     , 0     ,
-	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt,
-	0       , dz / (dt*dt), - 1 / dt, 0       , 0       , - dz / (dt*dt), 1 / dt, 0     ;
+	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt;
 
   /*
   // propagate velocity errors
@@ -189,10 +196,13 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
 
   // track covariance matrix
   P = jac * V * jac.transpose();
+if(starting)std::cout<<"End of kalman_track_c_b::init_matrices"<<std::endl;
 }
 
 void kalman_track_c_b::init_first_state()
-{ // init function to find the first state vector for the filter
+{
+if(starting)std::cout<<"Start of kalman_track_c_b::init_first_state"<<std::endl;
+ // init function to find the first state vector for the filter
 
   // find first hit by running the filter backwards from seed
   if (finding)
@@ -219,15 +229,18 @@ void kalman_track_c_b::init_first_state()
     lowest_hit = layer_hits[layers[0]][0];
 
     // pass previous fit velocity instead of seedguess in tr>
-    velocity = {seedguess[3], seedguess[4], seedguess[5]};
+    velocity = {1, 1, 1}; //TODO: change to proper velocity in this situation from seedguess
 
     added_layers = layers;
     filter_start_layer = layers[0];
   }
+if(starting)std::cout<<"End of kalman_track_c_b::init_first_state"<<std::endl;
 }
 
 void kalman_track_c_b::find_first()
-{ // find the first hit to start the filter
+{
+if(starting)std::cout<<"Start of kalman_track_c_b::find_first"<<std::endl;
+ // find the first hit to start the filter
 
   KalmanFilter_c_b kf_find_init(0, A, C, Q, R, P);
   kf_find = kf_find_init;
@@ -281,16 +294,19 @@ void kalman_track_c_b::find_first()
   lowest_hit = kf_find.added_hits.back();
 
 //  velocity = {kf_find.x_f_list().back()[3], kf_find.x_f_list().back()[4], kf_find.x_f_list().back()[5]};
-  velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
+  velocity = {1, 1, 1}; //TODO: change this to proper velocity
 
   filter_start_layer = layers[start_ind];
+if(starting)std::cout<<"End of kalman_track_c_b::find_first"<<std::endl;
 }
 
 void kalman_track_c_b::filter()
-{ // filter algorithm
+{ 
+if(starting)std::cout<<"Start of kalman_track_c_b::filter"<<std::endl;
+// filter algorithm
 
-  Eigen::VectorXd x_filter(6);
-  x_filter << lowest_hit->x, lowest_hit->t, lowest_hit->z, velocity[0], velocity[1], velocity[2];
+  Eigen::VectorXd x_filter(5);
+  x_filter << lowest_hit->x, lowest_hit->t, lowest_hit->z, 1, 1; //TODO: replace dummy variables with theta and phi
 
   std::vector<physics::digi_hit *> lowest_hit_list = {lowest_hit};
 
@@ -337,10 +353,13 @@ void kalman_track_c_b::filter()
       z_scat.push_back(kf.z_scat);
     }
   }
+if(starting)std::cout<<"End of kalman_track_c_b::filter"<<std::endl;
 }
 
 void kalman_track_c_b::smooth()
-{ // smoothing algorithm
+{
+if(starting)std::cout<<"Start of kalman_track_c_b::smooth"<<std::endl;
+ // smoothing algorithm
 
   kf.init_smooth_gain();
 
@@ -357,11 +376,12 @@ void kalman_track_c_b::smooth()
     chi_s.insert(chi_s.begin(), chi);
     //chi_s.insert(chi_s.begin(), ROOT::Math::chisquared_cdf(chi, ndof)); // need seperate storage for this (other is used for chi summing) // WAS TURNED ON FOR AUGUST 4TH PRESENTATION
   }
+if(starting)std::cout<<"End of kalman_track_c_b::smooth"<<std::endl;
 }
 
 void kalman_vertex_c_b::vertexer(std::vector<physics::track *> tracks_list, vertex_seed_c_b *seed)
 { // vertexer algorithm using kalman filter weighted means formalism
-
+if(starting)std::cout<<"Start of kalman_vertex_c_b::vertexer"<<std::endl;
   int i = 0;
 
   status = 1;
@@ -395,10 +415,12 @@ void kalman_vertex_c_b::vertexer(std::vector<physics::track *> tracks_list, vert
 
     status = 2;
   } // while loop
+if(starting)std::cout<<"End of kalman_vertex_c_b::vertexer"<<std::endl;
 }
 
 void kalman_vertex_c_b::init_matrices(vertex_seed_c_b *seed)
 {
+if(starting)std::cout<<"Start of kalman_vertex_c_b::init_matrices"<<std::endl;
 
   A = Eigen::MatrixXd::Zero(m, m);
   C = Eigen::MatrixXd::Zero(m, s);
@@ -413,10 +435,9 @@ void kalman_vertex_c_b::init_matrices(vertex_seed_c_b *seed)
 
   // projects x = {x_v,y_v,z_v,t} onto p = {x_v,t_v,z_v,vx,vy,vz}
   // A in Fruhwirth paper (eq 24)
-  C << 1, 0, 0, 0,
+  C << 1, 0, 0, 0, //TODO: update this matrix to be accurate with theta and phi changes
       0, 0, 0, 1,
       0, 0, 1, 0,
-      0, 0, 0, 0,
       0, 0, 0, 0,
       0, 0, 0, 0;
 
@@ -426,7 +447,7 @@ void kalman_vertex_c_b::init_matrices(vertex_seed_c_b *seed)
   double dt = x0[3] - tr1->t0; // negative
 
   std::vector<double> dr = {tr2->x0 - tr1->x0, tr2->y0 - tr1->y0, tr2->z0 - tr1->z0};
-  std::vector<double> dv = {tr1->vx - tr2->vx, tr1->vy - tr2->vy, tr1->vz - tr2->vz};
+  std::vector<double> dv = {1, 1, 1}; //TODO: update to proper velocit  values, or just redo calculation in general
 
   // temporary variable
   std::vector<double> tmp;
@@ -444,11 +465,11 @@ void kalman_vertex_c_b::init_matrices(vertex_seed_c_b *seed)
 
   // jacobian for track to vertex parameter transformation
   // see overleaf doc for calculation
-  Eigen::MatrixXd jac(4, 6);
-  jac << v_2 + dv[0] * q[0], -q[0], dv[2] * q[0], v_2 * dt + q[0] * tmp[0], q[0] * tmp[1], q[0] * tmp[2],
-      dv[0] * q[1], -q[1], dv[2] * dv[1], q[1] * tmp[0], v_2 * dt + q[1] * tmp[1], q[1] * tmp[2],
-      dv[0] * q[2], -q[2], v_2 + dv[2] * dv[2], q[2] * tmp[0], q[2] * tmp[1], v_2 * dt + q[2] * tmp[2],
-      dv[0], 0, dv[2], tmp[0], tmp[1], tmp[2];
+  Eigen::MatrixXd jac(4, 5); //TODO: update Jacobian to proper calculations
+  jac << v_2 + dv[0] * q[0], -q[0], dv[2] * q[0], v_2 * dt + q[0] * tmp[0], q[0] * tmp[1],
+      dv[0] * q[1], -q[1], dv[2] * dv[1], q[1] * tmp[0], v_2 * dt + q[1] * tmp[1],
+      dv[0] * q[2], -q[2], v_2 + dv[2] * dv[2], q[2] * tmp[0], q[2] * tmp[1],
+      dv[0], 0, dv[2], tmp[0], tmp[1];
 
   jac = jac / v_2;
 
@@ -458,23 +479,23 @@ void kalman_vertex_c_b::init_matrices(vertex_seed_c_b *seed)
   // positive
   dt = -dt;
 
-  // projects q = {vx,vy,vz} onto p = {dx,dt,dz,vx,vy,vz}
+  // projects q = {vx,vy,vz} onto p = {dx,dt,dz,vx,vy,vz} //TODO: update to replace dummy variables
   B << dt, 0, 0,
       0, dt / q0[1], 0,
       0, 0, dt,
-      1, 0, 0,
-      0, 1, 0,
-      0, 0, 1;
+      1, 1, 1,
+      1, 1, 1;
 
   // vertex velocity covariance matrix
   D << R(3, 3), R(3, 4), R(3, 5),
       R(4, 3), R(4, 4), R(4, 5),
       R(5, 3), R(5, 4), R(5, 5);
+if(starting)std::cout<<"End of kalman_vertex_c_b::init_matrices"<<std::endl;
 }
 
 void kalman_vertex_c_b::filter(std::vector<physics::track *> tracks_list)
 { // filter algorithm for the vertexing algorithm
-
+if(starting)std::cout<<"Start of kalman_vertex_c_b::filter"<<std::endl;
   kfv.init_means(x0, q0, B, D);
 
   bool done = false;
@@ -504,14 +525,17 @@ void kalman_vertex_c_b::filter(std::vector<physics::track *> tracks_list)
 
     j++;
   }
+if(starting)std::cout<<"End of kalman_vertex_c_b::filter"<<std::endl;
 }
 
 void kalman_vertex_c_b::smooth()
 {
+if(starting)std::cout<<"Start of kalman_vertex_c_b::smooth"<<std::endl;
   kfv.init_smooth_means();
 
   for (int j = kfv.added_tracks.size() - 1; j >= 0; j--)
   {
     kfv.smooth_means(j);
   }
+if(starting)std::cout<<"End of kalman_vertex_c_b::smooth"<<std::endl;
 }

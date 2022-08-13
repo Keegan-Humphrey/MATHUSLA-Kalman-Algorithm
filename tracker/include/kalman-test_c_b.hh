@@ -16,6 +16,7 @@
 class kalman_track_c_b
 {
 public:
+  bool starting = true;
   bool dropping;
   bool seed_was_used;
   bool finding;
@@ -53,7 +54,7 @@ public:
   void kalman_all(std::vector<physics::digi_hit *> trackhits, seed_c_b *current_seed);
 
   void layer_sort(std::vector<physics::digi_hit *> digis)
-  {
+  {if(starting)std::cout<<"Start of kalman_track_c_b::layer_sort"<<std::endl;
   //  std::ofstream file;
     //file.open("print.txt", std::ios_base::app);
 
@@ -114,6 +115,7 @@ public:
       det_ind_to_layers[layers[i]] = i;
 
     //file.close();
+   if(starting)std::cout<<"End of kalman_track_c_b::layer_sort"<<std::endl;
   }
 
   void init_first_state();
@@ -136,7 +138,7 @@ private:
 
   int seed_layer; // layer (detector index) of first seed hit
 
-  int n = 6; // Number of states x t z vx vy vz
+  int n = 5; // Number of states x t z theta phi
   int m = 3; // Number of measurements x t z
 
   Eigen::MatrixXd A; // System dynamics matrix
@@ -158,15 +160,16 @@ private:
   bool skipped = false;
 
   Eigen::VectorXd find_guess(std::vector<double> seedguess, double dy)
-  { // linearly project seedguess onto first layer and format for the filter
+  {if(starting)std::cout<<"Start of kalman_track_c_b::find_guess"<<std::endl;
+    // linearly project seedguess onto first layer and format for the filter
     //std::ofstream file;
     //file.open("print.txt", std::ios_base::app);
 
     Eigen::VectorXd y_guess(n);
-
+//TODO: change computation so that it accurately projects, I just removed components that don't exist
     for (int i = 0; i < n; i++)
       y_guess[i] = seedguess[i];
-    y_guess[1] = seedguess[6]; // y -> t
+    y_guess[1] = 1; // y -> t
 
     double dt = -dy / seedguess[4];
 
@@ -174,17 +177,19 @@ private:
 
     y_guess[0] += dt * y_guess[3]; // x + dt * v_x
     y_guess[1] += dt;              // t + dt
-    y_guess[2] += dt * y_guess[5]; // z + dt * v_z
+    y_guess[2] += dt * 1; // z + dt * v_z
 
     //file << " t is " << y_guess[1] << std::endl;
 
 //    file.close();
 
     return y_guess;
+  if(starting)std::cout<<"End of kalman_track_c_b::find_guess"<<std::endl;
   }
 
   void init_seed_info(seed_c_b *current_seed)
   {
+if(starting)std::cout<<"Start of kalman_track_c_b::init_seed_info"<<std::endl;
     //std::ofstream file;
     //file.open("print.txt", std::ios_base::app);
 
@@ -204,7 +209,7 @@ private:
     file << std::endl;
     */
     x0 = Eigen::VectorXd::Zero(n);
-    x0 << first_hit->x, first_hit->t, first_hit->z, seedguess[3], seedguess[4], seedguess[5];
+    x0 << first_hit->x, first_hit->t, first_hit->z, 1, 1; //TODO: update dummy variables to have proper values of theta and phi
 
    // file.close();
   }
@@ -235,10 +240,12 @@ private:
     //file.close();
 
     return next_layer;
+if(starting)std::cout<<"End of kalman_track_c_b::init_seed_info"<<std::endl;
   }
 
   void prepare_output()
   {
+  if(starting)std::cout<<"Start of kalman_track_c_b::prepare_output"<<std::endl;
     //std::ofstream file;
     //file.open("print.txt", std::ios_base::app);
 
@@ -246,10 +253,10 @@ private:
       // prepare best estimate positions for visualiser
       for (int i = 0; i < kf.x_s.size(); i++) {
         x_s_list.push_back({kf.x_s[i][0], kf.added_hits[i]->y, kf.x_s[i][2]});
-        v_s_list.push_back({kf.x_s[i][3], kf.x_s[i][4], kf.x_s[i][5]});
+        v_s_list.push_back({1,1 , 1});//TODO: Modify dummy variables to be proper velocity 
       }
       // prepare track state vector from first smoothed state
-      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], kf.x_s[0][4], kf.x_s[0][5], kf.x_s[0][1]};
+      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], 1,1};//TODO: Change dummy variables to account for theta and phi
       //x_s = {kf.x_s.back()[0], layer_hits[layers.back()][0]->y, kf.x_s.back()[2], kf.x_s.back()[3], kf.x_s.back()[4], kf.x_s.back()[5], kf.x_s.back()[1]}; //// PASSING LAST COVARIANCE TEMPORARILY
 
       // prepare track error vector from covariance matrix
@@ -262,13 +269,13 @@ private:
       std::vector<std::vector<double>> _track_cov;
       Eigen::MatrixXd TC = kf.P_s[0];
       //Eigen::MatrixXd TC = kf.P_s.back(); //// PASSING LAST COVARIANCE TEMPORARILY
-      _track_cov = {{TC(0,0),0,TC(0,2),TC(0,3),TC(0,4),TC(0,5),TC(0,1)},
-                   {0      ,0,0      ,0      ,0      ,0      ,0      },
-                   {TC(2,0),0,TC(2,2),TC(2,3),TC(2,4),TC(2,5),TC(2,1)},
-                   {TC(3,0),0,TC(3,2),TC(3,3),TC(3,4),TC(3,5),TC(3,1)},
-                   {TC(4,0),0,TC(4,2),TC(4,3),TC(4,4),TC(4,5),TC(4,1)},
-                   {TC(5,0),0,TC(5,2),TC(5,3),TC(5,4),TC(5,5),TC(5,1)},
-                   {TC(1,0),0,TC(1,2),TC(1,3),TC(1,4),TC(1,5),TC(1,1)}};
+      _track_cov = {{TC(0,0),0,TC(0,2),TC(0,3),TC(0,4)},
+                   {0      ,0,0      ,0      ,0      },
+                   {TC(2,0),0,TC(2,2),TC(2,3),TC(2,4)},
+                   {TC(3,0),0,TC(3,2),TC(3,3),TC(3,4)},
+                   {TC(4,0),0,TC(4,2),TC(4,3),TC(4,4)},
+                   {TC(1,0),0,TC(1,2),TC(1,3),TC(1,4)}}; //TODO: update this to have the proper values they are all innacurate
+
 
       _track_cov[1][1] = std::pow(layer_hits[layers[0]][0]->ey, 2);
       //_track_cov[1][1] = std::pow(layer_hits[layers.back()][0]->ey, 2); //// PASSING LAST COVARIANCE TEMPORARILY
@@ -318,12 +325,14 @@ private:
 //    std::cout << "kalman unadded_hits len 3: " << unadded_hits.size() << std::endl;
 
 //    file.close();
+	if(starting)std::cout<<"End of kalman_track_c_b::prepare_output"<<std::endl;
   }
 };
 
 class kalman_vertex_c_b
 {
 public:
+  bool starting = true;
   int status;
   bool dropping;
 
@@ -344,7 +353,7 @@ public:
 
 private:
   int s = 4; // Number of states x y z t
-  int m = 6; // Number of measurements x t z vx vy vz
+  int m = 5; // Number of measurements x t z theta phi
   int v = 3; // Number of velocities vx vy vz
 
   std::ofstream file;
@@ -373,7 +382,7 @@ private:
 
   void init_seed_info(vertex_seed_c_b *seed)
   {
-
+if(starting)std::cout<<"Start of kalman_vertex_c_b::init_seed_info"<<std::endl;
     x0 = seed->guess_k();
 /*
     physics::track * tr1 = seed->tracks.first;
@@ -394,11 +403,12 @@ private:
     Eigen::VectorXd first(3);
 //    Eigen::VectorXd second(3);
 
-    first << seed->tracks.first->vx, seed->tracks.first->vy, seed->tracks.first->vz;
+    first << 1,1,1; //TODO: update to proper velocity values with new beta system
 //    second << seed->tracks.second->vx, seed->tracks.second->vy, seed->tracks.second->vz;
 
     q0 = first;
 //    q1 = second;
+   if(starting)std::cout<<"End of kalman_vertex_c_b::init_seed_info"<<std::endl;
   }
 
   void filter(std::vector<physics::track *> tracks_list);
@@ -406,11 +416,12 @@ private:
 
   void prepare_output()
   {
+   if(starting)std::cout<<"Start of kalman_vertex_c_b::prepare_output"<<std::endl;
     for (int i=0; i < kfv.x_n.size(); i++) x_s.push_back(kfv.x_n[i]);
 
     pulls_v = kfv.pulls_v_s;
+   if(starting)std::cout<<"End of kalman_vertex_c_b::prepare_output"<<std::endl;
   }
-
 };
 
 #endif
