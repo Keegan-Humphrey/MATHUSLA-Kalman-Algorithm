@@ -324,19 +324,24 @@ void TrackFinder_c_b::FindTracks_kalman()
 	int j = 0;
 	int MAX_ITS = 25;
 	int beta_index = 0;
+	int total_seeds = seeds_k.size();
 	std::vector<seed_c_b> recycled_seeds; // These will store the seeds that failed, and will be re-used on lower beta values
-
 	Stat_Funcs sts;
-
 	while (iterate)
 	{
 		if (seeds_k.size() == 0) { // If we've run out of seeds, decrease the beta value and try again with the non-used seeds
 			beta_index++;
 			if (beta_index > sizeof(beta_vals)/sizeof(beta_vals[0])) // If we are also out of beta values, then we're done
 				break;
+			std::cout << "Starting with new beta: " << beta_index << std::endl;
+			std::cout << "Number of recycled seeds: " << recycled_seeds.size() << std::endl;
+			std::cout << "Number of starting seeds: " << total_seeds << std::endl;
+			std::cout << "Number of merged tracks: " << tracks_k_m.size() << std::endl;
+			std::cout << "Number of unmerged tracks: " << tracks_k.size() << std::endl;
 			for (auto seed : recycled_seeds) { // Otherwise, use the recycled seeds and reset beta
 				seeds_k.push_back(seed);
 			}
+			recycled_seeds.clear();
 			if (seeds_k.size() == 0) //If recycled seeds was empty too
 				break;
 		}
