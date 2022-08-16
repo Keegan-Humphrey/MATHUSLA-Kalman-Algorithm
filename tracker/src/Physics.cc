@@ -27,11 +27,63 @@ namespace physics {
 				et0 = par_errors[6];
 				with_t = true;
 			}
+			calculateAngularValues();
+			calculateAngularError();
 
+	}
+	
+	track::track(std::vector<double> params, std::vector<double> par_errors,bool angular){
+		if(angular){
+			x0 = params[0]; ex0 = par_errors[0];
+			y0 = params[1]; ey0 = par_errors[1];
+			z0 = params[2]; ez0 = par_errors[2];
+			theta = params[3]; etheta = par_errors[3];
+			phi = params[4]; ephi = par_errors[4];
+			beta = params[5]; ebeta = par_errors[5];
+			if (params.size() == 7) {
+				t0 = params[6];
+				et0 = par_errors[6];
+				with_t = true;
+			}
+			calculateCartesianValues;
+			calculateCartesianErrors;
+		}
+	
+	}
+
+	void track::calculateAngularValues(){
+		theta = cmath::atan2(cmath::sqrt(vx*vx+vx*vz),vy);
+		phi = cmath::atan2(vz,vx);
+		beta = beta();
+		}
+
+	void track::calculateAngularError(){
+		etheta = 0;
+		ephi = 0;
+		ebeta = beta_err();
+		//TODO: calculate proper errors for these values
+	}
+
+	void track::calculateCartesianValues{
+		vx = beta*constants::c*cmath::sin(theta)*cmath::cos(phi);
+		vy = beta*constants::c*cmath::cos(theta);
+		vz = beta*constants::c*cmath::sin(theta)*cmath::sin(phi);
+	}
+	
+	void track::calculateCartesianError{
+		evx = 0;
+		evy = 0;
+		evz = 0;
+		//TODO: calculate proper errors for these values
 	}
 
 	std::vector<double> track::parameters(){
 			std::vector<double> p = { x0, y0, z0, vx, vy, vz };
+			return p;
+	}
+	
+	std::vector<double> track::angularparameters(){
+			std::vector<double> p = { x0, y0, z0, theta, phi, beta }
 			return p;
 	}
 
@@ -46,6 +98,21 @@ namespace physics {
 				t0 = pars[6];
 				with_t = true;
 			}
+			calculateAngularValues();
+		}
+
+	void track::angularparameters(std::vector<double> pars){
+			x0 = pars[0];
+			y0 = pars[1];
+			z0 = pars[2];
+			theta = pars[3];
+			phi = pars[4];
+			beta = pars[5];
+			if (pars.size() == 7) {
+				t0 = pars[6];
+				with_t = true;
+			}
+			calculateCartesianValues();
 		}
 
 	void track::par_errors(std::vector<double> epars){
@@ -59,7 +126,23 @@ namespace physics {
 				et0 = epars[6];
 				with_t = true;
 			}
+			calculateAngularError();
 		}
+	
+	void track::angular_par_errors(std::vector<double> epars){
+			ex0 = epars[0];
+			ey0 = epars[1];
+			ez0 = epars[2];
+			etheta = epars[3];
+			ephi = epars[4];
+			ebeta = epars[5];
+			if (epars.size() == 7) {
+				et0 = epars[6];
+				with_t = true;
+			}
+			calculateCartesianError();
+		}
+	
 
 	double track::chi2(){
 			double chi_2 = 0.0;

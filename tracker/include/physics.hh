@@ -148,6 +148,8 @@ namespace physics{
 		double vz, evz;
 		double x0, y0, z0;
 		double ex0, ey0, ez0;
+		double theta, phi, beta;
+		double etheta, ephi, ebeta;
 		double t0, et0;
 	        int first_layer;
 		std::vector<int> hits_to_drop = {};
@@ -189,15 +191,44 @@ namespace physics{
         //constructor to automatically set the parameters and associated errors in declaration
         track(std::vector<double> params, std::vector<double> par_errors);
 
+	  //constructor to automatically set the angular parameters and associated errors in declaration
+	  track(std::vector<double> params, std::vector<double> par_errors, bool angular);
+
         //returns track parameters in vector (when called with no arguments)
         //see poorly named overload below
         std::vector<double> parameters();
 
+	  //calculates the angular velocity values based on cartesian velocity values
+
+        void calculateAngularValues();
+
+        //calculates the angular velocity errors based on cartesian velocity error values
+
+        void calculateAngularError();
+
+        //calculates cartesian velocity values based on angular velocity values
+
+        void calculateCartesianValues();
+
+        //calculates cartesian velocity error values based on angular velocity error values
+
+        void calculateCartesianError();
+
+        //returns angular track parameters in vector (when called with no arguments)
+        std::vector<double> angularparameters();
+
         //overload to SET track parameters to arg pars
         void parameters(std::vector<double> pars);
 
+        //overload to SET angular track parameters to arg pars
+	  void angularparameters(std::vector<double> pars);
+
         //SETS the paramter errros to arg epars
         void par_errors(std::vector<double> epars);
+
+        //SETS the angular parameter errors to arg epars
+
+        void angular_par_errors(std::vector<double> epars);
 
         //chi2 calculated for current parameters using all the component hits
         double chi2();

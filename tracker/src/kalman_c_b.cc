@@ -83,7 +83,7 @@ if(starting)std::cout<<"Start of KalmanFilter_c_b::init_gain"<<std::endl;
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
-  x_hat << y0->x, y0->t, y0->z, 1, 1; //TODO: Replace theta and phi dummy variables
+  x_hat << y0->x, y0->t, y0->z, y0->theta, y0->phi; //TODO: Replace theta and phi dummy variables
 
   if (par_handler->par_map["debug"] == 1) {
 
@@ -540,8 +540,7 @@ if(starting)std::cout<<"Start of KalmanFilter_c_b::update_means"<<std::endl;
   }
 
   Eigen::VectorXd y(5);
-  y << new_track->x0, new_track->t0, new_track->z0, 1, 1; //TODO: Fix dummy variables for theta and phi
-
+  y << new_track->x0, new_track->t0, new_track->z0, new_track->theta, new_track->phi; 
   update_matrices_means(new_track);
 
   Eigen::MatrixXd G = R.inverse(); // R is V in Fruhwirth

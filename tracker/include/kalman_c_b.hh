@@ -167,7 +167,7 @@ public:
       Eigen::MatrixXd P_new = (P.inverse() + C.transpose() * G_B * C).inverse();
 
       Eigen::VectorXd y(5);
-      y << track->x0, track->t0, track->z0, 1, 1; //TODO: replace dummy theta and phi components
+      y << track->x0, track->t0, track->z0, track->theta, track->phi; 
 
       // filtered state and vertex velocity
       Eigen::VectorXd x_hat_new = P_new * (P.inverse() * x_hat + C.transpose() * G_B * y);

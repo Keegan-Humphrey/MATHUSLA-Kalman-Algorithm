@@ -209,7 +209,7 @@ if(starting)std::cout<<"Start of kalman_track_c_b::init_seed_info"<<std::endl;
     file << std::endl;
     */
     x0 = Eigen::VectorXd::Zero(n);
-    x0 << first_hit->x, first_hit->t, first_hit->z, 1, 1; //TODO: update dummy variables to have proper values of theta and phi
+    x0 << first_hit->x, first_hit->t, first_hit->z, 1, 1; //TODO: look into what seedguess values to replace 1s 
 
    // file.close();
   }
@@ -253,7 +253,7 @@ if(starting)std::cout<<"End of kalman_track_c_b::init_seed_info"<<std::endl;
       // prepare best estimate positions for visualiser
       for (int i = 0; i < kf.x_s.size(); i++) {
         x_s_list.push_back({kf.x_s[i][0], kf.added_hits[i]->y, kf.x_s[i][2]});
-        v_s_list.push_back({1,1 , 1});//TODO: Modify dummy variables to be proper velocity 
+        v_s_list.push_back({1,1 , 1});//TODO: Modify dummy variables to be proper velocity, this list might need to be changed from v_s 
       }
       // prepare track state vector from first smoothed state
       x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], 1,1};//TODO: Change dummy variables to account for theta and phi

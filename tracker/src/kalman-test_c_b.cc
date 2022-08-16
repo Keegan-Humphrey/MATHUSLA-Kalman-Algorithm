@@ -306,7 +306,7 @@ if(starting)std::cout<<"Start of kalman_track_c_b::filter"<<std::endl;
 // filter algorithm
 
   Eigen::VectorXd x_filter(5);
-  x_filter << lowest_hit->x, lowest_hit->t, lowest_hit->z, 1, 1; //TODO: replace dummy variables with theta and phi
+  x_filter << lowest_hit->x, lowest_hit->t, lowest_hit->z, lowest_hit->theta, lowest_hit->phi; //TODO: make sure that this usage of theta and phi is correct
 
   std::vector<physics::digi_hit *> lowest_hit_list = {lowest_hit};
 
