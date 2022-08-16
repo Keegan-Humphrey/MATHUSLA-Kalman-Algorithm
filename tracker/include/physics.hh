@@ -148,7 +148,7 @@ namespace physics{
 		double vz, evz;
 		double x0, y0, z0;
 		double ex0, ey0, ez0;
-		double theta, phi, beta;
+		double theta, phi, mbeta;
 		double etheta, ephi, ebeta;
 		double t0, et0;
 	        int first_layer;

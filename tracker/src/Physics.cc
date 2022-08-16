@@ -39,7 +39,7 @@ namespace physics {
 			z0 = params[2]; ez0 = par_errors[2];
 			theta = params[3]; etheta = par_errors[3];
 			phi = params[4]; ephi = par_errors[4];
-			beta = params[5]; ebeta = par_errors[5];
+			mbeta = params[5]; ebeta = par_errors[5];
 			if (params.size() == 7) {
 				t0 = params[6];
 				et0 = par_errors[6];
@@ -54,7 +54,7 @@ namespace physics {
 	void track::calculateAngularValues(){
 		theta = cmath::atan2(cmath::sqrt(vx*vx+vx*vz),vy);
 		phi = cmath::atan2(vz,vx);
-		beta = beta();
+		mbeta = beta();
 		}
 
 	void track::calculateAngularError(){
@@ -65,9 +65,9 @@ namespace physics {
 	}
 
 	void track::calculateCartesianValues{
-		vx = beta*constants::c*cmath::sin(theta)*cmath::cos(phi);
-		vy = beta*constants::c*cmath::cos(theta);
-		vz = beta*constants::c*cmath::sin(theta)*cmath::sin(phi);
+		vx = mbeta*constants::c*cmath::sin(theta)*cmath::cos(phi);
+		vy = mbeta*constants::c*cmath::cos(theta);
+		vz = mbeta*constants::c*cmath::sin(theta)*cmath::sin(phi);
 	}
 	
 	void track::calculateCartesianError{
@@ -83,7 +83,7 @@ namespace physics {
 	}
 	
 	std::vector<double> track::angularparameters(){
-			std::vector<double> p = { x0, y0, z0, theta, phi, beta }
+			std::vector<double> p = { x0, y0, z0, theta, phi, mbeta }
 			return p;
 	}
 
@@ -107,7 +107,7 @@ namespace physics {
 			z0 = pars[2];
 			theta = pars[3];
 			phi = pars[4];
-			beta = pars[5];
+			mbeta = pars[5];
 			if (pars.size() == 7) {
 				t0 = pars[6];
 				with_t = true;
