@@ -45,8 +45,8 @@ namespace physics {
 				et0 = par_errors[6];
 				with_t = true;
 			}
-			calculateCartesianValues;
-			calculateCartesianErrors;
+			calculateCartesianValues();
+			calculateCartesianErrors();
 		}
 	
 	}
@@ -64,13 +64,13 @@ namespace physics {
 		//TODO: calculate proper errors for these values
 	}
 
-	void track::calculateCartesianValues{
+	void track::calculateCartesianValues(){
 		vx = mbeta*constants::c*cmath::sin(theta)*cmath::cos(phi);
 		vy = mbeta*constants::c*cmath::cos(theta);
 		vz = mbeta*constants::c*cmath::sin(theta)*cmath::sin(phi);
 	}
 	
-	void track::calculateCartesianError{
+	void track::calculateCartesianError(){
 		evx = 0;
 		evy = 0;
 		evz = 0;
