@@ -1,5 +1,6 @@
 #include<iostream>
 #include <TLorentzVector.h>
+#include <cmath>
 #include "Geometry.hh"
 #include "globals.hh"
 #include "TFitter.h"
@@ -46,14 +47,14 @@ namespace physics {
 				with_t = true;
 			}
 			calculateCartesianValues();
-			calculateCartesianErrors();
+			calculateCartesianError();
 		}
 	
 	}
 
 	void track::calculateAngularValues(){
-		theta = cmath::atan2(cmath::sqrt(vx*vx+vx*vz),vy);
-		phi = cmath::atan2(vz,vx);
+		theta = atan2(sqrt(vx*vx+vx*vz),vy);
+		phi = atan2(vz,vx);
 		mbeta = beta();
 		}
 
@@ -65,9 +66,9 @@ namespace physics {
 	}
 
 	void track::calculateCartesianValues(){
-		vx = mbeta*constants::c*cmath::sin(theta)*cmath::cos(phi);
-		vy = mbeta*constants::c*cmath::cos(theta);
-		vz = mbeta*constants::c*cmath::sin(theta)*cmath::sin(phi);
+		vx = mbeta*constants::c*sin(theta)*cos(phi);
+		vy = mbeta*constants::c*cos(theta);
+		vz = mbeta*constants::c*sin(theta)*sin(phi);
 	}
 	
 	void track::calculateCartesianError(){
@@ -78,12 +79,12 @@ namespace physics {
 	}
 
 	std::vector<double> track::parameters(){
-			std::vector<double> p = { x0, y0, z0, vx, vy, vz };
+			std::vector<double> p = { x0, y0, z0, vx, vy, vz};
 			return p;
 	}
 	
 	std::vector<double> track::angularparameters(){
-			std::vector<double> p = { x0, y0, z0, theta, phi, mbeta }
+			std::vector<double> p = { x0, y0, z0, theta, phi, mbeta};
 			return p;
 	}
 

@@ -16,7 +16,7 @@
 class kalman_track_c_b
 {
 public:
-  bool starting = true;
+  bool starting = false;
   bool dropping;
   bool seed_was_used;
   bool finding;
@@ -332,7 +332,7 @@ if(starting)std::cout<<"End of kalman_track_c_b::init_seed_info"<<std::endl;
 class kalman_vertex_c_b
 {
 public:
-  bool starting = true;
+  bool starting = false;
   int status;
   bool dropping;
 

@@ -83,7 +83,7 @@ if(starting)std::cout<<"Start of KalmanFilter_c_b::init_gain"<<std::endl;
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
-  x_hat << y0->x, y0->t, y0->z, y0->theta, y0->phi; //TODO: Replace theta and phi dummy variables
+  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4];//TODO: check to make sure this is correct when final runs happen, should be theta and phi
 
   if (par_handler->par_map["debug"] == 1) {
 

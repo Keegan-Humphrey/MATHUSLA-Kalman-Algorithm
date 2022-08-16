@@ -24,7 +24,7 @@ class KalmanFilter_c_b
 {
 
 public:
-  bool starting = true;
+  bool starting = false;
   /**
   * Create a Kalman filter with the specified matrices.
   *   A - System dynamics matrix
