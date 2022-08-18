@@ -367,6 +367,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		kf_find.par_handler = par_handler;
 		kf_find.finding = true;
 		kf_find.dropping = true;
+		kf_find.beta = beta_vals[beta_index];
 		kf_find.seed_was_used = used;
 
 		if (par_handler->par_map["debug"] == 1) std::cout << "first fit" << std::endl;
@@ -401,89 +402,90 @@ void TrackFinder_c_b::FindTracks_kalman()
 
 //		while (drops != 0)
 //		{
-			kalman_track_c_b kft_;
-			kft_.par_handler = par_handler;
-        	        kft_.finding = false;
-                	kft_.dropping = true;
-	                kft_.seed_was_used = used;
-			kft_.unadded_hits = unused_hits;
+		kalman_track_c_b kft_;
+		kft_.par_handler = par_handler;
+		kft_.finding = false;
+		kft_.dropping = true;
+		kft_.beta = beta_vals[beta_index];
+		kft_.seed_was_used = used;
+		kft_.unadded_hits = unused_hits;
 
-			if (par_handler->par_map["debug"] == 1) std::cout << "second fit" << std::endl;
+		if (par_handler->par_map["debug"] == 1) std::cout << "second fit" << std::endl;
 
-                	kft_.kalman_all(undropped_hits, &current_seed);
+		kft_.kalman_all(undropped_hits, &current_seed);
 
-			if (kft_.status == -1)
-        	        {
-				failed = true;
+		if (kft_.status == -1)
+		{
+			failed = true;
 			recycled_seeds.push_back(seeds_k[min_index]);
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
-	                        continue;
-        	        }
+			continue;
+		}
 
-			good_hits = kft_.added_hits;
+		good_hits = kft_.added_hits;
 
-			undropped_hits.clear();
+		undropped_hits.clear();
 
-			if (kft_.status == -2)
-			{
-				failed = true;
+		if (kft_.status == -2)
+		{
+			failed = true;
 			recycled_seeds.push_back(seeds_k[min_index]);
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
-				continue;
-			}
+			continue;
+		}
 
-			if (good_hits.size() < cuts::track_nlayers)
-			{
-				failure_reason[4] += 1;
+		if (good_hits.size() < cuts::track_nlayers)
+		{
+			failure_reason[4] += 1;
 			recycled_seeds.push_back(seeds_k[min_index]);
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
-				continue;
-			}
+			continue;
+		}
 
-			unused_hits = kft_.unadded_hits;
-			unused_hits.insert(unused_hits.end(), kf_find.unadded_hits.begin(), kf_find.unadded_hits.end());
+		unused_hits = kft_.unadded_hits;
+		unused_hits.insert(unused_hits.end(), kf_find.unadded_hits.begin(), kf_find.unadded_hits.end());
 
 //			int drops = 0;
 
-			double ndof = good_hits.size();
-			ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+		double ndof = good_hits.size();
+		ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
 
-			//dropping hits
-			for (int n = 0; n < good_hits.size(); n++)
-			{
-				// make an eigenvector for the velocity at the lowest (in y) state of the track
-				Eigen::VectorXd v(3);
-				v << kft_.v_s_list[n][0], kft_.v_s_list[n][1], kft_.v_s_list[n][2];
+		//dropping hits
+		for (int n = 0; n < good_hits.size(); n++)
+		{
+			// make an eigenvector for the velocity at the lowest (in y) state of the track
+			Eigen::VectorXd v(3);
+			v << kft_.v_s_list[n][0], kft_.v_s_list[n][1], kft_.v_s_list[n][2];
 
 //				if (kft_.chi_s[n] > cuts::kalman_chi_s
-				//if (sts.chi_prob_eld(kft_.chi_s[n],ndof) > par_handler->par_map["kalman_pval_s"]
+			//if (sts.chi_prob_eld(kft_.chi_s[n],ndof) > par_handler->par_map["kalman_pval_s"]
 //				if (kft_.chi_s[n] > par_handler->par_map["kalman_chi_s"]
-				if (ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) >= par_handler->par_map["kalman_pval_drop"]
-			           || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c
-				   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))
+			if (ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) >= par_handler->par_map["kalman_pval_drop"]
+				   || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c
+			   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))
 //			           || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1]))
-				{
-					if (par_handler->par_map["debug"] == 1) {
-						std::cout << "hit dropped with y " << good_hits[n]->y << " chi " << ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) <<
-							" v " << v.norm() / constants::c << std::endl;
-					}
-					unused_hits.push_back(good_hits[n]);
-//					drops++;
-				}
-				else
-				{
-					undropped_hits.push_back(good_hits[n]);
-				}
-			}
-
-			if (undropped_hits.size() < cuts::track_nlayers)
 			{
-				failed = true;
+				if (par_handler->par_map["debug"] == 1) {
+					std::cout << "hit dropped with y " << good_hits[n]->y << " chi " << ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) <<
+						" v " << v.norm() / constants::c << std::endl;
+				}
+				unused_hits.push_back(good_hits[n]);
+//					drops++;
+			}
+			else
+			{
+				undropped_hits.push_back(good_hits[n]);
+			}
+		}
+
+		if (undropped_hits.size() < cuts::track_nlayers)
+		{
+			failed = true;
 			recycled_seeds.push_back(seeds_k[min_index]);
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
-//				break;
-				continue;
-			}
+//			break;
+			continue;
+		}
 
 		//} // dropping while loop
 
@@ -492,6 +494,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		kft_2.par_handler = par_handler;
 		kft_2.finding = false;
 		kft_2.dropping = false;
+		kft_2.beta = beta_vals[beta_index];
 
 		if (par_handler->par_map["debug"] == 1) std::cout << "third fit" << std::endl;
 
