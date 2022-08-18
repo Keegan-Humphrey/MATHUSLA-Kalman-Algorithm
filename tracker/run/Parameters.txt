@@ -1,7 +1,7 @@
 # Transposed list of parameters:
 #
 # branch (0 for main, 1 for cosmic)
-# debug (integer boolean)
+# debug (integer: 0 for off, 1 for default, 2 for beta iteration)
 # seed (-1 for random seed)
 # seed_interval [ns^2]
 # kalman_chi_s 

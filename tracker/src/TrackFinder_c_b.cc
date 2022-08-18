@@ -334,10 +334,13 @@ void TrackFinder_c_b::FindTracks_kalman()
 			beta_index++;
 			if (beta_index > sizeof(beta_vals) / sizeof(beta_vals[0]))
 				break;
-			std::cout << "Beta index: " << beta_index << std::endl;
-			std::cout << "Total seeds: " << total_seeds << std::endl;
-			std::cout << "recycled seeds: " << recycled_seeds.size() << std::endl;
-			std::cout << "unmerged tracks: " <<tracks_k.size() << std::endl;
+
+			if (par_handler->par_map["debug"] == 2) {
+				std::cout << "Beta index: " << beta_index << std::endl;
+				std::cout << "Total seeds: " << total_seeds << std::endl;
+				std::cout << "recycled seeds: " << recycled_seeds.size() << std::endl;
+				std::cout << "unmerged tracks: " <<tracks_k.size() << std::endl;
+			}
 			for (auto seed : recycled_seeds) {
 				seeds_k.push_back(seed);
 			}
@@ -576,8 +579,8 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < par_handler->par_map["kalman_track_chi"])
 		{
 			tracks_k.push_back(current_track);
-			if (beta_index > 0) {
-				std::cout << "added_something" << std::endl;
+			if (beta_index > 0 && par_handler->par_map["debug"] == 2) {
+				std::cout << "made a recycled_seed track" << std::endl;
 			}
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
 			if (par_handler->par_map["debug"] == 1) std::cout << "Track made it" << std::endl;
