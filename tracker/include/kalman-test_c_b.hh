@@ -196,6 +196,7 @@ private:
     //file << "Seed layer is " << seed_layer << std::endl;
 
     seedguess = current_seed->guess();
+    //seedguess = current_seed->guess_fixed_beta(beta); // normalize velocity to beta c
 
     /*
     file << " seed guess is ";

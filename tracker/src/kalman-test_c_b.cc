@@ -232,7 +232,7 @@ void kalman_track_c_b::find_first()
   KalmanFilter_c_b kf_find_init(0, A, C, Q, R, P);
   kf_find = kf_find_init;
   kf_find.par_handler = par_handler;
-
+  kf_find.beta = beta;
   kf_find.init_gain(x0, first_hit_list);
 
   // find layer index to start filter
@@ -281,6 +281,8 @@ void kalman_track_c_b::find_first()
   lowest_hit = kf_find.added_hits.back();
 
 //  velocity = {kf_find.x_f_list().back()[3], kf_find.x_f_list().back()[4], kf_find.x_f_list().back()[5]};
+
+  // TODO convert to cartesian from angular
   velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
 
   filter_start_layer = layers[start_ind];
@@ -294,6 +296,7 @@ void kalman_track_c_b::filter()
 
   std::vector<physics::digi_hit *> lowest_hit_list = {lowest_hit};
 
+  kf.beta = beta;
   kf.init_gain(x_filter, lowest_hit_list);
   kf.dropping = dropping;
 

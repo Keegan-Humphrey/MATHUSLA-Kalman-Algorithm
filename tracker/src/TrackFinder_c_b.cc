@@ -367,6 +367,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		kf_find.par_handler = par_handler;
 		kf_find.finding = true;
 		kf_find.dropping = true;
+		kf_find.beta = beta_vals[beta_index];
 		kf_find.seed_was_used = used;
 
 		if (par_handler->par_map["debug"] == 1) std::cout << "first fit" << std::endl;
@@ -405,6 +406,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 			kft_.par_handler = par_handler;
         	        kft_.finding = false;
                 	kft_.dropping = true;
+			kft_.beta = beta_vals[beta_index];
 	                kft_.seed_was_used = used;
 			kft_.unadded_hits = unused_hits;
 
@@ -492,6 +494,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 		kft_2.par_handler = par_handler;
 		kft_2.finding = false;
 		kft_2.dropping = false;
+		kft_2.beta = beta_vals[beta_index];
 
 		if (par_handler->par_map["debug"] == 1) std::cout << "third fit" << std::endl;
 

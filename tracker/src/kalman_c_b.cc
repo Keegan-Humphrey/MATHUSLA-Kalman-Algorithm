@@ -25,6 +25,7 @@
 #include "statistics.hh"
 //#include "ROOT/Math.h"
 #include "Math/ProbFunc.h"
+#include <math.h>
 
 KalmanFilter_c_b::KalmanFilter_c_b(
     double dy,
@@ -81,14 +82,20 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
+//  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
+
+  double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
+  double phi = std::atan2(x0[5], x0[3]);
+
+  Eigen::VectorXd v = to_cartesian_v(theta, phi);
+//  x_hat << y0->x, y0->t, y0->z, theta, phi;
   x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
 
   if (par_handler->par_map["debug"] == 1) {
 
     Eigen::VectorXd Y(m);
     Y << y0->x, y0->t, y0->z;
-    Eigen::VectorXd v(3);
-    v << x_hat[3], x_hat[4], x_hat[5];
+    Eigen::VectorXd v = to_cartesian_v(theta, phi);
 
     std::cout << "Filtering: First velocity is " << v.transpose() / constants::c <<
 	" at y = " << y_val << " digi is " << Y.transpose() << std::endl;

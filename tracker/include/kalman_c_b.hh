@@ -197,6 +197,15 @@ public:
     return min_index;
   }
 
+  Eigen::VectorXd to_cartesian_v(double theta, double phi) {
+
+    Eigen::VectorXd vel(3);
+    vel << std::sin(theta) * std::cos(phi), std::cos(theta), std::sin(theta) * std::sin(phi);
+    vel = vel * beta * constants::c;
+
+    return vel;
+  }
+
   double update_gain(const std::vector<physics::digi_hit *> y);
   double update_gain(const std::vector<physics::digi_hit *> y, double dy);
   double update_means(const std::vector<physics::track *> tracks);
@@ -246,6 +255,9 @@ public:
   // scattering per y m
   double x_scat;
   double z_scat;
+
+  // constrained beta
+  double beta;
 
   ParHandler* par_handler;
 

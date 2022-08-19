@@ -43,6 +43,17 @@ public:
 		return {P1.x, P1.y, P1.z, velocity.x, velocity.y, velocity.z, hits.first->t};
 	}
 
+	std::vector<double> guess_fixed_beta(double beta)
+	{
+		auto P1 = hits.first->PosVector();
+		auto velocity = VelVector();
+
+		double norm = std::sqrt(velocity^velocity);
+		velocity = velocity.Scale(beta * constants::c / norm); // normalize to c beta
+
+		return {P1.x, P1.y, P1.z, velocity.x, velocity.y, velocity.z, hits.first->t};
+	}
+
 	template <typename hit>
 	double time_difference(hit AHit)
 	{
