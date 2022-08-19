@@ -196,8 +196,10 @@ private:
     //file << "Seed layer is " << seed_layer << std::endl;
 
     seedguess = current_seed->guess();
-    //seedguess = current_seed->guess_fixed_beta(beta); // normalize velocity to beta c
-
+/*
+    // TODO
+    seedguess = current_seed->guess_fixed_beta(beta); // normalize velocity to beta c
+*/
     /*
     file << " seed guess is ";
     for (auto pos : seedguess)
@@ -248,8 +250,13 @@ private:
       for (int i = 0; i < kf.x_s.size(); i++) {
         x_s_list.push_back({kf.x_s[i][0], kf.added_hits[i]->y, kf.x_s[i][2]});
         v_s_list.push_back({kf.x_s[i][3], kf.x_s[i][4], kf.x_s[i][5]});
+
+        // TODO change from angular
       }
       // prepare track state vector from first smoothed state
+
+      // TODO change from angular
+
       x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], kf.x_s[0][4], kf.x_s[0][5], kf.x_s[0][1]};
       //x_s = {kf.x_s.back()[0], layer_hits[layers.back()][0]->y, kf.x_s.back()[2], kf.x_s.back()[3], kf.x_s.back()[4], kf.x_s.back()[5], kf.x_s.back()[1]}; //// PASSING LAST COVARIANCE TEMPORARILY
 
@@ -271,6 +278,8 @@ private:
                    {TC(5,0),0,TC(5,2),TC(5,3),TC(5,4),TC(5,5),TC(5,1)},
                    {TC(1,0),0,TC(1,2),TC(1,3),TC(1,4),TC(1,5),TC(1,1)}};
 
+      // TODO recalculate with Jacobian formula from 5x5 covariance -> format appropriate to the vertexer
+
       _track_cov[1][1] = std::pow(layer_hits[layers[0]][0]->ey, 2);
       //_track_cov[1][1] = std::pow(layer_hits[layers.back()][0]->ey, 2); //// PASSING LAST COVARIANCE TEMPORARILY
       track_cov = _track_cov;
@@ -281,8 +290,8 @@ private:
         }
       }
       */
-      //pass last covariance matrix
       P_s0 = kf.P_s[0];
+      //pass last covariance matrix
       //P_s0 = kf.P_s.back(); //// PASSING LAST COVARIANCE TEMPORARILY
     }
 

@@ -82,14 +82,14 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
-//  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
+  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
 
   double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
   double phi = std::atan2(x0[5], x0[3]);
 
   Eigen::VectorXd v = to_cartesian_v(theta, phi);
 //  x_hat << y0->x, y0->t, y0->z, theta, phi;
-  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
+//  x_hat << y0->x, y0->t, y0->z, v[0], v[1], v[2];
 
   if (par_handler->par_map["debug"] == 1) {
 
@@ -291,6 +291,8 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
   x_s.insert(x_s.begin(), x_n); //adding to beginner of vector x_s
   P_s.insert(P_s.begin(), P_n); //adding to beginner of vector P_s
 
+  // TODO change to v from angular variables
+
   // smoothed velocity
   Eigen::VectorXd v(3);
   v << x_n[3], x_n[4], x_n[5];
@@ -303,6 +305,8 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
 
   double ndof = x_f.size();
   ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
+
+  // TODO Remove beta condition on dropping (here and in trackfinder_c_b)
 
   if (dropping
 //     && (chi_plus_s > cuts::kalman_chi_s
@@ -336,10 +340,7 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 
   if (initialized) {
 
-   // what's the right way to do this?
-//    dy = a_hit->y - y_val;
-
-
+    // standard y propagation
     A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
       .0, 1.0, .0, .0, dy / (x_hat[4] * x_hat[4]), .0,
       .0, .0, 1.0, .0, .0, dy / x_hat[4],
@@ -348,6 +349,23 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
       .0, .0, .0, .0, .0, 1.0;
 
 /*
+    // TODO
+    // fixed beta propagation
+    double tht = x_hat[3];
+    double phi = x_hat[4];
+
+    double dx = dy * std::tan(tht) * std::cos(phi);
+    double dt = dy / (beta * constants::c * std::cos(tht));
+    double dz = dy * std::tan(tht) * std::sin(phi);
+
+    A << 1.0, .0, .0, dx / tht, .0, .0,
+         .0, 1.0, .0, dt / tht, .0, .0,
+         .0, .0, 1.0, dz / tht, .0, .0,
+         .0, .0, .0, 1.0, .0, .0,
+         .0, .0, .0, .0, 1.0, .0,
+*/
+/*
+    // t propagation
     double dt = a_hit->t - x_hat[1];
 
     A << 1.0, .0, .0, dt, .0, .0,
@@ -361,6 +379,8 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
     double a = x_hat[3] / constants::c;
     double b = x_hat[4] / constants::c;
     double c = x_hat[5] / constants::c;
+
+    // TODO (direction cosines)
 
     Q_update(dy, a, b, c);
 
@@ -384,8 +404,10 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
   //mag = std::sqrt(a*a + b*b + c*c); // just 1, only included incase above norm is removed
   mag = 1;
 
-//  double sin_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
-  double sin_theta = std::sqrt(b*b) / mag; // CORRECT ONE
+//  double cos_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
+  double cos_theta = std::sqrt(b*b) / mag; // CORRECT ONE
+
+  // TODO (new Q with right dimensions, and human readable formatting!!!)
 
   Q << dy * dy * (b * b + a * a) / std::pow(b, 4),
       dy * dy * a / (constants::c * std::pow(b, 4)),
@@ -440,10 +462,16 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
 
   double L_rad = L_Al / L_r_Al + L_Sc / L_r_Sc; // [rad lengths] orthogonal to Layer
 
-  L_rad /= sin_theta; // [rad lengths] in direction of track
+  L_rad /= cos_theta; // [rad lengths] in direction of track
 
   double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log10(L_rad)); // used to be standard ln (CORRECT ONE)
 //  double sigma_ms = 13.6 * std::sqrt(L_rad) * (1 + 0.038 * std::log(L_rad)); //
+
+/*
+  // TODO
+  double sigma_ms = (13.6 / beta) * std::sqrt(L_rad) * (1 + 0.038 * std::log10(L_rad / (beta*beta))); // used to be standard ln (CORRECT ONE)
+*/
+
   sigma_ms /= par_handler->par_map["p"];
 
   Q = Q * std::pow(sigma_ms, 2); // Scattering contribution to process noise
@@ -461,6 +489,20 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
          0, 0, 0, 0 , 0                         , 0 ,
          0, 0, 0, 0 , 0                         , 0 ,
          0, 0, 0, 0 , 0                         , 0 ;
+
+/*
+  // TODO (MAYBE??)
+  // x_process = {(dy / vy) * vx, (dy / vy), (dy / vy) * vz,0,0,0} jacobian of x_hat -> x_process
+  double dt = dy / x_hat[4];
+
+  Eigen::MatrixXd jac;
+  jac = Eigen::MatrixXd::Zero(5, 5);
+  jac << 0, 0, 0, dt, - dt * x_hat[3] / x_hat[4],
+         0, 0, 0, 0 , - dt / x_hat[4]           ,
+         0, 0, 0, 0 , - dt * x_hat[5] / x_hat[4],
+         0, 0, 0, 0 , 0                         ,
+         0, 0, 0, 0 , 0                         ;
+*/
 
   Q += jac * P * jac.transpose(); // Prediction contribution to process noise
 

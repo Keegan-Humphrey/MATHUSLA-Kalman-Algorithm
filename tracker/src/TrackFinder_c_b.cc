@@ -334,7 +334,6 @@ void TrackFinder_c_b::FindTracks_kalman()
 			beta_index++;
 			if (beta_index > sizeof(beta_vals) / sizeof(beta_vals[0]))
 				break;
-
 			if (par_handler->par_map["debug"] == 2) {
 				std::cout << "Beta index: " << beta_index << std::endl;
 				std::cout << "Total seeds: " << total_seeds << std::endl;
@@ -460,6 +459,9 @@ void TrackFinder_c_b::FindTracks_kalman()
 //				if (kft_.chi_s[n] > cuts::kalman_chi_s
 			//if (sts.chi_prob_eld(kft_.chi_s[n],ndof) > par_handler->par_map["kalman_pval_s"]
 //				if (kft_.chi_s[n] > par_handler->par_map["kalman_chi_s"]
+
+			// TODO remove beta condition
+
 			if (ROOT::Math::chisquared_cdf(kft_.chi_s[n], ndof) >= par_handler->par_map["kalman_pval_drop"]
 				   || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c
 			   && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"]))

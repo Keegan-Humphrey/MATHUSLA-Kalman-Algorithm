@@ -121,6 +121,13 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
       0, 1, 0, 0, 0, 0,
       0, 0, 1, 0, 0, 0;
 
+/*
+  // Projection Matrix (fixed beta)
+  C << 1, 0, 0, 0, 0,
+      0, 1, 0, 0, 0,
+      0, 0, 1, 0, 0;
+*/
+
   physics::digi_hit* first;
   physics::digi_hit* second;
 
@@ -151,6 +158,18 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
 	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt,
 	0       , dz / (dt*dt), - 1 / dt, 0       , 0       , - dz / (dt*dt), 1 / dt, 0     ;
 
+
+/*
+  // TODO
+  // jacobian of calculated first state (seed1 (+) seed2 space to filter state space) (fixed beta)
+  Eigen::MatrixXd jac;
+  jac = Eigen::MatrixXd::Zero(5, 8);
+  jac << 1      , 0           , 0       , 0       , 0       , 0             , 0     , 0     ,
+      	0       , 1           , 0       , 0       , 0       , 0             , 0     , 0     ,
+        0       , 0           , 1       , 0       , 0       , 0             , 0     , 0     ,
+	- 1 / dt, dx / (dt*dt), 0       , 0       , 1 / dt  , - dx / (dt*dt), 0     , 0     ,
+	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt;
+*/
   /*
   // propagate velocity errors
   double v_x_err = 2.0 * dx / dt * std::sqrt(std::pow(first_hit->ex, 2) / (dx * dx) + 1.0 / (dt * dt));
@@ -282,8 +301,14 @@ void kalman_track_c_b::find_first()
 
 //  velocity = {kf_find.x_f_list().back()[3], kf_find.x_f_list().back()[4], kf_find.x_f_list().back()[5]};
 
-  // TODO convert to cartesian from angular
   velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
+
+/*
+  // TODO
+  double tht = kf_find.x_f_list()[0][3];
+  double phi = kf_find.x_f_list()[0][4];
+  Eigen::VectorXd velocity = kf_find.to_cartesian_v(tht,phi); // may need to be changed to std::vector<double>
+*/
 
   filter_start_layer = layers[start_ind];
 }
