@@ -340,13 +340,18 @@ void TrackFinder_c_b::FindTracks_kalman()
 				std::cout << "recycled seeds: " << recycled_seeds.size() << std::endl;
 				std::cout << "unmerged tracks: " <<tracks_k.size() << std::endl;
 			}
+			if (recycled_seeds.size() == 0) // No more seeds at all 
+				break;
 			for (auto seed : recycled_seeds) {
 				seeds_k.push_back(seed);
 			}
 			recycled_seeds.clear();
 		}
-		if (hits_k.size() == 0)
+		if (hits_k.size() == 0) {
+			if (par_handler->par_map["debug"] == 2) 
+				std::cout << "No more hits" << std::endl;
 			break;
+		}
 
 		int min_index = min_seed_k();
 		auto current_seed = seeds_k[min_index];
@@ -604,9 +609,11 @@ void TrackFinder_c_b::FindTracks_kalman()
 		hits_k = unused_hits;
 
 		if (seeds_k.size() == 0)
+			continue;
+		if (hits_k.size() < cuts::nseed_hits) {
+			if (par_handler->par_map["debug"] == 2) std::cout << "Insufficient Hits" << std::endl;
 			iterate = false;
-		if (hits_k.size() < cuts::nseed_hits)
-			iterate = false;
+		}
 
 	}
 	// assign indices
