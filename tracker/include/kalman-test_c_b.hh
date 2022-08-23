@@ -252,6 +252,29 @@ private:
         v_s_list.push_back({kf.x_s[i][3], kf.x_s[i][4], kf.x_s[i][5]});
 
         // TODO change from angular
+		/* TODO: UNCOMMENT THIS FOR C_B IMPLEMENTATION
+		 * double theta = kf.x_s[i][3];
+		 * double phi = kf.x_s[i][4];
+		 * x_s_list.push_back({kf.x_s[i][0], kf.added_hits[i]->y, kf.x_s[i][2]});
+		 * v_s_list.push_back({c*beta*sin(theta)*cos(phi), c*beta*cos(theta), c*beta*sin(theta)*sin(phi)});
+		 * Note: y and z are swapped from standard spherical coordinates
+		 *
+		 *
+		 * std::vector<std::vector<double>> _track_cov;
+		 * Eigen::MatrixXd TC = kf.P_s[0];
+		 *
+		 * jac = {{1,		0,		0,		0,		0},
+		 * 		   {0,		0,		0,		0,		0},
+		 * 		   {0,		0,		1,		0,		0},
+		 * 		   {0,		0,		0,	beta*c*cos(theta)*cos(phi), -beta*c*sin(theta)*sin(phi)},
+		 * 		   {0,		0,		0,	-beta*c*sin(theta),		0},
+		 * 		   {0,		0,		0,	beta*c*cos(theta)*sin(phi),		beta*c*sin(theta)*cos(phi)},
+		 * 		   {0,		1,		0,		0,		0}};
+		 *
+		 * _track_cov = jac*TC*jac.transpose();
+		 * track_cov = _track_cov;
+		 *
+		 */
       }
       // prepare track state vector from first smoothed state
 
