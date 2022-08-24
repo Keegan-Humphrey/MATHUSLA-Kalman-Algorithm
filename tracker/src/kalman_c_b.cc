@@ -48,11 +48,21 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   // no propagation to first hit
 //  dy = 0;
+
   A = I;
+
+  std::cout << "A ";
+  std::cout << A << std::endl;
 
   P = P0;
 
+  std::cout << "P ";
+  std::cout << P << std::endl;
+
   K = P * C.transpose() * (C * P * C.transpose() + R).inverse();
+
+  std::cout << "K ";
+  std::cout << K << std::endl;
 
   chi = 0;
 
@@ -68,11 +78,24 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 //      0, 0, first_layer[0]->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
 
+  std::cout << "R ";
+  std::cout << R << std::endl;
+
+  double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
+  double phi = std::atan2(x0[5], x0[3]);
+
+  // TODO
+  Eigen::VectorXd v = to_cartesian_v(theta, phi);
+  x_hat << x0[0], x0[1], x0[2], theta, phi;// look for nearest hit using seed guess
+
   // pass seed predicted position and first vector
   // of layer_hits (hits in the layer) and then use find_nearest
   // to find the index of the best hit to use
-  std::vector<int> x_inds = find_nearest(first_layer, x0);
+  std::vector<int> x_inds = find_nearest(first_layer, x_hat);
+//  std::vector<int> x_inds = find_nearest(first_layer, x0);
   int x_ind = x_inds[0];
+
+  std::cout << "after find_nearest test" << std::endl;
 
   /*
   // if none make the 1e6 cut, choose a random hit to start the filter
@@ -82,13 +105,8 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
-  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
-
-  double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
-  double phi = std::atan2(x0[5], x0[3]);
-
-  Eigen::VectorXd v = to_cartesian_v(theta, phi);
-//  x_hat << y0->x, y0->t, y0->z, theta, phi;
+  x_hat << y0->x, y0->t, y0->z, theta, phi;
+//  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
 //  x_hat << y0->x, y0->t, y0->z, v[0], v[1], v[2];
 
   if (par_handler->par_map["debug"] == 1) {
@@ -292,10 +310,12 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
   P_s.insert(P_s.begin(), P_n); //adding to beginner of vector P_s
 
   // TODO change to v from angular variables
-
+/*
   // smoothed velocity
   Eigen::VectorXd v(3);
   v << x_n[3], x_n[4], x_n[5];
+*/
+  Eigen::VectorXd v = to_cartesian_v(x_n[3],x_n[4]); // may need to be changed to std::vector<double>
 
   if (par_handler->par_map["debug"] == 1) {
 
@@ -348,7 +368,7 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
       .0, .0, .0, .0, 1.0, .0,
       .0, .0, .0, .0, .0, 1.0;
 
-/*
+
     // TODO
     // fixed beta propagation
     double tht = x_hat[3];
@@ -362,8 +382,8 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
          .0, 1.0, .0, dt / tht, .0, .0,
          .0, .0, 1.0, dz / tht, .0, .0,
          .0, .0, .0, 1.0, .0, .0,
-         .0, .0, .0, .0, 1.0, .0,
-*/
+         .0, .0, .0, .0, 1.0, .0;
+/**/
 /*
     // t propagation
     double dt = a_hit->t - x_hat[1];
@@ -375,6 +395,7 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
       .0, .0, .0, .0, 1.0, .0,
       .0, .0, .0, .0, .0, 1.0;
 */
+/*  // NOT CURRENTLY UPDATING Q
     // direction cosines
     double a = x_hat[3] / constants::c;
     double b = x_hat[4] / constants::c;
@@ -386,6 +407,7 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 
     x_scat = std::sqrt(Q(0, 0)) * 100 / dy; // predicted std of scattering in x per y m
     z_scat = std::sqrt(Q(2, 2)) * 100 / dy; // predicted std of scattering in z per y m
+*/
   }
 
 

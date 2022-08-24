@@ -46,13 +46,21 @@ void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, se
   {
 //    seed_c_b filt_seed = choose_seed(current_seed);
 
+    std::cout << "test 1 " << std::endl;
+
     init_seed_info(current_seed);
 //    init_seed_info(&filt_seed);
+
+    std::cout << "test 2 " << std::endl;
 
     init_matrices(current_seed);
 //    init_matrices(&filt_seed);
 
+    std::cout << "test 3 " << std::endl;
+
     init_first_state();
+
+    std::cout << "test 4 " << std::endl;
 
     // initialise the KalmanFilter object for fitting
     // and assign initialised object to class variable
@@ -116,18 +124,18 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
   R = Eigen::MatrixXd::Zero(m, m);
   P = Eigen::MatrixXd::Zero(n, n);
 
+/*
   // Projection Matrix
   C << 1, 0, 0, 0, 0, 0,
       0, 1, 0, 0, 0, 0,
       0, 0, 1, 0, 0, 0;
+*/
 
-/*
   // Projection Matrix (fixed beta)
   // TODO: UNCOMMENT THIS FOR C_B IMPLMENENTATION
   C << 1, 0, 0, 0, 0,
       0, 1, 0, 0, 0,
       0, 0, 1, 0, 0;
-*/
 
   physics::digi_hit* first;
   physics::digi_hit* second;
@@ -148,18 +156,20 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
   double dx = dr.x;
   double dy = dr.y;
   double dz = dr.z;
+
+  double L = std::sqrt(dx*dx + dz*dz);
+  double R = std::sqrt(dx*dx + dz*dz + dy*dy); 
+ // TODO: UNCOMENT THIS FOR C_B IMPLEMENTATATION
+  Eigen::MatrixXd jac;
+//  jac = Eigen::MatrixXd::Zero(n, 8);
+  jac = Eigen::MatrixXd::Zero(5, 8);
+  jac <<
+ 	  1,		0,		0,		0,		0,		0,		0,		0,
+ 	  0,		1,		0,		0,		0,		0,		0,		0,
+ 	  0,		0,		1,		0,		0,		0,		0,		0,
+	  -dx*dy/(L*R*R),0,		-dy*dz/(L*R*R),	L/(R*R),	dx*dy/(L*R*R),	0,	dy*dz/(L*R*R),  -L/(R*R),
+	dz/(L*L),	0,		-dx/(L*L),      0,             -dz/(L*L),	0,		dx/(L*L),	0;
 /*
- * double L = std::sqrt(dx*dx + dz*dz);
- * double R = std::sqrt(dx*dx + dz*dz + dy*dy); 
- * TODO: UNCOMENT THIS FOR C_B IMPLEMENTATATION
- * Eigen::MatrixXd jac;
- * jac = Eigen::MatrixXd::Zero(n, 8);
- * jac << 
- *	  1,		0,		0,		0,		0,		0,		0,		0,
- *	  0,		1,		0,		0,		0,		0,		0,		0,
- *	  0,		0,		1,		0,		0,		0,		0,		0,
- *	  -dx*dy/(L*R*R),		0,		-dy*dz/(L*R*R),		dx*dy/(L*R*R),	0,	dy*dz/(L*R*R),	-L/(R*R),		dz/(L*L),		0,		-dz/(L*L),	0,		dx/(L*L),		0;
-*/
   // jacobian of calculated first state (seed1 (+) seed2 space to filter state space)
   Eigen::MatrixXd jac;
   jac = Eigen::MatrixXd::Zero(n, 8);
@@ -169,19 +179,9 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
 	- 1 / dt, dx / (dt*dt), 0       , 0       , 1 / dt  , - dx / (dt*dt), 0     , 0     ,
 	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt,
 	0       , dz / (dt*dt), - 1 / dt, 0       , 0       , - dz / (dt*dt), 1 / dt, 0     ;
-
-
-/*
-  // TODO
-  // jacobian of calculated first state (seed1 (+) seed2 space to filter state space) (fixed beta)
-  Eigen::MatrixXd jac;
-  jac = Eigen::MatrixXd::Zero(5, 8);
-  jac << 1      , 0           , 0       , 0       , 0       , 0             , 0     , 0     ,
-      	0       , 1           , 0       , 0       , 0       , 0             , 0     , 0     ,
-        0       , 0           , 1       , 0       , 0       , 0             , 0     , 0     ,
-	- 1 / dt, dx / (dt*dt), 0       , 0       , 1 / dt  , - dx / (dt*dt), 0     , 0     ,
-	0       , dy / (dt*dt), 0       , - 1 / dt, 0       , - dy / (dt*dt), 0     , 1 / dt;
 */
+
+
   /*
   // propagate velocity errors
   double v_x_err = 2.0 * dx / dt * std::sqrt(std::pow(first_hit->ex, 2) / (dx * dx) + 1.0 / (dt * dt));
@@ -237,7 +237,11 @@ void kalman_track_c_b::init_first_state()
       // or lowest layer with hits above seed layer
       next_layer = find_next_layer();
 
+      std::cout << "init_first_state seedguess is " << seedguess.size() << std::endl;
+
       x0 = find_guess(seedguess, seedguess[1] - layer_hits[next_layer][0]->y);
+
+      std::cout << "init_first_state test "<< std::endl;
 
       first_hit_list = layer_hits[next_layer];
     }
@@ -260,11 +264,18 @@ void kalman_track_c_b::init_first_state()
 void kalman_track_c_b::find_first()
 { // find the first hit to start the filter
 
+  std::cout << "find_first test 1" << std::endl;
+
   KalmanFilter_c_b kf_find_init(0, A, C, Q, R, P);
+
+  std::cout << "find_first test 2" << std::endl;
+
   kf_find = kf_find_init;
   kf_find.par_handler = par_handler;
   kf_find.beta = beta;
   kf_find.init_gain(x0, first_hit_list);
+
+  std::cout << "find_first test 3" << std::endl;
 
   // find layer index to start filter
   int start_ind;
@@ -316,11 +327,11 @@ void kalman_track_c_b::find_first()
   velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
 
 /*
+*/
   // TODO
   double tht = kf_find.x_f_list()[0][3];
   double phi = kf_find.x_f_list()[0][4];
   Eigen::VectorXd velocity = kf_find.to_cartesian_v(tht,phi); // may need to be changed to std::vector<double>
-*/
 
   filter_start_layer = layers[start_ind];
 }

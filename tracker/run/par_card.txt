@@ -1,5 +1,5 @@
 branch 0.0
-debug 0.0
+debug 1.0
 seed -1.0
 seed_interval 5.0
 kalman_chi_s 150.0
@@ -22,5 +22,5 @@ kalman_v_add[1] 1.2
 kalman_v_drop[0] 0.8
 kalman_v_drop[1] 1.2
 start_ev 0.0
-end_ev 100000.0
+end_ev 10.0
 noise_hz 0.0

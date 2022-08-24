@@ -136,7 +136,9 @@ private:
 
   int seed_layer; // layer (detector index) of first seed hit
 
-  int n = 6; // Number of states x t z vx vy vz
+  // TODO
+  int n = 5; // Number of states x t z thx, thz
+//  int n = 6; // Number of states x t z vx vy vz
   int m = 3; // Number of measurements x t z
 
   Eigen::MatrixXd A; // System dynamics matrix
@@ -195,18 +197,20 @@ private:
     seed_layer = (first_hit->det_id).layerIndex * 2;
     //file << "Seed layer is " << seed_layer << std::endl;
 
-    seedguess = current_seed->guess();
 /*
+    seedguess = current_seed->guess();
+*/
     // TODO
     seedguess = current_seed->guess_fixed_beta(beta); // normalize velocity to beta c
-*/
+
     /*
     file << " seed guess is ";
     for (auto pos : seedguess)
       file << pos << ", ";
     file << std::endl;
     */
-    x0 = Eigen::VectorXd::Zero(n);
+//    x0 = Eigen::VectorXd::Zero(n);
+    x0 = Eigen::VectorXd::Zero(6);
     x0 << first_hit->x, first_hit->t, first_hit->z, seedguess[3], seedguess[4], seedguess[5];
 
    // file.close();
@@ -249,40 +253,56 @@ private:
       // prepare best estimate positions for visualiser
       for (int i = 0; i < kf.x_s.size(); i++) {
         x_s_list.push_back({kf.x_s[i][0], kf.added_hits[i]->y, kf.x_s[i][2]});
-        v_s_list.push_back({kf.x_s[i][3], kf.x_s[i][4], kf.x_s[i][5]});
+        //v_s_list.push_back({kf.x_s[i][3], kf.x_s[i][4], kf.x_s[i][5]});
+
 
         // TODO change from angular
-		/* TODO: UNCOMMENT THIS FOR C_B IMPLEMENTATION
-		 * double theta = kf.x_s[i][3];
-		 * double phi = kf.x_s[i][4];
-		 * x_s_list.push_back({kf.x_s[i][0], kf.added_hits[i]->y, kf.x_s[i][2]});
-		 * v_s_list.push_back({c*beta*sin(theta)*cos(phi), c*beta*cos(theta), c*beta*sin(theta)*sin(phi)});
-		 * Note: y and z are swapped from standard spherical coordinates
-		 *
-		 *
-		 * std::vector<std::vector<double>> _track_cov;
-		 * Eigen::MatrixXd TC = kf.P_s[0];
-		 *
-		 * jac = {{1,		0,		0,		0,		0},
-		 * 		   {0,		0,		0,		0,		0},
-		 * 		   {0,		0,		1,		0,		0},
-		 * 		   {0,		0,		0,	beta*c*cos(theta)*cos(phi), -beta*c*sin(theta)*sin(phi)},
-		 * 		   {0,		0,		0,	-beta*c*sin(theta),		0},
-		 * 		   {0,		0,		0,	beta*c*cos(theta)*sin(phi),		beta*c*sin(theta)*cos(phi)},
-		 * 		   {0,		1,		0,		0,		0}};
-		 *
-		 * _track_cov = jac*TC*jac.transpose();
-		 * _track_cov[1][1] = layer_hits[layers[0][0]->ey * layer_hits[layers[0][0]->ey; 
-		 * track_cov = _track_cov;
-		 * 
-		 *
-		 */
+	double theta = kf.x_s[i][3];
+	double phi = kf.x_s[i][4];
+	Eigen::VectorXd v = kf.to_cartesian_v(theta, phi);
+	v_s_list.push_back({v[0],v[1],v[2]});
+//	v_s_list.push_back({c*beta*sin(theta)*cos(phi), c*beta*cos(theta), c*beta*sin(theta)*sin(phi)});
+
       }
+
+		// TODO: UNCOMMENT THIS FOR C_B IMPLEMENTATION
+		 // Note: y and z are swapped from standard spherical coordinates
+
+		  std::vector<std::vector<double>> _track_cov;
+		  Eigen::MatrixXd TC = kf.P_s[0];
+
+		double theta = kf.x_s[0][3];
+		double phi = kf.x_s[0][4];
+		Eigen::VectorXd v = kf.to_cartesian_v(theta, phi);
+	      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], v[0], v[1], v[2], kf.x_s[0][1]};
+		double c = constants::c;
+
+		  Eigen::MatrixXd jac;
+		  jac = Eigen::MatrixXd::Zero(7,5);
+		  jac << 1,		0,		0,		0,		0,
+		  		   0,		0,		0,		0,		0,
+		  		   0,		0,		1,		0,		0,
+		  		   0,		0,		0,	beta*c*cos(theta)*cos(phi), -beta*c*sin(theta)*sin(phi),
+		  		   0,		0,		0,	-beta*c*sin(theta),		0,
+		  		   0,		0,		0,	beta*c*cos(theta)*sin(phi),		beta*c*sin(theta)*cos(phi),
+		  		   0,		1,		0,		0,		0;
+
+		  TC= jac*TC*jac.transpose();
+		  _track_cov[1][1] = layer_hits[layers[0]][0]->ey * layer_hits[layers[0]][0]->ey;
+		//  track_cov = _track_cov;
+		for (int i = 0; i < 7; i++) {
+		  for (int j = 0; j < 7; j++) {
+		    track_cov[i][j] = TC(i,j);
+                  }
+                }
+
+
       // prepare track state vector from first smoothed state
 
       // TODO change from angular
+//      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], kf.x_s[0][4], kf.x_s[0][5], kf.x_s[0][1]};
 
-      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], kf.x_s[0][3], kf.x_s[0][4], kf.x_s[0][5], kf.x_s[0][1]};
+
       //x_s = {kf.x_s.back()[0], layer_hits[layers.back()][0]->y, kf.x_s.back()[2], kf.x_s.back()[3], kf.x_s.back()[4], kf.x_s.back()[5], kf.x_s.back()[1]}; //// PASSING LAST COVARIANCE TEMPORARILY
 
       // prepare track error vector from covariance matrix
@@ -292,6 +312,8 @@ private:
       P_s.push_back(P_s[1]);
       P_s[1] = layer_hits[layers[0]][0]->ey;
       */
+
+/*
       std::vector<std::vector<double>> _track_cov;
       Eigen::MatrixXd TC = kf.P_s[0];
       //Eigen::MatrixXd TC = kf.P_s.back(); //// PASSING LAST COVARIANCE TEMPORARILY
@@ -308,6 +330,8 @@ private:
       _track_cov[1][1] = std::pow(layer_hits[layers[0]][0]->ey, 2);
       //_track_cov[1][1] = std::pow(layer_hits[layers.back()][0]->ey, 2); //// PASSING LAST COVARIANCE TEMPORARILY
       track_cov = _track_cov;
+*/
+
       /*
       for (int i = 0; i < 7; i++) {
         for (int j = 0; j < 7; j++) {
