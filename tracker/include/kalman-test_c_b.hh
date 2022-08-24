@@ -272,7 +272,9 @@ private:
 		 * 		   {0,		1,		0,		0,		0}};
 		 *
 		 * _track_cov = jac*TC*jac.transpose();
+		 * _track_cov[1][1] = layer_hits[layers[0][0]->ey * layer_hits[layers[0][0]->ey; 
 		 * track_cov = _track_cov;
+		 * 
 		 *
 		 */
       }
