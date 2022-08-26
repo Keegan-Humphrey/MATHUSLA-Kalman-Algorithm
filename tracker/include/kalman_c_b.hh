@@ -57,7 +57,6 @@ public:
 
     double min_val;
     bool first_hit;
-
     if (initialized) {
       min_val = par_handler->par_map["kalman_chi_add"];
 //      min_val = par_handler->par_map["kalman_pval_add"];
@@ -81,7 +80,7 @@ public:
     {
       Eigen::VectorXd hit_eig(3);
       hit_eig << hit->x, hit->t, hit->z;
-
+	  std::cout << "find_nearest: update_matrices" << std::endl;
       update_matrices(hit);
 
 //      Eigen::VectorXd x_hat_new_temp = A * x_hat;
@@ -93,7 +92,7 @@ public:
       }
 
       Eigen::MatrixXd err_metric = R + C * P_temp * C.transpose();
-
+	  std::cout << "find_nearest: err_metric" << std::endl;
       // compute the chi increment
 //      double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
       double del_chi = (hit_eig - C * x_hat_new_temp).transpose() * err_metric.inverse() * (hit_eig - C * x_hat_new_temp);

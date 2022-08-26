@@ -51,17 +51,17 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   A = I;
 
-  std::cout << "A ";
+  std::cout << "A "<< std::endl;
   std::cout << A << std::endl;
 
   P = P0;
 
-  std::cout << "P ";
+  std::cout << "P " << std::endl;
   std::cout << P << std::endl;
 
   K = P * C.transpose() * (C * P * C.transpose() + R).inverse();
 
-  std::cout << "K ";
+  std::cout << "K " << std::endl;
   std::cout << K << std::endl;
 
   chi = 0;
@@ -78,7 +78,7 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 //      0, 0, first_layer[0]->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
 
-  std::cout << "R ";
+  std::cout << "R " << std::endl;
   std::cout << R << std::endl;
 
   double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
@@ -148,26 +148,31 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
 
   // indices of lowest two chis in the layer
   //std::vector<int> hit_inds = find_nearest(y_list, x_hat_new);
+  std::cout << "find_nearest" << std::endl;
   std::vector<int> hit_inds = find_nearest(y_list, x_hat);
 
   // hit_inds[0] is index of hit w lowest chi that meets beta cut
   physics::digi_hit *y;
   y = y_list[hit_inds[0]];
-
+  std::cout << "king_moves_algorithm" << std::endl;
   king_moves_algorithm(y_list, hit_inds);
-
+  std::cout << "update_gain: Finished king_moves_algorithm" << std::endl;
   // no good hit was found
   if (hit_inds[0] == -1)
     return -1.0;
 
   // take any hit because errors are the same for all layers
 //  update_matrices(y_list[0]);
+  std::cout << "update_gain: update_matrices" << std::endl;
   update_matrices(y_list[hit_inds[0]]);
 
   x_hat_new = A * x_hat;
+  std::cout << "update_gain: set x_hat_new" << std::endl;
 
   P = A * P * A.transpose() + Q;
+  std::cout << "update_gain: set P" <<std::endl;
   K = P * C.transpose() * (C * P * C.transpose() + R).inverse();
+  std::cout << "update_gain: Setting gain K" << std::endl;
 
   A_k.push_back(A); // F_k
 
@@ -180,6 +185,8 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
   // calculate the increment in the chi squared
   Eigen::MatrixXd err_metric_p = R + C * P * C.transpose();
   double chi_plus = (Y - C * x_hat_new).transpose() * err_metric_p.inverse() * (Y - C * x_hat_new);
+  std::cout << "update_gain: err_metric_p" << std::endl;
+
 
   added_inds.push_back(hit_inds[0]);
   added_hits.push_back(y);
@@ -195,19 +202,32 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
   P_p.push_back(P);         // C^(k-1)_k
 
   x_hat_new += K * (Y - C * x_hat_new);
+  std::cout << "update_gain: Resetting x_hat_new" << std::endl;
 
   P = (I - K * C) * P;
+  std::cout << "update_gain: Resetting P" << std::endl;
 
   if (par_handler->par_map["debug"] == 1) {
-
+	std::cout << "update_gain: x_hat_new" << std::endl;
+	std::cout << x_hat_new << std::endl;
     Eigen::VectorXd v(3);
-    v << x_hat_new[3], x_hat_new[4], x_hat_new[5];
+    /*v << x_hat_new[3], x_hat_new[4], x_hat_new[5];
 
     std::cout << "Filtering: Residue is " << (Y - C * x_hat_new).transpose() << " at y = " << y_val << " with chi " << chi_plus <<
 	" updated velocity is " << v.transpose() / constants::c << " digi is " << Y.transpose() << std::endl;
+	*/
   }
 
+  std::cout << "update_gain: R" << std::endl;
+  std::cout << R << std::endl;
+  std::cout << "update_gain: C" << std::endl;
+  std::cout << C << std::endl;
+  std::cout << "update_gain: P" << std::endl;
+  std::cout << P << std::endl;
+
+
   Eigen::MatrixXd err_metric_f = R - C * P * C.transpose();
+  std::cout << "update_gain: err_metric_f" << std::endl;
 
   // stored filtered data
   P_f.push_back(P);         // C^k_k
@@ -217,6 +237,7 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
 
   // increment chi squared
   chi += chi_plus;
+  std::cout << "end update_gain" << std::endl;
 
   return chi_plus;
 }
@@ -228,12 +249,14 @@ void KalmanFilter_c_b::king_moves_algorithm(const std::vector<physics::digi_hit 
     // this helps avoid making duplicate tracks
 
     // index of hit with min chi (chosen hit)
+	std::cout << "king_moves: iterating through y_list" << std::endl;
     if (i == hit_inds[0])
       continue;
 
     else if (i == hit_inds[1])
 //    if (i == hit_inds[1])
     {
+	  std::cout << "king_moves update_matrices" << std::endl;
       update_matrices(y_list[i]);
       x_hat_new = A * x_hat;
 
@@ -264,7 +287,6 @@ void KalmanFilter_c_b::king_moves_algorithm(const std::vector<physics::digi_hit 
     else
       unadded_hits.push_back(y_list[i]);
   }
-
 }
 
 void KalmanFilter_c_b::init_smooth_gain()
@@ -357,32 +379,37 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 //      0, a_hit->et * std::sqrt(2), 0,
 //      0, 0, a_hit->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
-
+  std::cout << "update_matrices: set R" << std::endl;
+  std::cout << initialized << std::endl;
   if (initialized) {
 
     // standard y propagation
-    A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
+/*    A << 1.0, .0, .0, dy / x_hat[4], .0, .0,
       .0, 1.0, .0, .0, dy / (x_hat[4] * x_hat[4]), .0,
       .0, .0, 1.0, .0, .0, dy / x_hat[4],
       .0, .0, .0, 1.0, .0, .0,
       .0, .0, .0, .0, 1.0, .0,
       .0, .0, .0, .0, .0, 1.0;
-
-
+	std::cout << "Set A for standard" << std::endl;
+*/
     // TODO
     // fixed beta propagation
+	std::cout <<"about to set theta and phi" << std::endl;
     double tht = x_hat[3];
     double phi = x_hat[4];
 
     double dx = dy * std::tan(tht) * std::cos(phi);
     double dt = dy / (beta * constants::c * std::cos(tht));
     double dz = dy * std::tan(tht) * std::sin(phi);
-
-    A << 1.0, .0, .0, dx / tht, .0, .0,
-         .0, 1.0, .0, dt / tht, .0, .0,
-         .0, .0, 1.0, dz / tht, .0, .0,
-         .0, .0, .0, 1.0, .0, .0,
-         .0, .0, .0, .0, 1.0, .0;
+	std::cout << "Current Value of A:" << std::endl;
+    std::cout << A << std::endl;
+	std::cout << "About to set A" << std::endl;
+    A << 1.0, .0, .0, dx / tht, .0,
+         .0, 1.0, .0, dt / tht, .0,
+         .0, .0, 1.0, dz / tht, .0,
+         .0, .0, .0, 1.0, .0,
+         .0, .0, .0, .0, 1.0;
+	std::cout << "Set A for beta version" << std::endl;
 /**/
 /*
     // t propagation
@@ -409,7 +436,7 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
     z_scat = std::sqrt(Q(2, 2)) * 100 / dy; // predicted std of scattering in z per y m
 */
   }
-
+  std::cout << "Completed update_matrices" << std::endl;
 
 }
 
@@ -581,7 +608,6 @@ double KalmanFilter_c_b::update_means(const std::vector<physics::track *> tracks
 
   Eigen::VectorXd y(6);
   y << new_track->x0, new_track->t0, new_track->z0, new_track->vx, new_track->vy, new_track->vz;
-
   update_matrices_means(new_track);
 
   Eigen::MatrixXd G = R.inverse(); // R is V in Fruhwirth

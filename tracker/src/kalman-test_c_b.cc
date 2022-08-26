@@ -46,8 +46,7 @@ void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, se
   {
 //    seed_c_b filt_seed = choose_seed(current_seed);
 
-    std::cout << "test 1 " << std::endl;
-
+	std::cout << "kalman_all: init_seed_info" << std::endl;	
     init_seed_info(current_seed);
 //    init_seed_info(&filt_seed);
 
@@ -237,11 +236,9 @@ void kalman_track_c_b::init_first_state()
       // or lowest layer with hits above seed layer
       next_layer = find_next_layer();
 
-      std::cout << "init_first_state seedguess is " << seedguess.size() << std::endl;
 
       x0 = find_guess(seedguess, seedguess[1] - layer_hits[next_layer][0]->y);
 
-      std::cout << "init_first_state test "<< std::endl;
 
       first_hit_list = layer_hits[next_layer];
     }
@@ -259,6 +256,7 @@ void kalman_track_c_b::init_first_state()
     added_layers = layers;
     filter_start_layer = layers[0];
   }
+  std::cout << "end init_first_state" << std::endl;
 }
 
 void kalman_track_c_b::find_first()
@@ -283,23 +281,25 @@ void kalman_track_c_b::find_first()
   // layers index of first_hit_list (times two to account for spaces between layers)
   if (seed_was_used)
     start_ind = det_ind_to_layers[(first_hit_list[0]->det_id).layerIndex * 2];
-  else
+  else 
     start_ind = det_ind_to_layers[seed_layer];
 
   added_layers.push_back(layers[start_ind]);
 
   for (int i = start_ind; i > 0; i--)
   {
-
+	std::cout << "find_first: calculating y_step" << std::endl;
     double y_step = layer_hits[layers[i - 1]][0]->y - layer_hits[layers[i]][0]->y;
+	std::cout << "find_first: finished calcing y_step" << std::endl;
 //    double y = kf.y_val;
 
     if (skipped)
     { // if no hits are found add previous y_step to current one (skip a layer)
+	  std::cout << "find_first: skipped and adding y-step" << std::endl;
       y_step += kf_find.dy;
       skipped = false;
     }
-
+	std::cout << "find_first: update_gain" << std::endl;
     double chi = kf_find.update_gain(layer_hits[layers[i - 1]], y_step);
 //    double chi = kf_find.update_gain(layer_hits[layers[i - 1]], y);
 
@@ -323,9 +323,14 @@ void kalman_track_c_b::find_first()
   lowest_hit = kf_find.added_hits.back();
 
 //  velocity = {kf_find.x_f_list().back()[3], kf_find.x_f_list().back()[4], kf_find.x_f_list().back()[5]};
+  std::cout << "find_first: setting velocity" << std::endl;
+  std::cout << kf_find.x_f_list()[0] << std::endl;
+  //velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
+  velocity = {beta*constants::c*std::sin(kf_find.x_f_list()[0][3])*std::cos(kf_find.x_f_list()[0][4]), 
+		  beta*constants::c*std::cos(kf_find.x_f_list()[0][3]), 
+		  beta*constants::c*std::sin(kf_find.x_f_list()[0][3])*std::cos(kf_find.x_f_list()[0][4])};
 
-  velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
-
+  std::cout << "find_first: finished setting velocity" << std::endl;
 /*
 */
   // TODO
