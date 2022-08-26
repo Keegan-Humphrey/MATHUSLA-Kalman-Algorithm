@@ -331,8 +331,10 @@ void TrackFinder_c_b::FindTracks_kalman()
 	while (iterate)
 	{
 		if (seeds_k.size() == 0) {
+			std::cout << "FindTracks_kalman: starting beta adjustments" << std::endl;
 			beta_index++;
-			if (beta_index > sizeof(beta_vals) / sizeof(beta_vals[0]))
+			std::cout << "FindTracks_kalman current beta: " << beta_index << std::endl;
+			if (beta_index >= sizeof(beta_vals) / sizeof(beta_vals[0]))
 				break;
 			if (par_handler->par_map["debug"] == 2) {
 				std::cout << "Beta index: " << beta_index << std::endl;
@@ -420,6 +422,7 @@ void TrackFinder_c_b::FindTracks_kalman()
 
 		if (kft_.status == -1)
 		{
+			std::cout << "FindTracks_kalman: failed to make tracks" << std::endl;
 			failed = true;
 			recycled_seeds.push_back(seeds_k[min_index]);
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again

@@ -163,9 +163,9 @@ private:
   { // linearly project seedguess onto first layer and format for the filter
     //std::ofstream file;
     //file.open("print.txt", std::ios_base::app);
-
-    Eigen::VectorXd y_guess(n);
-
+	//TODO: This is setting x0, so it needs to be xtz,vxvyvz
+	//seedguess = [xyz, vxvyvz, t]
+    Eigen::VectorXd y_guess(6); // this needs to be the higher number of params
     for (int i = 0; i < n; i++)
       y_guess[i] = seedguess[i];
     y_guess[1] = seedguess[6]; // y -> t
@@ -274,7 +274,9 @@ private:
 		double theta = kf.x_s[0][3];
 		double phi = kf.x_s[0][4];
 		Eigen::VectorXd v = kf.to_cartesian_v(theta, phi);
+		std::cout << "prepare_output: to_cartesian_v" << std::endl;
 	      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], v[0], v[1], v[2], kf.x_s[0][1]};
+		std::cout << "prepare_output: getting x_s" << std::endl;
 		double c = constants::c;
 
 		  Eigen::MatrixXd jac;
@@ -286,16 +288,22 @@ private:
 		  		   0,		0,		0,	-beta*c*sin(theta),		0,
 		  		   0,		0,		0,	beta*c*cos(theta)*sin(phi),		beta*c*sin(theta)*cos(phi),
 		  		   0,		1,		0,		0,		0;
-
 		  TC= jac*TC*jac.transpose();
-		  _track_cov[1][1] = layer_hits[layers[0]][0]->ey * layer_hits[layers[0]][0]->ey;
-		//  track_cov = _track_cov;
 		for (int i = 0; i < 7; i++) {
+			std::vector<double> newRow;
+			_track_cov.push_back(newRow);
 		  for (int j = 0; j < 7; j++) {
-		    track_cov[i][j] = TC(i,j);
+		    _track_cov.at(i).push_back(TC(i,j));
                   }
                 }
-
+		_track_cov.at(1).at(1) = layer_hits[layers[0]][0]->ey * layer_hits[layers[0]][0]->ey;
+		track_cov = _track_cov;
+		/*
+		  std::cout << "prepare_output: About to set TC" << std::endl;
+		  std::cout << layer_hits[layers[0]][0] << std::endl;
+		  _track_cov[1][1] = layer_hits[layers[0]][0]->ey * layer_hits[layers[0]][0]->ey;
+		  std::cout << "prepare_output: TC calculation" << std::endl;
+	  */
 
       // prepare track state vector from first smoothed state
 

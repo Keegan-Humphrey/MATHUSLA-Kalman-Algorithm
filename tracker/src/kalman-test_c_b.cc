@@ -32,6 +32,7 @@ void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, se
 
   // sort hits by layer
   layer_sort(trackhits);
+  std::cout << "kalman_all: finished layer_sort" << std::endl;
 
   // status == 1 => currently working
   status = 1;
@@ -85,9 +86,10 @@ void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, se
 
     if (!finding)
     {
+	  std::cout << "kalman_all: smooth" << std::endl;
       smooth();
     }
-
+	std::cout << "kalman_all: prepare_output()" << std::endl;
     prepare_output();
 
     // status == 2 => seed succeeded
@@ -225,9 +227,11 @@ void kalman_track_c_b::init_first_state()
 { // init function to find the first state vector for the filter
 
   // find first hit by running the filter backwards from seed
+	std::cout << "init_first_state finding: " << finding << std::endl;
   if (finding)
   {
     int next_layer;
+	std::cout << "init_first_state seed_was_used: " << seed_was_used << std::endl;
 
     if (seed_was_used)
     { // if first seed hit was used linearly backpropagate to first layer with hits
@@ -238,7 +242,7 @@ void kalman_track_c_b::init_first_state()
 
 
       x0 = find_guess(seedguess, seedguess[1] - layer_hits[next_layer][0]->y);
-
+	  std::cout << "init_first_state: find_guess finished" << std::endl;
 
       first_hit_list = layer_hits[next_layer];
     }
@@ -252,6 +256,7 @@ void kalman_track_c_b::init_first_state()
 
     // pass previous fit velocity instead of seedguess in tr>
     velocity = {seedguess[3], seedguess[4], seedguess[5]};
+	std::cout << "init_first_state (not finding): setting velocity" << std::endl;
 
     added_layers = layers;
     filter_start_layer = layers[0];
@@ -408,9 +413,11 @@ void kalman_track_c_b::smooth()
 
   for (int i = kf.added_hits.size() - 1; i > 0; i--)
   {
+	std::cout << "smooth: smooth_gain" << std::endl;
     double chi = kf.smooth_gain(kf.added_hits[i - 1], i - 1);
 
     chi_s.insert(chi_s.begin(), chi);
+	std::cout << "smooth: insert chi to chi_s" << std::endl;
     //chi_s.insert(chi_s.begin(), ROOT::Math::chisquared_cdf(chi, ndof)); // need seperate storage for this (other is used for chi summing) // WAS TURNED ON FOR AUGUST 4TH PRESENTATION
   }
 }

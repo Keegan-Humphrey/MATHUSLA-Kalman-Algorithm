@@ -349,7 +349,6 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
   ndof = ndof > 1.0 ? 4.0 * ndof - 6.0 : 1.0;
 
   // TODO Remove beta condition on dropping (here and in trackfinder_c_b)
-
   if (dropping
 //     && (chi_plus_s > cuts::kalman_chi_s
 //     || !(cuts::kalman_v_drop[0] < v.norm() / constants::c && v.norm() / constants::c < cuts::kalman_v_drop[1])))
@@ -358,12 +357,12 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
      || !(par_handler->par_map["kalman_v_drop[0]"] < v.norm() / constants::c && v.norm() / constants::c < par_handler->par_map["kalman_v_drop[1]"])))
   {
     Eigen::MatrixXd K_n = P_n * C.transpose() * (-R + C * P_n * C.transpose()).inverse();
-
     x_n = x_n + K_n * (Y - C * x_n);
     P_n = (I - K_n * C) * P_n;
-
+	std::cout << " smooth_gain: got x_n and P_n" << std::endl;
 //    std::cout << "hit was dropped, new state is  " << x_n.transpose() << std::endl;
   }
+  std::cout <<"smooth_gain: if statement" << std::endl;
 
   chi += chi_plus_s;
 

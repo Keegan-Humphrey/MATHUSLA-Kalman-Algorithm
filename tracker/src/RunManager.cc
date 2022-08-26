@@ -13,6 +13,7 @@
 
 int RunManager::StartTracking()
 {
+	std::cout << "StartTracking()" << std::endl;
 	TreeHandler _handler(_InputTree_Name, _InputFile_Name, _OutputTree_Name, OutFileName());
 	if (_handler.IsNull()) {
 		std::cout << "Sorry, I couldn't open that file" << std::endl;
@@ -134,6 +135,8 @@ int RunManager::StartTracking()
 				_tracker_c_b->CalculateMissingHits(_digitizer->_geometry);
 				_tracker_c_b->MergeTracks_k();
 			}
+
+			std::cout << "tracks pushed appropriately" << std::endl;
 
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 			_tracker_c_b->CalculateMissingHits(_digitizer->_geometry);
