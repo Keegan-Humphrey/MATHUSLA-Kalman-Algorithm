@@ -242,6 +242,7 @@ void kalman_track_c_b::init_first_state()
 
 
       x0 = find_guess(seedguess, seedguess[1] - layer_hits[next_layer][0]->y);
+
 	  std::cout << "init_first_state: find_guess finished" << std::endl;
 
       first_hit_list = layer_hits[next_layer];

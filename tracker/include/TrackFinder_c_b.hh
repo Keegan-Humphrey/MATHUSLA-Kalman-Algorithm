@@ -120,6 +120,7 @@ public:
 	std::vector<seed_c_b> seeds_k;
 //	std::vector<physics::track *> tracks;
 	double beta_vals[5] = {1, 0.98, 0.95, 0.9, 0.8};
+//	double beta;
 	std::vector<physics::track *> tracks_k;
 	std::vector<physics::track *> tracks_k_m;
 	std::vector<double> local_chi_f;

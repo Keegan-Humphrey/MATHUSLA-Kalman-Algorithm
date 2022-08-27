@@ -84,9 +84,13 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
   double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
   double phi = std::atan2(x0[5], x0[3]);
 
+  std::cout << "x0 is " << x0.transpose() << " giving theta and phi " << theta << " " << phi << std::endl;
+
   // TODO
   Eigen::VectorXd v = to_cartesian_v(theta, phi);
   x_hat << x0[0], x0[1], x0[2], theta, phi;// look for nearest hit using seed guess
+
+  std::cout << "v is " << v.transpose() << std::endl;
 
   // pass seed predicted position and first vector
   // of layer_hits (hits in the layer) and then use find_nearest

@@ -22,7 +22,7 @@ public:
 
   int status;
 
-  int beta;
+  double beta;
 
   //std::ofstream file;
 
@@ -182,6 +182,8 @@ private:
 
 //    file.close();
 
+    std::cout << "find guess is " << y_guess.transpose() << std::endl;
+
     return y_guess;
   }
 
@@ -201,6 +203,7 @@ private:
     seedguess = current_seed->guess();
 */
     // TODO
+    std::cout << "beta is " << beta << std::endl;
     seedguess = current_seed->guess_fixed_beta(beta); // normalize velocity to beta c
 
     /*
@@ -212,6 +215,8 @@ private:
 //    x0 = Eigen::VectorXd::Zero(n);
     x0 = Eigen::VectorXd::Zero(6);
     x0 << first_hit->x, first_hit->t, first_hit->z, seedguess[3], seedguess[4], seedguess[5];
+
+    std::cout << "seedguess is " << x0.transpose() << std::endl;
 
    // file.close();
   }

@@ -355,6 +355,12 @@ void TrackFinder_c_b::FindTracks_kalman()
 			break;
 		}
 
+
+		// assign beta value to class variable of TrackFinder_c_b
+		double beta = beta_vals[beta_index];
+
+		std::cout << "beta is " << beta << std::endl;
+
 		int min_index = min_seed_k();
 		auto current_seed = seeds_k[min_index];
 
