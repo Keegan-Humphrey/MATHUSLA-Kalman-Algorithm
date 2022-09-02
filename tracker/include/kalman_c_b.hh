@@ -88,9 +88,11 @@ public:
 
       if (initialized) {
         P_temp = A * P * A.transpose() + Q;
+		std::cout << "find_nearest: P_temp:" << std::endl;
+		std::cout << P_temp << std::endl;
 //        Eigen::MatrixXd K_temp = P_temp * C.transpose() * (C * P_temp * C.transpose() + R).inverse();
       }
-
+	  //TODO: Make sure the math here is still valid after the coordinate change
       Eigen::MatrixXd err_metric = R + C * P_temp * C.transpose();
 	  std::cout << "find_nearest: err_metric" << std::endl;
       // compute the chi increment
@@ -196,15 +198,25 @@ public:
     return min_index;
   }
 
-  Eigen::VectorXd to_cartesian_v(double theta, double phi) {
+  Eigen::VectorXd to_cartesian_v(double tanx, double tanz) {
 
     Eigen::VectorXd vel(3);
+	vel << tanx, 1, tanz;
+	double N = std::sqrt(1 + tanx*tanx + tanz*tanz);
+    vel = vel * beta * constants::c / N;
+
+    return vel;
+  }
+/*  Eigen::VectorXd to_cartesian_v(double theta, double phi) {
+
+    Eigen::VectorXd vel(3);
+	vel << 
     vel << std::sin(theta) * std::cos(phi), std::cos(theta), std::sin(theta) * std::sin(phi);
     vel = vel * beta * constants::c;
 
     return vel;
-  }
-
+ }
+*/
   double update_gain(const std::vector<physics::digi_hit *> y);
   double update_gain(const std::vector<physics::digi_hit *> y, double dy);
   double update_means(const std::vector<physics::track *> tracks);

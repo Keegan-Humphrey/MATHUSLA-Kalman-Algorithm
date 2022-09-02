@@ -91,12 +91,10 @@ void TrackFinder_c_b::MergeTracks_k()
 			}
 
 			if ((tr1->_missing_layers.size() >= 3 or tr2->_missing_layers.size() >= 3) and (distance < 150 and cos_theta > 0.95)){
-				//std::cout << "first holes" << std::endl;
 				mergebool = true;
 			}
 
 			if ((tr1->_missing_layers.size() >= 2 or tr2->_missing_layers.size() >= 2) and (distance < 100 and cos_theta > 0.99)){
-				//std::cout << "second holes" << std::endl;
 				mergebool = true;
 			}
 			//at this point, we need to check if they have a certain number of missing hits
@@ -171,11 +169,9 @@ void TrackFinder_c_b::MergeTracks_k()
 			//	continue;
 			if (!mergebool){continue;} // from above loop
 
-			//std::cout << "made it passed mergebool" << std::endl;
 
 			Vector CA_mid = tr1->closest_approach_midpoint(tr2);
 			if (!geo.inBox(CA_mid.x, CA_mid.y, CA_mid.z)) {
-				std::cout << "CA is outside of detector" << std::endl;
 				continue;
 			}
 
@@ -337,10 +333,6 @@ void TrackFinder_c_b::FindTracks_kalman()
 			if (beta_index >= sizeof(beta_vals) / sizeof(beta_vals[0]))
 				break;
 			if (par_handler->par_map["debug"] == 2) {
-				std::cout << "Beta index: " << beta_index << std::endl;
-				std::cout << "Total seeds: " << total_seeds << std::endl;
-				std::cout << "recycled seeds: " << recycled_seeds.size() << std::endl;
-				std::cout << "unmerged tracks: " <<tracks_k.size() << std::endl;
 			}
 			if (recycled_seeds.size() == 0) // No more seeds at all 
 				break;
@@ -365,7 +357,6 @@ void TrackFinder_c_b::FindTracks_kalman()
 		auto current_seed = seeds_k[min_index];
 
 
-		if (par_handler->par_map["debug"] == 1) std::cout << "New Seed ---------" << std::endl;
 
 		// check if the first seed hit is in the hit pool
 		bool used = !seed_unused(current_seed); // double negative! used = not unused
@@ -598,9 +589,8 @@ void TrackFinder_c_b::FindTracks_kalman()
 		if (current_track->nlayers() >= cuts::track_nlayers && chi_sum < par_handler->par_map["kalman_track_chi"])
 		{
 			tracks_k.push_back(current_track);
-			if (beta_index > 0 && par_handler->par_map["debug"] == 2) {
+			if (beta_index > 0 && par_handler->par_map["debug"] == 2) 
 				std::cout << "made a recycled_seed track" << std::endl;
-			}
 			seeds_k.erase(seeds_k.begin() + min_index); //delete the seed so that it isn't used again
 			if (par_handler->par_map["debug"] == 1) std::cout << "Track made it" << std::endl;
 		}

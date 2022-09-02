@@ -64,7 +64,7 @@ void kalman_track_c_b::kalman_all(std::vector<physics::digi_hit *> trackhits, se
 
     // initialise the KalmanFilter object for fitting
     // and assign initialised object to class variable
-    KalmanFilter_c_b kf_init(0, A, C, Q, R, P);
+    KalmanFilter_c_b kf_init(0.0, A, C, Q, R, P);
     kf = kf_init;
     kf.par_handler = par_handler;
 
@@ -158,6 +158,8 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
   double dy = dr.y;
   double dz = dr.z;
 
+
+
   double L = std::sqrt(dx*dx + dz*dz);
   double R = std::sqrt(dx*dx + dz*dz + dy*dy); 
  // TODO: UNCOMENT THIS FOR C_B IMPLEMENTATATION
@@ -165,11 +167,20 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
 //  jac = Eigen::MatrixXd::Zero(n, 8);
   jac = Eigen::MatrixXd::Zero(5, 8);
   jac <<
+	  1,		0,		0,		0,		0,		0,		0,		0,
+	  0,		1,		0,		0,		0,		0,		0,		0,
+	  0,		0,		1,		0,		0,		0,		0,		0,
+	  -1/dy,	0,		0,		dx/(dy*dy),		 1/dy,	0,		0,		-dx/(dy*dy),
+	  0,		0,		-1/dy,	dz/(dy*dy),		0,		0,		1/dy,		-dz/(dy*dy);
+  /*
+   * This is the theta phi implementation
+  jac <<
  	  1,		0,		0,		0,		0,		0,		0,		0,
  	  0,		1,		0,		0,		0,		0,		0,		0,
  	  0,		0,		1,		0,		0,		0,		0,		0,
 	  -dx*dy/(L*R*R),0,		-dy*dz/(L*R*R),	L/(R*R),	dx*dy/(L*R*R),	0,	dy*dz/(L*R*R),  -L/(R*R),
 	dz/(L*L),	0,		-dx/(L*L),      0,             -dz/(L*L),	0,		dx/(L*L),	0;
+*/
 /*
   // jacobian of calculated first state (seed1 (+) seed2 space to filter state space)
   Eigen::MatrixXd jac;
@@ -219,8 +230,13 @@ void kalman_track_c_b::init_matrices(seed_c_b *current_seed)
       0, 0, 0, 0, 0, 0, 0, errs[7];
   V = V * V;
 
+  std::cout << "init_matrices: V:" << std::endl;
+  std::cout << V << std::endl;
+
   // track covariance matrix
   P = jac * V * jac.transpose();
+  std::cout << "init_matrices: P" << std::endl;
+  std::cout << P << std::endl;
 }
 
 void kalman_track_c_b::init_first_state()
@@ -270,7 +286,7 @@ void kalman_track_c_b::find_first()
 
   std::cout << "find_first test 1" << std::endl;
 
-  KalmanFilter_c_b kf_find_init(0, A, C, Q, R, P);
+  KalmanFilter_c_b kf_find_init(0.0, A, C, Q, R, P);
 
   std::cout << "find_first test 2" << std::endl;
 
@@ -307,6 +323,7 @@ void kalman_track_c_b::find_first()
     }
 	std::cout << "find_first: update_gain" << std::endl;
     double chi = kf_find.update_gain(layer_hits[layers[i - 1]], y_step);
+	std::cout << "find_first chi: " << chi << std::endl;
 //    double chi = kf_find.update_gain(layer_hits[layers[i - 1]], y);
 
     if (chi == -1.0)
@@ -332,18 +349,23 @@ void kalman_track_c_b::find_first()
   std::cout << "find_first: setting velocity" << std::endl;
   std::cout << kf_find.x_f_list()[0] << std::endl;
   //velocity = {kf_find.x_f_list()[0][3], kf_find.x_f_list()[0][4], kf_find.x_f_list()[0][5]};
-  velocity = {beta*constants::c*std::sin(kf_find.x_f_list()[0][3])*std::cos(kf_find.x_f_list()[0][4]), 
-		  beta*constants::c*std::cos(kf_find.x_f_list()[0][3]), 
-		  beta*constants::c*std::sin(kf_find.x_f_list()[0][3])*std::cos(kf_find.x_f_list()[0][4])};
 
-  std::cout << "find_first: finished setting velocity" << std::endl;
+  //velocity = {beta*constants::c*std::sin(kf_find.x_f_list()[0][3])*std::cos(kf_find.x_f_list()[0][4]), 
+//		  beta*constants::c*std::cos(kf_find.x_f_list()[0][3]), 
+//		  beta*constants::c*std::sin(kf_find.x_f_list()[0][3])*std::cos(kf_find.x_f_list()[0][4])};
+
 /*
 */
   // TODO
-  double tht = kf_find.x_f_list()[0][3];
+  double tanx = kf_find.x_f_list()[0][3];
+  double tanz = kf_find.x_f_list()[0][4];
+  Eigen::VectorXd v_tmp = kf_find.to_cartesian_v(tanx,tanz);
+  velocity = {v_tmp[0], v_tmp[1], v_tmp[2]};
+/*  double tht = kf_find.x_f_list()[0][3];
   double phi = kf_find.x_f_list()[0][4];
   Eigen::VectorXd velocity = kf_find.to_cartesian_v(tht,phi); // may need to be changed to std::vector<double>
-
+*/
+  std::cout << "find_first: finished setting velocity" << std::endl;
   filter_start_layer = layers[start_ind];
 }
 
@@ -378,6 +400,7 @@ void kalman_track_c_b::filter()
     }
 
     double chi = kf.update_gain(layer_hits[layers[i + 1]], y_step);
+	std::cout << "filter: chi: " << chi << std::endl;
 //    double chi = kf.update_gain(layer_hits[layers[i + 1]], y);
 
     // no hit was found skip this layer
@@ -416,6 +439,7 @@ void kalman_track_c_b::smooth()
   {
 	std::cout << "smooth: smooth_gain" << std::endl;
     double chi = kf.smooth_gain(kf.added_hits[i - 1], i - 1);
+	std::cout << "smooth: chi: " << chi << std::endl;
 
     chi_s.insert(chi_s.begin(), chi);
 	std::cout << "smooth: insert chi to chi_s" << std::endl;
@@ -436,7 +460,7 @@ void kalman_vertex_c_b::vertexer(std::vector<physics::track *> tracks_list, vert
 
     init_matrices(seed);
 
-    KalmanFilter_c_b kfv_init(0, A, C, Q, R, P);
+    KalmanFilter_c_b kfv_init(0.0, A, C, Q, R, P);
     kfv = kfv_init;
     kfv.par_handler = par_handler;
 

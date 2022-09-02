@@ -261,10 +261,12 @@ private:
         //v_s_list.push_back({kf.x_s[i][3], kf.x_s[i][4], kf.x_s[i][5]});
 
 
-        // TODO change from angular
-	double theta = kf.x_s[i][3];
-	double phi = kf.x_s[i][4];
-	Eigen::VectorXd v = kf.to_cartesian_v(theta, phi);
+	// TODO change from angular
+	double tanx = kf.x_s[i][3];
+	double tanz = kf.x_s[i][4]; 
+//	double theta = kf.x_s[i][3];
+//	double phi = kf.x_s[i][4];
+	Eigen::VectorXd v = kf.to_cartesian_v(tanx, tanz);
 	v_s_list.push_back({v[0],v[1],v[2]});
 //	v_s_list.push_back({c*beta*sin(theta)*cos(phi), c*beta*cos(theta), c*beta*sin(theta)*sin(phi)});
 
@@ -272,27 +274,46 @@ private:
 
 		// TODO: UNCOMMENT THIS FOR C_B IMPLEMENTATION
 		 // Note: y and z are swapped from standard spherical coordinates
-
+		
 		  std::vector<std::vector<double>> _track_cov;
 		  Eigen::MatrixXd TC = kf.P_s[0];
+		double tanx = kf.x_s[0][3];
+		double tanz = kf.x_s[0][4];
 
-		double theta = kf.x_s[0][3];
-		double phi = kf.x_s[0][4];
-		Eigen::VectorXd v = kf.to_cartesian_v(theta, phi);
-		std::cout << "prepare_output: to_cartesian_v" << std::endl;
-	      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], v[0], v[1], v[2], kf.x_s[0][1]};
-		std::cout << "prepare_output: getting x_s" << std::endl;
+		Eigen::VectorXd v = kf.to_cartesian_v(tanx, tanz);
+		x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], v[0], v[1], v[2], kf.x_s[0][1]};
 		double c = constants::c;
+		double N = std::sqrt(1 + tanx*tanx + tanz*tanz);
 
-		  Eigen::MatrixXd jac;
-		  jac = Eigen::MatrixXd::Zero(7,5);
-		  jac << 1,		0,		0,		0,		0,
-		  		   0,		0,		0,		0,		0,
-		  		   0,		0,		1,		0,		0,
-		  		   0,		0,		0,	beta*c*cos(theta)*cos(phi), -beta*c*sin(theta)*sin(phi),
-		  		   0,		0,		0,	-beta*c*sin(theta),		0,
-		  		   0,		0,		0,	beta*c*cos(theta)*sin(phi),		beta*c*sin(theta)*cos(phi),
-		  		   0,		1,		0,		0,		0;
+		Eigen::MatrixXd jac;
+		jac = Eigen::MatrixXd::Zero(7,5);
+		jac <<
+			1,		0,		0,		0,		0,
+			0,		0,		0,		0,		0,
+			0,		0,		1,		0,		0,
+			0,		0,		0,		beta*c*(tanz*tanz+1)/std::pow(N,3/2),		-beta*c*tanx*tanz/std::pow(N,3/2),
+			0,		0,		0,		-beta*c*tanx/std::pow(N,3/2),		-beta*c*tanz/std::pow(N,3/2),
+			0,		0,		0,		-beta*c*tanx*tanz/std::pow(N,3/2),		beta*c*(tanx*tanx+1)/std::pow(N,3/2),
+			0,		1,		0,		0,		0;
+
+
+//		double theta = kf.x_s[0][3];
+//		double phi = kf.x_s[0][4];
+//		Eigen::VectorXd v = kf.to_cartesian_v(theta, phi);
+//		std::cout << "prepare_output: to_cartesian_v" << std::endl;
+//	      x_s = {kf.x_s[0][0], layer_hits[layers[0]][0]->y, kf.x_s[0][2], v[0], v[1], v[2], kf.x_s[0][1]};
+//		std::cout << "prepare_output: getting x_s" << std::endl;
+//		double c = constants::c;
+
+//		  Eigen::MatrixXd jac;
+//		  jac = Eigen::MatrixXd::Zero(7,5);
+//		  jac << 1,		0,		0,		0,		0,
+//		  		   0,		0,		0,		0,		0,
+//		  		   0,		0,		1,		0,		0,
+//		  		   0,		0,		0,	beta*c*cos(theta)*cos(phi), -beta*c*sin(theta)*sin(phi),
+//		  		   0,		0,		0,	-beta*c*sin(theta),		0,
+//		  		   0,		0,		0,	beta*c*cos(theta)*sin(phi),		beta*c*sin(theta)*cos(phi),
+//		  		   0,		1,		0,		0,		0;
 		  TC= jac*TC*jac.transpose();
 		for (int i = 0; i < 7; i++) {
 			std::vector<double> newRow;

@@ -81,14 +81,18 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
   std::cout << "R " << std::endl;
   std::cout << R << std::endl;
 
-  double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
-  double phi = std::atan2(x0[5], x0[3]);
+//  double theta = std::atan2(std::sqrt(x0[3]*x0[3] + x0[5]*x0[5]), x0[4]);
+//  double phi = std::atan2(x0[5], x0[3]);
+	double tanx = x0[3]/x0[4];
+	double tanz = x0[5]/x0[4];
 
-  std::cout << "x0 is " << x0.transpose() << " giving theta and phi " << theta << " " << phi << std::endl;
+
+  //std::cout << "x0 is " << x0.transpose() << " giving theta and phi " << theta << " " << phi << std::endl;
+  std::cout << "x0 is " << x0.transpose() << " giving tanx and tanz " << tanx << " " << tanz << std::endl;
 
   // TODO
-  Eigen::VectorXd v = to_cartesian_v(theta, phi);
-  x_hat << x0[0], x0[1], x0[2], theta, phi;// look for nearest hit using seed guess
+  Eigen::VectorXd v = to_cartesian_v(tanx, tanz);
+  x_hat << x0[0], x0[1], x0[2], tanx, tanz;// look for nearest hit using seed guess
 
   std::cout << "v is " << v.transpose() << std::endl;
 
@@ -109,7 +113,7 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
   // use position of closest hit for first state
   physics::digi_hit *y0 = first_layer[x_ind];
-  x_hat << y0->x, y0->t, y0->z, theta, phi;
+  x_hat << y0->x, y0->t, y0->z, tanx, tanz;
 //  x_hat << y0->x, y0->t, y0->z, x0[3], x0[4], x0[5];
 //  x_hat << y0->x, y0->t, y0->z, v[0], v[1], v[2];
 
@@ -117,10 +121,8 @@ void KalmanFilter_c_b::init_gain(const Eigen::VectorXd &x0, std::vector<physics:
 
     Eigen::VectorXd Y(m);
     Y << y0->x, y0->t, y0->z;
-    Eigen::VectorXd v = to_cartesian_v(theta, phi);
+    Eigen::VectorXd v = to_cartesian_v(tanx, tanz);
 
-    std::cout << "Filtering: First velocity is " << v.transpose() / constants::c <<
-	" at y = " << y_val << " digi is " << Y.transpose() << std::endl;
   }
 
   initialized = true;
@@ -215,11 +217,7 @@ double KalmanFilter_c_b::update_gain(const std::vector<physics::digi_hit *> y_li
 	std::cout << "update_gain: x_hat_new" << std::endl;
 	std::cout << x_hat_new << std::endl;
     Eigen::VectorXd v(3);
-    /*v << x_hat_new[3], x_hat_new[4], x_hat_new[5];
 
-    std::cout << "Filtering: Residue is " << (Y - C * x_hat_new).transpose() << " at y = " << y_val << " with chi " << chi_plus <<
-	" updated velocity is " << v.transpose() / constants::c << " digi is " << Y.transpose() << std::endl;
-	*/
   }
 
   std::cout << "update_gain: R" << std::endl;
@@ -365,6 +363,7 @@ double KalmanFilter_c_b::smooth_gain(const physics::digi_hit *y, int k)
     P_n = (I - K_n * C) * P_n;
 	std::cout << " smooth_gain: got x_n and P_n" << std::endl;
 //    std::cout << "hit was dropped, new state is  " << x_n.transpose() << std::endl;
+
   }
   std::cout <<"smooth_gain: if statement" << std::endl;
 
@@ -397,6 +396,26 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 */
     // TODO
     // fixed beta propagation
+
+	std::cout <<"about to set tanx and tanz" << std::endl;
+    double tanx = x_hat[3];
+    double tanz = x_hat[4];
+	double N = std::sqrt(1 + tanx*tanx + tanz*tanz);
+
+    double dx = dy * tanx;
+    double dt = dy * N / (beta * constants::c);
+    double dz = dy * tanz;
+	std::cout << "Current Value of A:" << std::endl;
+    std::cout << A << std::endl;
+	std::cout << "About to set A" << std::endl;
+    A << 1.0, .0, .0,    dy, .0,
+         .0, 1.0, dt/dz, .0, .0,
+         .0, .0, 1.0,    .0, dy,
+         .0, .0, .0, 1.0, .0,
+         .0, .0, .0, .0, 1.0;
+	std::cout << "Set A for beta version" << std::endl;
+
+/*
 	std::cout <<"about to set theta and phi" << std::endl;
     double tht = x_hat[3];
     double phi = x_hat[4];
@@ -413,7 +432,7 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
          .0, .0, .0, 1.0, .0,
          .0, .0, .0, .0, 1.0;
 	std::cout << "Set A for beta version" << std::endl;
-/**/
+*/
 /*
     // t propagation
     double dt = a_hit->t - x_hat[1];
