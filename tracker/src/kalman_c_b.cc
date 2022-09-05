@@ -381,8 +381,9 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
 //      0, a_hit->et * std::sqrt(2), 0,
 //      0, 0, a_hit->ez; // INCREASING T ERROR ARTIFICIALLY
   R = R * R;
-  std::cout << "update_matrices: set R" << std::endl;
-  std::cout << initialized << std::endl;
+  std::cout << "update_matrices: R" << std::endl;
+  std::cout << R << std::endl;
+  std::cout << "initialized: " << initialized << std::endl;
   if (initialized) {
 
     // standard y propagation
@@ -405,15 +406,14 @@ void KalmanFilter_c_b::update_matrices(physics::digi_hit *a_hit)
     double dx = dy * tanx;
     double dt = dy * N / (beta * constants::c);
     double dz = dy * tanz;
-	std::cout << "Current Value of A:" << std::endl;
-    std::cout << A << std::endl;
-	std::cout << "About to set A" << std::endl;
+	double cur_z = x_hat[2];
     A << 1.0, .0, .0,    dy, .0,
-         .0, 1.0, dt/dz, .0, .0,
+         .0, 1.0, dt/cur_z, .0, .0,
          .0, .0, 1.0,    .0, dy,
          .0, .0, .0, 1.0, .0,
          .0, .0, .0, .0, 1.0;
-	std::cout << "Set A for beta version" << std::endl;
+	std::cout << "udpate_matrices: A: " << std::endl;
+	std::cout << A << std::endl;
 
 /*
 	std::cout <<"about to set theta and phi" << std::endl;

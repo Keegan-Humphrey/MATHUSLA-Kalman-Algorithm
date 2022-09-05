@@ -140,6 +140,7 @@ int RunManager::StartTracking()
 
 			_tracker->CalculateMissingHits(_digitizer->_geometry);
 			_tracker_c_b->CalculateMissingHits(_digitizer->_geometry);
+			std::cout << "finished CalculateMissingHits" << std::endl;
 
 			made_its_k += _tracker->tracks_k_m.size();
 			made_its_c_b += _tracker_c_b->tracks_k_m.size(); 

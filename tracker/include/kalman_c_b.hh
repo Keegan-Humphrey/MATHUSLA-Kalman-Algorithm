@@ -69,7 +69,7 @@ public:
                      // with lowest chi regardless of the value
       first_hit = true;
     }
-
+	std::cout << "find_nearest: first_hit: " << first_hit << std::endl;
     Eigen::MatrixXd P_temp = P;
 
     Stat_Funcs sts;
@@ -84,7 +84,11 @@ public:
       update_matrices(hit);
 
 //      Eigen::VectorXd x_hat_new_temp = A * x_hat;
+	  std::cout << "find_nearest: measured hit: " << std::endl;
+	  std::cout << hit->x << "\t" << hit->t << "\t" << hit->z << std::endl;
       Eigen::VectorXd x_hat_new_temp = A * position;
+	  std::cout << "find_nearest: x_hat_new_temp" << std::endl;
+	  std::cout << x_hat_new_temp.transpose() << std::endl;
 
       if (initialized) {
         P_temp = A * P * A.transpose() + Q;
@@ -95,9 +99,16 @@ public:
 	  //TODO: Make sure the math here is still valid after the coordinate change
       Eigen::MatrixXd err_metric = R + C * P_temp * C.transpose();
 	  std::cout << "find_nearest: err_metric" << std::endl;
+	  std::cout << err_metric << std::endl;
+	  std::cout << "find_nearest: err_metric inverse " << std::endl;
+	  std::cout << err_metric.inverse() << std::endl;
       // compute the chi increment
 //      double del_chi = (hit_eig - C * position).transpose() * err_metric.inverse() * (hit_eig - C * position);
+	  std::cout << "find_nearest: residual" << std::endl;
+	  std::cout << (hit_eig - C * x_hat_new_temp) << std::endl; 
       double del_chi = (hit_eig - C * x_hat_new_temp).transpose() * err_metric.inverse() * (hit_eig - C * x_hat_new_temp);
+	  std::cout << "find_nearest: del_chi: " << del_chi << std::endl;
+	  std::cout << "find_nearest: min_val: " << min_val << std::endl;
 
       /*
       // calculate p value from the chi increment
@@ -115,6 +126,7 @@ public:
 
       if (del_chi < min_val) // && cuts::kalman_v_add[0] < v / constants::c && v / constants::c < cuts::kalman_v_add[1])
       { // if hit has lowest chi so far and meets beta cuts, keep track of its index and the previous best
+		std::cout << "find_nearest: found an adequate hit" << std::endl;
 
         // keep track of second lowest for king moves
         second_min_index = min_index;
