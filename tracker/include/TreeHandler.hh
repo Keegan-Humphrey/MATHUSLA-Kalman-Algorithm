@@ -993,21 +993,21 @@ void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){
 	track_c_b_cov_x_z.push_back(tr->P_s(0,2));
 	track_c_b_cov_x_vx.push_back(tr->P_s(0,3));
 	track_c_b_cov_x_vy.push_back(tr->P_s(0,4));
-	track_c_b_cov_x_vz.push_back(tr->P_s(0,5));
+//	track_c_b_cov_x_vz.push_back(tr->P_s(0,5));
 
 	track_c_b_cov_t_z.push_back(tr->P_s(1,2));
 	track_c_b_cov_t_vx.push_back(tr->P_s(1,3));
 	track_c_b_cov_t_vy.push_back(tr->P_s(1,4));
-	track_c_b_cov_t_vz.push_back(tr->P_s(1,5));
+//	track_c_b_cov_t_vz.push_back(tr->P_s(1,5));
 
 	track_c_b_cov_z_vx.push_back(tr->P_s(2,3));
 	track_c_b_cov_z_vy.push_back(tr->P_s(2,4));
-	track_c_b_cov_z_vz.push_back(tr->P_s(2,5));
+//	track_c_b_cov_z_vz.push_back(tr->P_s(2,5));
 
 	track_c_b_cov_vx_vy.push_back(tr->P_s(3,4));
-	track_c_b_cov_vx_vz.push_back(tr->P_s(3,5));
+//	track_c_b_cov_vx_vz.push_back(tr->P_s(3,5));
 
-	track_c_b_cov_vy_vz.push_back(tr->P_s(4,5));
+//	track_c_b_cov_vy_vz.push_back(tr->P_s(4,5));
 
 
 
@@ -1072,7 +1072,7 @@ void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){
       // Track Betas and Error in Beta
       double v = std::sqrt(std::pow(tr->vx,2) + std::pow(tr->vy,2) + std::pow(tr->vz,2));
 			track_c_b_beta.push_back(v / constants::c);
-
+/*
 			Eigen::MatrixXd R = tr->P_s;
 			Eigen::MatrixXd D(3,3);
 			D << R(3,3), R(3,4), R(3,5),
@@ -1081,7 +1081,7 @@ void TreeHandler::ExportTracks_c_b(std::vector<Track*> track_list){
 			Eigen::VectorXd q(3);
 			q << tr->vx, tr->vy, tr->vz;
 			track_c_b_beta_err.push_back((q.transpose() * D * q)(0) / (v * v));
-
+*/ // beta error needs to be propagated with new coordinates
       }
 
 }

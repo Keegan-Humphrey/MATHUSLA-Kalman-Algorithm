@@ -146,15 +146,25 @@ int RunManager::StartTracking()
 			made_its_c_b += _tracker_c_b->tracks_k_m.size(); 
 
 			TH->ExportTracks_k_m(_tracker->tracks_k_m);
+
+			std::cout << "finished old track Root export" << std::endl;
+
 			TH->ExportTracks_c_b(_tracker_c_b->tracks_k_m);
+
+			std::cout << "finished track Root export" << std::endl;
 
 			_vertexer->tracks_k_m = _tracker->tracks_k_m;
 			_vertexer_c_b->tracks_k_m = _tracker_c_b->tracks_k_m; 
 
 			_vertexer->Seed_k_m();
 			_vertexer_c_b->Seed_k_m();
+
+			std::cout << "finished vertex seeding" << std::endl;
+
 			_vertexer->FindVertices_k_m_hybrid();
 			_vertexer_c_b->FindVertices_k_m_hybrid();
+
+			std::cout << "finished vertexing" << std::endl;
 
 			//_vertexer->FindVertices_k();
 
@@ -163,6 +173,8 @@ int RunManager::StartTracking()
 
 			TH->ExportVertices_k_m(_vertexer->vertices_k_m);
 			TH->ExportVertices_c_b(_vertexer_c_b->vertices_k_m);
+
+			std::cout << "finished vertex root export" << std::endl;
 
 			TH->Fill();
 
