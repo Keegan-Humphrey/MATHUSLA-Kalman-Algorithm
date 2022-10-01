@@ -477,13 +477,11 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
 
 //  double cos_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
   double cos_theta = std::sqrt(b*b) / mag; // CORRECT ONE
-  double tan_theta_x = 1;
-  double tan_theta_z = 1;
-  double speed_of_light = 1;
-  double beta = 1;
+  double tan_theta_x = a*mag;
+  double tan_theta_z = c*mag;
+  double speed_of_light = 1; //fix this
+  double beta = 1; //fix this
   denominator =1/((speed_of_light*beta*std::sqrt(1+tan_theta_x*tan_theta_x+tan_theta_z*tan_theta_z)));
-
-  // TODO (new Q with right dimensions, and human readable formatting!!!)
 
   Q << (1-c*c), (((1-c*c)tan_theta_x+a*c*tan_theta_z)*denominator), (a*c), (1-c*c), (a*c),
 
