@@ -477,45 +477,29 @@ void KalmanFilter_c_b::Q_update(double dy, double a, double b, double c)
 
 //  double cos_theta = std::sqrt(a*a + b*b) / mag; // sin(\theta) of track relative to orthogonal to layer
   double cos_theta = std::sqrt(b*b) / mag; // CORRECT ONE
+  double tan_theta_x = 1;
+  double tan_theta_z = 1;
+  double speed_of_light = 1;
+  double beta = 1;
+  denominator =1/((speed_of_light*beta*std::sqrt(1+tan_theta_x*tan_theta_x+tan_theta_z*tan_theta_z)));
 
   // TODO (new Q with right dimensions, and human readable formatting!!!)
 
-  Q << dy * dy * (b * b + a * a) / std::pow(b, 4),
-      dy * dy * a / (constants::c * std::pow(b, 4)),
-      dy * dy * a * c / std::pow(b, 4),
-      constants::c * dy / b,
-      -constants::c * dy * a / (b * b),
-      0,
-      dy * dy * a / (constants::c * std::pow(b, 4)),
-      dy * dy * (1 - b * b) / (std::pow(constants::c, 2) * std::pow(b, 4)),
-      dy * dy * c / (constants::c * std::pow(b, 4)),
-      dy * a / b,
-      -dy * (1 - b * b) / (b * b),
-      dy * c / b,
-      dy * dy * a * c / std::pow(b, 4),
-      dy * dy * c / (constants::c * std::pow(b, 4)),
-      dy * dy * (c * c + b * b) / std::pow(b, 4),
-      0,
-      -constants::c * dy * c / (b * b),
-      constants::c * dy / b,
-      constants::c * dy / b,
-      dy * a / b,
-      0,
-      std::pow(constants::c, 2) * (1 - a * a),
-      -std::pow(constants::c, 2) * (a * b),
-      -std::pow(constants::c, 2) * (a * c),
-      -constants::c * dy * a / (b * b),
-      -dy * (1 - b * b) / (b * b),
-      -constants::c * dy * c / (b * b),
-      -std::pow(constants::c, 2) * (a * b),
-      std::pow(constants::c, 2) * (1 - b * b),
-      -std::pow(constants::c, 2) * (b * c),
-      0,
-      dy * c / b,
-      constants::c * dy / b,
-      -std::pow(constants::c, 2) * (a * c),
-      -std::pow(constants::c, 2) * (b * c),
-      std::pow(constants::c, 2) * (1 - c * c);
+  Q << (1-c*c), (((1-c*c)tan_theta_x+a*c*tan_theta_z)*denominator), (a*c), (1-c*c), (a*c),
+
+(((1-c*c)tan_theta_x+a*c*tan_theta_z)*denominator),
+(((1-c*c)tan_theta_x*tan_theta_x+2*a*c*tan_theta_x*tan_theta_z+(1-a*a)*tan_theta_z*tan_theta_z)*denominator*denominator), 
+((a*c*tan_theta_x+(1-a*a)*tan_theta_z)*denominator),
+(((1-c*c)*tan_theta_x+a*c*tan_theta_z)*denominator),
+((a*c*tan_theta_x+(1-a*a)*tan_theta_z)*denominator),
+
+(a*c), ((a*c*tan_theta_x+(1-a*a)tan_theta_z)*denominator), (1-a*a), a*c, (1-a*a),
+(1-c*c), (((1-c*c)tan_theta_x+a*c*tan_theta_z)*denominator), (a*c), (1-c*c), (a*c),
+(a*c), ((a*c*tan_theta_x+(1-a*a)*tan_theta_z)*denominator), (1-a*a), (a*c), (1-a*a)
+
+  Q = Q*dy*dy;
+  Q /= std::pow(b,4);
+
 
   //double sigma_ms = kalman_c_b::sigma_ms_p / kalman_c_b::p; // [rad]
   //double sigma_ms = par_handler->par_map["sigma_ms_p"] / par_handler->par_map["p"]; // [rad]
