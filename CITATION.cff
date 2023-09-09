@@ -1,0 +1,25 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: MATHUSLA-Kalman-Algorithm
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Keegan
+    family-names: Humphrey
+    email: keegan.humphrey@mail.utoronto.ca
+    name-particle: Keegan
+    affiliation: University of Toronto
+identifiers:
+  - type: url
+    value: 'https://inspirehep.net/authors/2647234'
+    description: Inspire HEP Author Identifier
+repository-code: >-
+  https://github.com/Keegan-Humphrey/MATHUSLA-Kalman-Algorithm/tree/main
+abstract: >-
+  Extended Kalman Filter based Tracking and Vertexing
+  software for analysis done on the proposed MATHUSLA
+  detector at the Large Hadron Collider.
